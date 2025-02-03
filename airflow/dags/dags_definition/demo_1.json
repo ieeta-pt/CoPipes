@@ -1,0 +1,44 @@
+{
+    "name": "demo_1",
+    "default_args": {
+        "owner": "airflow",
+        "start_date": "2018, 1, 1",
+        "email": "someEmail@gmail.com",
+        "email_on_failure": "False"
+    },
+    "nodes": [
+        {
+            "name": "Start",
+            "_type": "airflow.operators.bash.BashOperator",
+            "parameters": {
+                "bash_command": "echo I am task 1"
+            }
+        },
+        {
+            "name": "HTTPRequest",
+            "_type": "airflow.operators.bash.BashOperator",
+            "parameters": {
+                "bash_command": "echo I am task 2"
+            }
+        },
+        {
+            "name": "End",
+            "_type": "airflow.operators.bash.BashOperator",
+            "parameters": {
+                "bash_command": "echo I am task 3"
+            }
+        },
+        {
+            "name": "ExecuteCommand",
+            "_type": "airflow.operators.bash.BashOperator",
+            "parameters": {
+                "bash_command": "echo I am task 4"
+            }
+        }
+    ],
+    "connections": {
+        "Start": ["ExecuteCommand", "HTTPRequest"],
+        "HTTPRequest": ["End"],
+        "ExecuteCommand": ["End"]
+    }
+}
