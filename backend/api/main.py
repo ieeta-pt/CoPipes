@@ -1,10 +1,11 @@
 import os
+import subprocess
 
 from fastapi import FastAPI, HTTPException
 import httpx
 
-from typing import Dict, Any
-from datetime import datetime
+from pathlib import Path
+import json
 
 app = FastAPI()
 
@@ -13,6 +14,9 @@ AIRFLOW_USERNAME = os.getenv("AIRFLOW_USERNAME")
 AIRFLOW_PASSWORD = os.getenv("AIRFLOW_PASSWORD")
 
 API_AUTH = auth = (AIRFLOW_USERNAME, AIRFLOW_PASSWORD)
+
+DAG_FACTORY_PATH = Path("/airflow/dags/dag_factory.py")
+DAG_OUTPUT_DIR = Path("/airflow/dags/dags_definition")
 
 @app.get("/")
 def read_root():
@@ -42,19 +46,30 @@ async def trigger_dag_run(dag_id: str):
         except httpx.RequestError as e:
             raise HTTPException(status_code=500, detail="Failed to connect to Airflow API")
         
+@app.post("/create_dag/")
+async def create_dag(dag_definition: dict):
+    try:
+        dag_id = dag_definition.get("dag_id")
+        if not dag_id:
+            raise HTTPException(status_code=400, detail="DAG ID is required")
 
+        dag_file_path = DAG_OUTPUT_DIR / f"{dag_id}.json"
 
-# default_args = {
-#     "owner": "airflow",
-#     "start_date": datetime(2018, 1, 1),
-#     "email": ["someEmail@gmail.com"],
-#     "email_on_failure": False,
-# }
+        # Save DAG definition as JSON
+        with open(dag_file_path, "w") as json_file:
+            json.dump(dag_definition, json_file, indent=4)
 
-# @app.post("/create_dag")
-# async def create_dag(definition: Dict[str, Any]):
-#     try:
-#         result = create_dag(None, default_args, definition)
-#         return result
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=str(e))
+        # Trigger DAG factory script
+        process = subprocess.run(
+            ["python3", DAG_FACTORY_PATH, "--dag_ide", dag_id],
+            capture_output=True,
+            text=True
+        )
+
+        if process.returncode != 0:
+            raise HTTPException(status_code=500, detail=f"Error generating DAG: {process.stderr}")
+
+        return {"message": f"DAG '{dag_id}' created and loaded into Airflow successfully!"}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
