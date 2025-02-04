@@ -12,17 +12,17 @@ AIRFLOW_API_URL = os.getenv("AIRFLOW_API_URL")
 AIRFLOW_USERNAME = os.getenv("AIRFLOW_USERNAME")
 AIRFLOW_PASSWORD = os.getenv("AIRFLOW_PASSWORD")
 
+API_AUTH = auth = (AIRFLOW_USERNAME, AIRFLOW_PASSWORD)
+
 @app.get("/")
 def read_root():
     return {"Hello": "World"}
 
 @app.get("/get_dags")
 async def get_airflow_dags():
-    auth = (AIRFLOW_USERNAME, AIRFLOW_PASSWORD)  
-
     async with httpx.AsyncClient() as client:
         try:
-            response = await client.get(AIRFLOW_API_URL, auth=auth)
+            response = await client.get(AIRFLOW_API_URL, auth=API_AUTH)
             response.raise_for_status()  
             return response.json()
         except httpx.HTTPStatusError as e:
@@ -30,6 +30,20 @@ async def get_airflow_dags():
         except httpx.RequestError as e:
             raise HTTPException(status_code=500, detail="Failed to connect to Airflow API")
         
+@app.get("/run_dag/{dag_id}")
+async def trigger_dag_run(dag_id: str):
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(f"http://airflow-webserver:8080/api/v1/dags/{dag_id}/dagRuns", auth=API_AUTH)
+            response.raise_for_status()  
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail=f"Airflow API error: {e}")
+        except httpx.RequestError as e:
+            raise HTTPException(status_code=500, detail="Failed to connect to Airflow API")
+        
+
+
 # default_args = {
 #     "owner": "airflow",
 #     "start_date": datetime(2018, 1, 1),

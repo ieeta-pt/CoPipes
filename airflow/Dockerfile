@@ -1,16 +1,8 @@
 FROM apache/airflow:2.10.4
 
-WORKDIR /opt/airflow
+ENV AIRFLOW_HOME=/opt/airflow
 
-COPY requirements.txt .
+RUN pip install --no-cache-dir psycopg2-binary apache-airflow-providers-postgres
 
-RUN pip install --no-cache-dir -r requirements.txt
-
-COPY dags/ /opt/airflow/dags/
-COPY entrypoint.sh /entrypoint.sh
-
-USER root
-RUN chmod +x /entrypoint.sh
-USER airflow
-
-ENTRYPOINT ["/entrypoint.sh"]
+COPY dags/ $AIRFLOW_HOME/dags/
+COPY plugins/ $AIRFLOW_HOME/plugins/
