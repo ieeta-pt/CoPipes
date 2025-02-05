@@ -6,14 +6,12 @@ def create_postgres_connection():
     session = Session()
     conn_id = "my_postgres"
 
-    # Check if the connection already exists
     existing_conn = session.query(Connection).filter(Connection.conn_id == conn_id).first()
     if existing_conn:
         print(f"Connection '{conn_id}' already exists.")
         session.close()
         return
     
-    # Define the new connection
     new_conn = Connection(
         conn_id=conn_id,
         conn_type="postgres",
@@ -24,7 +22,6 @@ def create_postgres_connection():
         port=5432
     )
 
-    # Add and commit the connection
     session.add(new_conn)
     session.commit()
     session.close()

@@ -2,14 +2,12 @@ from airflow import DAG
 from airflow.operators.python import PythonOperator
 from datetime import datetime
 
-# Import the Python functions from separate modules
 from components.read_csv import read_csv
 from components.process_data import process_data
 from components.write_to_db import write_to_db
 from components.create_table import create_table
 from components.create_conn import create_postgres_connection
 
-# Define the DAG
 with DAG(
     dag_id="process_student_grades",
     schedule_interval=None,
@@ -41,6 +39,5 @@ with DAG(
         provide_context=True
     )
 
-    # Task dependencies
     create_connection_task >> create_table_task 
     read_csv_task >> process_data_task >> write_to_db_task

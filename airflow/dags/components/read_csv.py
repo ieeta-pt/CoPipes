@@ -1,7 +1,6 @@
 import pandas as pd
 from airflow.utils.log.logging_mixin import LoggingMixin
 
-# Define file path
 INPUT_FILE = "/opt/airflow/data/input_data/input.csv"
 
 def read_csv(**kwargs):
