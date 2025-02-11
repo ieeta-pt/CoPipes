@@ -1,6 +1,8 @@
 from airflow.models import Connection
 from airflow.settings import Session
+from airflow.decorators import task
 
+@task
 def create_postgres_connection():
     """Creates a PostgreSQL connection in Airflow if it doesn't already exist."""
     session = Session()

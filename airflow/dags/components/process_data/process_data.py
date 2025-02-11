@@ -5,7 +5,7 @@ def process_data(**kwargs):
     """Calculates NotaF (final grade) and prepares data for DB insertion."""
     logger = LoggingMixin().log
     ti = kwargs['ti']
-    data = ti.xcom_pull(key='data', task_ids='read_csv')
+    data = ti.xcom_pull(key='csv_data', task_ids='read_csv')
 
     if not data:
         logger.error("No data received from read_csv task.")
