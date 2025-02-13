@@ -6,7 +6,7 @@ from components.read_csv import read_csv
 from components.process_data.process_data import process_data
 from components.process_data.write_to_db import write_to_db
 from components.process_data.create_table import create_table
-from components.create_conn import create_postgres_connection
+from components.create_conn import create_connection
 
 with DAG(
     dag_id="process_student_grades",
@@ -14,7 +14,7 @@ with DAG(
     start_date=datetime(2025, 2, 3),
     catchup=False,
 ) as dag:
-    create_connection_task = create_postgres_connection()
+    create_connection_task = create_connection()
 
     create_table_task = create_table()
 

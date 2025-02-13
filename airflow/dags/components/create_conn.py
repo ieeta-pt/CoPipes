@@ -3,10 +3,17 @@ from airflow.settings import Session
 from airflow.decorators import task
 
 @task
-def create_postgres_connection():
+def create_connection(
+        conn_id: str = "my_postgres",
+        conn_type: str = "postgres",
+        host: str = "postgres",
+        schema: str = "airflow",
+        login: str = "airflow",
+        password: str = "airflow",
+        port: int = 5432
+    ) -> None:
     """Creates a PostgreSQL connection in Airflow if it doesn't already exist."""
     session = Session()
-    conn_id = "my_postgres"
 
     existing_conn = session.query(Connection).filter(Connection.conn_id == conn_id).first()
     if existing_conn:
@@ -16,12 +23,12 @@ def create_postgres_connection():
     
     new_conn = Connection(
         conn_id=conn_id,
-        conn_type="postgres",
-        host="postgres",
-        schema="airflow",
-        login="airflow",
-        password="airflow",
-        port=5432
+        conn_type=conn_type,
+        host=host,
+        schema=schema,
+        login=login,
+        password=password,
+        port=port
     )
 
     session.add(new_conn)

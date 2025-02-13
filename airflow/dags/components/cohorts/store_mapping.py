@@ -1,12 +1,17 @@
 from airflow.hooks.postgres_hook import PostgresHook
 import pandas as pd
+from airflow.decorators import task
 
-def store_mapping(table: str, **kwargs):
-        ti = kwargs['ti']
-        mapping_dict = ti.xcom_pull(key="mapping", task_ids="create_base_table")  
-        
+@task
+def store_mapping(data: dict):
+        mapping_dict = data["mapping"]
+        table = data["table"]
+
         if not mapping_dict:
-            raise ValueError("No mapping data found in XCom!")
+            raise ValueError("No mapping data received!")
+
+        if not table:
+            raise ValueError("No table name received!")
 
         mapping = pd.DataFrame.from_dict(mapping_dict)
 
@@ -20,14 +25,6 @@ def store_mapping(table: str, **kwargs):
         );
         """
         cursor.execute(create_table_sql)
-        conn.commit()
-
-        for _, row in mapping.iterrows():
-            values = tuple(row.fillna("").astype(str))  
-            placeholders = ", ".join(["%s"] * len(values))
-            insert_sql = f'INSERT INTO {table} VALUES ({placeholders})'
-            cursor.execute(insert_sql, values)
-
         conn.commit()
         cursor.close()
         conn.close()

@@ -1,0 +1,30 @@
+{
+  "dag_id": "from_api_cohort_dag",
+  "schedule_interval": "0 12 * * *",
+  "start_date": "2025-02-11",
+  "tasks": [
+    {
+      "task_id": "create_connection_task",
+      "module": "components.create_conn",
+      "function": "create_connection",
+      "params": {},
+      "dependencies": []
+    },
+    {
+      "task_id": "create_table_task",
+      "module": "components.cohorts.create_postgres_table",
+      "function": "create_table",
+      "params": {
+        "columns": [
+          "ancestor_concept_id",
+          "descendant_concept_id",
+          "min_levels_of_separation",
+          "max_levels_of_separation"
+        ],
+        "table_name": "concept_ancestor"
+      },
+      "dependencies": ["create_connection_task"]
+    }
+  ]
+}
+  
