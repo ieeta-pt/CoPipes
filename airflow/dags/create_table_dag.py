@@ -1,14 +1,15 @@
 from airflow import DAG
 from datetime import datetime
 
-from components.create_conn import create_connection
-from components.cohorts.create_postgres_table import create_table
+from components.postgres.create_conn import create_connection
+from components.postgres.create_table import create_table
 
 with DAG(
-    dag_id="cohort_dag",
+    dag_id="create_table_dag",
     schedule_interval=None,
     start_date=datetime(2025, 2, 3),
-    catchup=False
+    catchup=False,
+    description="This DAG creates a table in a PostgreSQL database."
 ) as dag:
     create_connection_task = create_connection()
 

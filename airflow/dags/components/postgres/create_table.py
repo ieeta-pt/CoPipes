@@ -5,7 +5,7 @@ from airflow.hooks.postgres_hook import PostgresHook
     
 @task
 def create_table(columns, table_name: str) -> Dict[str, dict]:
-    """Executes the task, creating a DataFrame and returning the mapping."""
+    """Creates a table in a PostgreSQL database."""
 
     mapping = pd.DataFrame(columns=columns)
 

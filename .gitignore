@@ -173,3 +173,5 @@ cython_debug/
 
 airflow/logs
 airflow/data
+
+notes.MD

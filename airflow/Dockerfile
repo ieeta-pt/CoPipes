@@ -6,3 +6,4 @@ RUN pip install --no-cache-dir psycopg2-binary apache-airflow-providers-postgres
 
 COPY dags/ $AIRFLOW_HOME/dags/
 COPY plugins/ $AIRFLOW_HOME/plugins/
+COPY data/ $AIRFLOW_HOME/data/
