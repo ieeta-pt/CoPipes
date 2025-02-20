@@ -1,31 +1,24 @@
 import pandas as pd
 import numpy as np
-import chardet
 from airflow.decorators import task
 
 @task
-def transform_csv(csv_filename: str, 
-                  fixed_columns: list[str], 
-                  measurement_columns: list[str], 
-                  cohort_sep: str = ',') -> pd.DataFrame:
-    """Transforms a CSV file into a key-value structure."""
+def transform_to_kv(data: dict,
+                    fixed_columns: list[str], 
+                    measurement_columns: list[str]) -> dict:
+    """Transforms a DataFrame into a key-value structure."""
 
-    # Detect encoding
-    with open(csv_filename, 'rb') as f:
-        result = chardet.detect(f.read())
-    
-    df_read = pd.read_csv(
-        csv_filename, 
-        na_values='null', 
-        sep=cohort_sep, 
-        dtype=str, 
-        encoding=result['encoding']
-    )
+    df = pd.DataFrame.from_dict(data["data"])
+    print(f"Original df: {df}")
+    df.columns = df.columns.str.strip()
 
-    df_read.columns = df_read.columns.str.strip()
+    print(f"df[column]: {df[fixed_columns]}")
+    print(f"df.reset_index: {df.reset_index(fixed_columns)}")
+    df_headers = df.reindex(columns=fixed_columns)
+    print(f"df_headers: {df_headers}")
 
-    df_headers = df_read[fixed_columns]
-    df_measures = df_read[measurement_columns]
+    return None
+    df_measures = df.reindex(measurement_columns)
     
     # Repeat static columns for each measurement
     df_processed = pd.DataFrame(
@@ -46,5 +39,5 @@ def transform_csv(csv_filename: str,
         left_index=True, right_index=True
     )
 
-    return df_output
+    return {"data": df_output.to_dict(), "filename": data["filename"]}
     

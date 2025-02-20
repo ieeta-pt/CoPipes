@@ -6,9 +6,10 @@ from components.postgres.create_conn import create_connection
 from components.postgres.create_table import create_table
 from components.extract.csv import extract_csv
 from components.postgres.write_to_db import write_to_postgres
+from components.cohorts.harmonizer import harmonize
 
 with DAG(
-    dag_id="transform_csv_dag",
+    dag_id="harmonize_dag",
     schedule_interval=None,
     start_date=datetime(2025, 2, 3),
     catchup=False,
@@ -23,6 +24,15 @@ with DAG(
         data = extract_csv_task,
         fixed_columns = ["Patient ID", "Date of"],
         measurement_columns = ["Insomnia Severity Index (ISI)", "Epworth Sleepiness Scale (ESS)", "RBDSQ total"]
+    )
+
+    extract_mappings_task = extract_csv(
+        filename = "/opt/airflow/data/input_data/mappings.csv"
+    )
+
+    harmonizer_task = harmonize(
+        data = transformer_task,
+        mappings = extract_mappings_task
     )
 
     create_connection_task = create_connection()
