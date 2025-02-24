@@ -1,25 +1,20 @@
 import pandas as pd
 import numpy as np
+from typing import Dict
 from airflow.decorators import task
 
 @task
 def transform_to_kv(data: dict,
                     fixed_columns: list[str], 
-                    measurement_columns: list[str]) -> dict:
+                    measurement_columns: list[str]) -> Dict[dict, str]:
     """Transforms a DataFrame into a key-value structure."""
 
-    df = pd.DataFrame.from_dict(data["data"])
-    print(f"Original df: {df}")
+    df = pd.DataFrame(data["data"])
     df.columns = df.columns.str.strip()
 
-    print(f"df[column]: {df[fixed_columns]}")
-    print(f"df.reset_index: {df.reset_index(fixed_columns)}")
-    df_headers = df.reindex(columns=fixed_columns)
-    print(f"df_headers: {df_headers}")
+    df_headers = df[fixed_columns]
+    df_measures = df[measurement_columns]
 
-    return None
-    df_measures = df.reindex(measurement_columns)
-    
     # Repeat static columns for each measurement
     df_processed = pd.DataFrame(
         np.repeat(df_headers.values, len(measurement_columns), axis=0),
@@ -39,5 +34,5 @@ def transform_to_kv(data: dict,
         left_index=True, right_index=True
     )
 
-    return {"data": df_output.to_dict(), "filename": data["filename"]}
+    return {"data": df_output.to_dict(orient="records"), "filename": data["filename"]}
     

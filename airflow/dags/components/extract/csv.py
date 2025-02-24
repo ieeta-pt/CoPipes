@@ -1,10 +1,11 @@
 import pandas as pd
 import chardet
+from typing import Dict
 from airflow.decorators import task
 
 @task
 def extract_csv(filename: str, 
-                file_sep: str = ',') -> dict:
+                file_sep: str = ',') -> Dict[dict, str]:
     """Load a CSV file into a DataFrame."""
 
     with open(filename, 'rb') as f:
@@ -19,7 +20,9 @@ def extract_csv(filename: str,
         encoding=result['encoding']
     )
 
-    data_file = filename.split("/")[-1].split(".")[0]
+    df_read = df_read.where(pd.notna(df_read), None)
 
-    return {"data": df_read.to_dict(), "filename": data_file}
+    data_file = filename.split("/")[-1]
+
+    return {"data": df_read.to_dict(orient="records"), "filename": data_file}
 

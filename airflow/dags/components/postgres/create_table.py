@@ -4,21 +4,23 @@ from airflow.decorators import task
 from airflow.hooks.postgres_hook import PostgresHook
     
 @task
-def create_table(columns, table_name: str) -> Dict[str, dict]:
+def create_table(columns: list[str], table_name: str) -> dict:
     """Creates a table in a PostgreSQL database."""
 
-    mapping = pd.DataFrame(columns=columns)
+    table_name = table_name.strip().replace(" ", "_").split(".")[0]
+
+    db_data = pd.DataFrame(columns=columns)
 
     for element in columns:
-        mapping[element] = None    
+        db_data[element] = None    
 
     pg_hook = PostgresHook(postgres_conn_id="my_postgres")
     conn = pg_hook.get_conn()
     cursor = conn.cursor()
 
     create_table_sql = f"""
-    CREATE TABLE IF NOT EXISTS {table_name} (
-        {", ".join([f'"{col}" TEXT' for col in mapping.columns])}
+    CREATE TABLE IF NOT EXISTS "{table_name}" (
+        {", ".join([f'"{col}" TEXT' for col in db_data.columns])}
     );
     """
     cursor.execute(create_table_sql)
@@ -26,5 +28,5 @@ def create_table(columns, table_name: str) -> Dict[str, dict]:
     cursor.close()
     conn.close()
 
-    return {"mapping": mapping.to_dict(), "table": table_name}
+    return {"table": table_name}
 

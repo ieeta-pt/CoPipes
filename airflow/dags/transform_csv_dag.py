@@ -38,8 +38,7 @@ with DAG(
     )
 
     write_to_db_task = write_to_postgres(
-        df = transformer_task,
-        table_name = "Berlin"
+        data = transformer_task
     )
 
     extract_csv_task >> transformer_task >> create_connection_task >> create_table_task >> write_to_db_task

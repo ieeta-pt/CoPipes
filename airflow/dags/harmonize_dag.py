@@ -17,17 +17,17 @@ with DAG(
 ) as dag:
 
     extract_csv_task = extract_csv(
-        filename = "/opt/airflow/data/input_data/20190510 EMIF Patient Data.csv"
+        filename = "/opt/airflow/data/input_data/20190510 EMIF Diagnosis.csv"
     )
 
     transformer_task = transform_to_kv(
         data = extract_csv_task,
-        fixed_columns = ["Patient ID", "Date of"],
-        measurement_columns = ["Insomnia Severity Index (ISI)", "Epworth Sleepiness Scale (ESS)", "RBDSQ total"]
+        fixed_columns = ["Patient ID", "Onset of Symptoms"],
+        measurement_columns = ["Diagnosis", "Etiology", "ICD-10 / DSM-V"]
     )
 
     extract_mappings_task = extract_csv(
-        filename = "/opt/airflow/data/input_data/mappings.csv"
+        filename = "/opt/airflow/data/input_data/UsagiExportContentMapping_v6.csv"
     )
 
     harmonizer_task = harmonize(
@@ -40,16 +40,19 @@ with DAG(
     create_table_task = create_table(
         columns = [
             "Patient ID", 
-            "Date of ",
+            "Onset of Symptoms",
             "Variable",
-            "Measure"
+            "Measure",
+            "VariableConcept",
+            "MeasureConcept",
+            "MeasureNumber",
+            "MeasureString"
         ],
-        table_name = "Berlin"
+        table_name = harmonizer_task["filename"]
     )
 
     write_to_db_task = write_to_postgres(
-        df = transformer_task,
-        table_name = "Berlin"
+        data = harmonizer_task
     )
 
-    extract_csv_task >> transformer_task >> create_connection_task >> create_table_task >> write_to_db_task
+    extract_csv_task >> transformer_task >> extract_mappings_task >> harmonizer_task >> create_connection_task >> create_table_task >> write_to_db_task
