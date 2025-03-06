@@ -22,8 +22,8 @@ with DAG(
 
     transformer_task = transform_to_kv(
         data = extract_csv_task,
-        fixed_columns = ["Patient ID", "Onset of Symptoms"],
-        measurement_columns = ["Diagnosis", "Etiology", "ICD-10 / DSM-V"]
+        fixed_columns = ["Patient ID", "Number of Visit", "Date of Diagnosis"],
+        measurement_columns = ["Onset of Symptoms", "Diagnosis", "Etiology", "ICD-10 / DSM-V", "Height", "Weight", "Blood Pressure", "Heart Rate", "Date of Diagnosis"]
     )
 
     extract_mappings_task = extract_csv(
@@ -40,7 +40,8 @@ with DAG(
     create_table_task = create_table(
         columns = [
             "Patient ID", 
-            "Onset of Symptoms",
+            "Number of Visit",
+            "Date of Diagnosis",
             "Variable",
             "Measure",
             "VariableConcept",

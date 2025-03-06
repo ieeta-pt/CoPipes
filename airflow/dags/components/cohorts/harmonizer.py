@@ -4,6 +4,8 @@ from airflow.decorators import task
 
 @task
 def harmonize(data: dict, mappings: dict, args = None, adhoc_harmonization=None) -> Dict[dict, str]:
+    print(f"\nHarmonizing {data['filename']}\n")
+
     df = pd.DataFrame.from_dict(data["data"])
     data_file = data["filename"]
 
@@ -49,29 +51,28 @@ def filter_data(data):
 
 def harmonize_variable_concept(data, data_file, mappings):
     data_mapping = mappings[mappings["sourceCode"].str.contains(data_file)]
-    data_mapping = data_mapping.reindex(columns=["sourceName", "targetConceptId"])
+    data_mapping = data_mapping.reindex(columns=["sourceName", "conceptId"])
     mappings_list = data_mapping.to_dict('records')
 
     data = data.copy()
     data.loc[:, "VariableConcept"] = data["Variable"].map(
         lambda var: next(
-            (m["targetConceptId"] for m in mappings_list if m["sourceName"].strip() == var.strip()), 
+            (m["conceptId"] for m in mappings_list if m["sourceName"].strip() == var.strip()), 
             None
         )
-    )
+    ).astype(object)
 
-    data["VariableConcept"] = data["VariableConcept"].where(pd.notna(data["VariableConcept"]), None)
     return data
 
 
 def harmonize_measure_concept(data, mappings):
     filtered_mapping = mappings[~mappings["sourceCode"].str.contains(".csv")]
-    filtered_mapping = filtered_mapping.reindex(columns=["sourceCode", "sourceName", "targetConceptId"])
+    filtered_mapping = filtered_mapping.reindex(columns=["sourceCode", "sourceName", "conceptId"])
 
     key_mapping_series = filtered_mapping[["sourceCode", "sourceName"]].apply(tuple, axis=1)
-    key_mapping = pd.concat([key_mapping_series, filtered_mapping["targetConceptId"]], axis=1)
+    key_mapping = pd.concat([key_mapping_series, filtered_mapping["conceptId"]], axis=1)
     key_mapping = key_mapping.rename(columns={0: 'source'})
-    key_mapping = key_mapping.set_index("source")["targetConceptId"].to_dict()
+    key_mapping = key_mapping.set_index("source")["conceptId"].to_dict()
 
     data["MeasureConcept"] = data[["Variable", "Measure"]].apply(tuple, axis=1).map(key_mapping)
     return data
@@ -83,7 +84,7 @@ def harmonize_measure_number(data):
 
     data["MeasureNumber"] = data["MeasureNumber"].astype(object)
     data.loc[data["MeasureConcept"].notnull(), "MeasureNumber"] = None
-    
+
     return data
 
 
@@ -127,3 +128,4 @@ def clean_empty_measure(data):
 # def get_patient_id_label(file, args):
 #     file_name = file.split(CSV_MARK)[1].replace(" ", "_")
 #     return args.settings["patient_ids"].get(file_name, "").strip('"')
+
