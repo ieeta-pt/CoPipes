@@ -5,6 +5,8 @@ from components.extract.csv import extract_csv
 from components.cohorts.transform_to_kv import transform_to_kv
 from components.cohorts.harmonizer import harmonize
 from components.cohorts.migrator import migrate
+from components.postgres.create_conn import create_connection
+from components.postgres.create_table import create_table
 
 ##### UTILS FUNCTIONS #####
 
@@ -25,16 +27,47 @@ with DAG (
 
     transform_task = transform_to_kv.expand(data=extract_csv_task)
 
-    extract_mappings_task = extract_csv(
+    extract_content_mappings_task = extract_csv(
         filename = "/opt/airflow/data/input_data/UsagiContentMapping_v5.csv"
     )
 
     harmonizer_task = harmonize.partial(
-            mappings=extract_mappings_task
+            mappings=extract_content_mappings_task
         ).expand(
             data = transform_task,
     )
 
-    migrator_task = migrate(data=harmonizer_task)
+    extract_column_mappings_task = extract_csv(
+        filename = "/opt/airflow/data/input_data/UsagiExportColumnMapping_v2.csv"
+    )
 
-    extract_csv_task >> transform_task >> extract_mappings_task >> harmonizer_task >> migrator_task
+    migrator_task = migrate(data=harmonizer_task, mappings=extract_column_mappings_task)
+
+    create_conn_task = create_connection()
+
+    create_table_task = create_table(
+        columns = [
+            'person_id',
+            'gender_concept_id',
+            'year_of_birth',
+            'month_of_birth',
+            'day_of_birth',
+    		'birth_datetime',
+            'death_datetime',
+            'race_concept_id',
+            'ethnicity_concept_id',
+            'location_id',
+    		'provider_id',
+            'care_site_id',
+            'person_source_value',
+            'gender_source_value',
+            'gender_source_concept_id',
+    		'race_source_value',
+            'race_source_concept_id',
+            'ethnicity_source_value',
+            'ethnicity_source_concept_id'
+        ],
+        table_name = "person"
+    )
+
+    extract_csv_task >> transform_task >> extract_content_mappings_task >> harmonizer_task >> extract_column_mappings_task >> migrator_task

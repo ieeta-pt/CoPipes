@@ -83,7 +83,7 @@ def harmonize_measure_number(data):
     data["MeasureNumber"] = pd.to_numeric(data["MeasureNumber"], errors='coerce')
 
     data["MeasureNumber"] = data["MeasureNumber"].astype(object)
-    data.loc[data["MeasureConcept"].notnull(), "MeasureNumber"] = None
+    data.loc[data["MeasureConcept"].notna(), "MeasureNumber"] = None
 
     return data
 
