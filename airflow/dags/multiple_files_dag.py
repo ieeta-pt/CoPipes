@@ -32,7 +32,7 @@ with DAG (
     )
 
     harmonizer_task = harmonize.partial(
-            mappings=extract_content_mappings_task
+            mappings=extract_content_mappings_task, adhoc_harmonization=True
         ).expand(
             data = transform_task,
     )
@@ -41,33 +41,34 @@ with DAG (
         filename = "/opt/airflow/data/input_data/UsagiExportColumnMapping_v2.csv"
     )
 
-    migrator_task = migrate(data=harmonizer_task, mappings=extract_column_mappings_task)
+    migrator_task = migrate(data=extract_csv_task, mappings=extract_column_mappings_task, adhoc_migration=True)
 
-    create_conn_task = create_connection()
+    # create_conn_task = create_connection()
 
-    create_table_task = create_table(
-        columns = [
-            'person_id',
-            'gender_concept_id',
-            'year_of_birth',
-            'month_of_birth',
-            'day_of_birth',
-    		'birth_datetime',
-            'death_datetime',
-            'race_concept_id',
-            'ethnicity_concept_id',
-            'location_id',
-    		'provider_id',
-            'care_site_id',
-            'person_source_value',
-            'gender_source_value',
-            'gender_source_concept_id',
-    		'race_source_value',
-            'race_source_concept_id',
-            'ethnicity_source_value',
-            'ethnicity_source_concept_id'
-        ],
-        table_name = "person"
-    )
+    # create_table_task = create_table(
+    #     columns = [
+    #         'person_id',
+    #         'gender_concept_id',
+    #         'year_of_birth',
+    #         'month_of_birth',
+    #         'day_of_birth',
+    # 		'birth_datetime',
+    #         'death_datetime',
+    #         'race_concept_id',
+    #         'ethnicity_concept_id',
+    #         'location_id',
+    # 		'provider_id',
+    #         'care_site_id',
+    #         'person_source_value',
+    #         'gender_source_value',
+    #         'gender_source_concept_id',
+    # 		'race_source_value',
+    #         'race_source_concept_id',
+    #         'ethnicity_source_value',
+    #         'ethnicity_source_concept_id'
+    #     ],
+    #     table_name = "person"
+    # )
 
     extract_csv_task >> transform_task >> extract_content_mappings_task >> harmonizer_task >> extract_column_mappings_task >> migrator_task
+    # create_conn_task >> create_table_task

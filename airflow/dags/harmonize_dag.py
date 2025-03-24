@@ -17,7 +17,7 @@ with DAG(
 ) as dag:
 
     extract_csv_task = extract_csv(
-        filename = "/opt/airflow/data/input_data/20190510 EMIF Diagnosis.csv"
+        filename = "/opt/airflow/data/input_data/0_CSVs/20190510 EMIF Diagnosis.csv"
     )
 
     transformer_task = transform_to_kv(
@@ -27,7 +27,7 @@ with DAG(
     )
 
     extract_mappings_task = extract_csv(
-        filename = "/opt/airflow/data/input_data/UsagiExportContentMapping_v6.csv"
+        filename = "/opt/airflow/data/input_data/UsagiContentMapping_v5.csv"
     )
 
     harmonizer_task = harmonize(

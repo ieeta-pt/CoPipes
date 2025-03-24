@@ -1,56 +1,67 @@
 from datetime import datetime
+import pandas as pd
 
 def harmonizer(row):
-    variableConcept = str(row["VariableConcept"])
-    if "2000000049" in variableConcept:
-        return readCeradWLRounds(row)
-    if "2000000051" in variableConcept:
-        return readCeradWLRecognition(row)
-    if "2000000551" in variableConcept:
-        return readDiagnosisAndEtiology(row)
-    if "2000000013" in variableConcept:
-        readApoE(row)
+    variable_concept = str(row["VariableConcept"])
+    if "2000000049" in variable_concept:
+        return read_cerad_wl_rounds(row)
+    if "2000000051" in variable_concept:
+        return read_cerad_wl_recognition(row)
+    if "2000000551" in variable_concept:
+        return read_diagnosis_and_etiology(row)
+    if "2000000013" in variable_concept:
+        read_apo_e(row)
 
-    if "2000000468" in variableConcept:
-        return dealWithFamilyHistoryDementia(row)
-    if "2000000434" in variableConcept:
-        return dealWithSleepDisordersClinicalInformation(row)
-    if "2000000609" in variableConcept:
-        return dealWithGender(row)
-    if "2000000293" in variableConcept:
-        return dealWithCSFAssay(row)
+    if "2000000468" in variable_concept:
+        return deal_with_family_history_dementia(row)
+    if "2000000434" in variable_concept:
+        return deal_with_sleep_disorders_clinical_information(row)
+    if "2000000609" in variable_concept:
+        return deal_with_gender(row)
+    if "2000000293" in variable_concept:
+        return deal_with_csf_assay(row)
 
-    #Deal with the errors in the cohort
-    if "2000000462" in variableConcept:
-        return dealWithWeight(row)
-    if "2000000388" in variableConcept:
-        return dealWithHeight(row)
-    if "2000000421" in variableConcept:
-        return dealWithPulseRate(row)
-    if "2000000358" in variableConcept:
-        return dealWithCholesterol(row)
-    if "2000000532" in variableConcept:
-        return dealWithCSFMeasure(row)
-    if "2000000068" in variableConcept:
-        return dealWithAmyloidBeta138(row)
+    # Deal with the errors in the cohort
+    if "2000000462" in variable_concept:
+        return deal_with_weight(row)
+    if "2000000388" in variable_concept:
+        return deal_with_height(row)
+    if "2000000421" in variable_concept:
+        return deal_with_pulse_rate(row)
+    if "2000000358" in variable_concept:
+        return deal_with_cholesterol(row)
+    if "2000000532" in variable_concept:
+        return deal_with_csf_measure(row)
+    if "2000000068" in variable_concept:
+        return deal_with_amyloid_beta_138(row)
 
     return row
 
-def readCeradWLRounds(row):
-    global ceradWLRounds
-    ceradWLRounds += [row]
+def add_missing_rows():
+    missing_rows = []
+    missing_rows += process_cerad_wl_rounds()
+    missing_rows += process_cerad_wl_recognition()
+    missing_rows += process_diagnosis_and_etiology()
+    # missing_rows += process_apo_e()
+    # missing_rows += process...
+    # ....
+    return missing_rows
+
+def read_cerad_wl_rounds(row):
+    global cerad_wl_rounds
+    cerad_wl_rounds += [row]
     return []
 
-def readCeradWLRecognition(row):
-    global ceradWLRecognition
-    ceradWLRecognition += [row]
+def read_cerad_wl_recognition(row):
+    global cerad_wl_recognition
+    cerad_wl_recognition += [row]
     return []
 
-def readApoE(row):
-    global apoE
-    apoE += [row]
+def read_apo_e(row):
+    global apo_e
+    apo_e += [row]
 
-def readDiagnosisAndEtiology(row):
+def read_diagnosis_and_etiology(row):
     global diagnosis, etiology
     if row["Variable"] == "Diagnosis":
         diagnosis[row["Patient ID"]] = row
@@ -58,8 +69,8 @@ def readDiagnosisAndEtiology(row):
         etiology[row["Patient ID"]] = row
     return []
 
-def dealWithFamilyHistoryDementia(row):
-    #convert 0 = no or 1 = yes
+def deal_with_family_history_dementia(row):
+    # convert 0 = no or 1 = yes
     row["MeasureNumber"] = None
     if row["Measure"] == '0':
         row["MeasureConcept"] = 2000000239
@@ -67,13 +78,13 @@ def dealWithFamilyHistoryDementia(row):
         row["MeasureConcept"] = 2000000238
     return row
 
-def dealWithSleepDisordersClinicalInformation(row):
+def deal_with_sleep_disorders_clinical_information(row):
     if row["Measure"] == "n.b.":
         row["MeasureString"] = None
     return row
 
-def dealWithGender(row):
-    #convert {1:8507, 0:8532}
+def deal_with_gender(row):
+    # convert {1:8507, 0:8532}
     row["MeasureNumber"] = None
     if row["Measure"] == '0':
         row["MeasureConcept"] = 8532
@@ -81,7 +92,7 @@ def dealWithGender(row):
         row["MeasureConcept"] = 8507
     return row
 
-def dealWithCSFAssay(row):
+def deal_with_csf_assay(row):
     '''
     CSF date before 03.12.2014:
         Assay: Innotest
@@ -91,108 +102,108 @@ def dealWithCSFAssay(row):
         Assay: Luminex
     '''
     try:
-        date = datetime.datetime.strptime(row['Date of puncture (Liquor)'], '%d-%M-%Y')
+        date = datetime.strptime(row['Date of puncture (Liquor)'], '%d-%M-%Y')
     except:
         print("No date defined in CSF Assay:\t", row)
         return []
-    if date < datetime.datetime(2014, 12, 3):
+    if date < datetime(2014, 12, 3):
         row["MeasureString"] = "Innotest"
-    elif date < datetime.datetime(2016, 12, 31):
+    elif date < datetime(2016, 12, 31):
         row["MeasureString"] = "MSD"
     else:
         row["MeasureString"] = "Luminex"
     row["MeasureNumber"] = None
     return row
 
-def dealWithWeight(row):
+def deal_with_weight(row):
     if row["Measure"].isdigit():
-        if float(row["Measure"]) < 0 or float(row["Measure"]) > 150:# remove invalid weights
+        if float(row["Measure"]) < 0 or float(row["Measure"]) > 150:  # remove invalid weights
             return []
         return row
     return []
 
-def dealWithHeight(row):
+def deal_with_height(row):
     if row["Measure"].isdigit():
-        if float(row["Measure"]) < 100 or float(row["Measure"]) > 230:# remove invalid heights
+        if float(row["Measure"]) < 100 or float(row["Measure"]) > 230:  # remove invalid heights
             return []
         return row
     return []
 
-def dealWithPulseRate(row):
+def deal_with_pulse_rate(row):
     if row["Measure"].isdigit():
         return row
     return []
 
-def dealWithCholesterol(row):
+def deal_with_cholesterol(row):
     if row["Measure"].isdigit():
         return row
     return []
 
-def dealWithCSFMeasure(row):
+def deal_with_csf_measure(row):
     if row["Measure"].isdigit():
         return row
     return []
 
-def dealWithAmyloidBeta138(row):
+def deal_with_amyloid_beta_138(row):
     if row["Measure"].isdigit():
         return row
     return []
 
-def processCeradWLRounds():
-    global ceradWLRounds
+def process_cerad_wl_rounds():
+    global cerad_wl_rounds
     results = []
-    if len(ceradWLRounds) > 0:
-        #key will be (patient, date)
-        measureDict = {}
-        sumOfMeasuresDict = {} 
-        for entry in ceradWLRounds:
-            if (entry["Patient ID"], entry["Date of neuropsychological testing"]) in sumOfMeasuresDict:
-                sumOfMeasuresDict[(entry["Patient ID"], entry["Date of neuropsychological testing"])] += int(entry["Measure"])
-                measureDict[(entry["Patient ID"], entry["Date of neuropsychological testing"])] += "," + str(entry["Measure"])
+    if len(cerad_wl_rounds) > 0:
+        # key will be (patient, date)
+        measure_dict = {}
+        sum_of_measures_dict = {}
+        for entry in cerad_wl_rounds:
+            if (entry["Patient ID"], entry["Date of neuropsychological testing"]) in sum_of_measures_dict:
+                sum_of_measures_dict[(entry["Patient ID"], entry["Date of neuropsychological testing"])] += int(entry["Measure"])
+                measure_dict[(entry["Patient ID"], entry["Date of neuropsychological testing"])] += "," + str(entry["Measure"])
             else:
-                sumOfMeasuresDict[(entry["Patient ID"], entry["Date of neuropsychological testing"])] = int(entry["Measure"])
-                measureDict[(entry["Patient ID"], entry["Date of neuropsychological testing"])] = str(entry["Measure"])
-        for entry in sumOfMeasuresDict:
+                sum_of_measures_dict[(entry["Patient ID"], entry["Date of neuropsychological testing"])] = int(entry["Measure"])
+                measure_dict[(entry["Patient ID"], entry["Date of neuropsychological testing"])] = str(entry["Measure"])
+        for entry in sum_of_measures_dict:
             results += [{
-                'Patient ID':entry[0],
-                'Date of neuropsychological testing':entry[1],
-                'Variable': '[Cerad WL round 1, Cerad WL round 2, Cerad WL round 3]', 
-                'Measure': measureDict[entry],
-                'MeasureNumber': sumOfMeasuresDict[entry], 
-                'VariableConcept': '2000000049', 
+                'Patient ID': entry[0],
+                'Date of neuropsychological testing': entry[1],
+                'Variable': '[Cerad WL round 1, Cerad WL round 2, Cerad WL round 3]',
+                'Measure': measure_dict[entry],
+                'MeasureNumber': sum_of_measures_dict[entry],
+                'VariableConcept': '2000000049',
                 'MeasureConcept': None
             }]
-    ceradWLRounds = []
-    return results
-    
-def processCeralWLRecognition():
-    global ceradWLRecognition
-    results = []
-    if len(ceradWLRecognition) > 0:
-        #key will be (patient, date)
-        measureDict = {}
-        sumOfMeasuresDict = {} 
-        for entry in ceradWLRecognition:
-            if (entry["Patient ID"], entry["Date of neuropsychological testing"]) in sumOfMeasuresDict:
-                sumOfMeasuresDict[(entry["Patient ID"], entry["Date of neuropsychological testing"])] += int(entry["Measure"])
-                measureDict[(entry["Patient ID"], entry["Date of neuropsychological testing"])] += "," + str(entry["Measure"])
-            else:
-                sumOfMeasuresDict[(entry["Patient ID"], entry["Date of neuropsychological testing"])] = int(entry["Measure"])
-                measureDict[(entry["Patient ID"], entry["Date of neuropsychological testing"])] = str(entry["Measure"])
-        for entry in sumOfMeasuresDict:
-            results += [{
-                'Patient ID':entry[0],
-                'Date of neuropsychological testing':entry[1],
-                'Variable': '[Cerad WL recognition no, Cerad WL recognition yes]', 
-                'Measure': measureDict[entry],
-                'MeasureNumber': (sumOfMeasuresDict[entry] - 10), 
-                'VariableConcept': '2000000051', 
-                'MeasureConcept': None
-            }]
-    ceradWLRecognition = []
+    cerad_wl_rounds = []
     return results
 
-def processDiagnosisAndEtiology():
+def process_cerad_wl_recognition():
+    global cerad_wl_recognition
+    results = []
+    if len(cerad_wl_recognition) > 0:
+        # key will be (patient, date)
+        measure_dict = {}
+        sum_of_measures_dict = {}
+        for entry in cerad_wl_recognition:
+            if (entry["Patient ID"], entry["Date of neuropsychological testing"]) in sum_of_measures_dict:
+                sum_of_measures_dict[(entry["Patient ID"], entry["Date of neuropsychological testing"])] += int(entry["Measure"])
+                measure_dict[(entry["Patient ID"], entry["Date of neuropsychological testing"])] += "," + str(entry["Measure"])
+            else:
+                sum_of_measures_dict[(entry["Patient ID"], entry["Date of neuropsychological testing"])] = int(entry["Measure"])
+                measure_dict[(entry["Patient ID"], entry["Date of neuropsychological testing"])] = str(entry["Measure"])
+        for entry in sum_of_measures_dict:
+            results += [{
+                'Patient ID': entry[0],
+                'Date of neuropsychological testing': entry[1],
+                'Variable': '[Cerad WL recognition no, Cerad WL recognition yes]',
+                'Measure': measure_dict[entry],
+                'MeasureNumber': (sum_of_measures_dict[entry] - 10),
+                'VariableConcept': '2000000051',
+                'MeasureConcept': None
+            }]
+    cerad_wl_recognition = []
+    return results
+
+def process_diagnosis_and_etiology():
     global diagnosis, etiology
     ''' Isabelle email (3/9/2019)       
         If the column "Diagnosis" in the Berlin dataset =10, Diagnosis on transmart should be "MCI", 
@@ -212,25 +223,25 @@ def processDiagnosisAndEtiology():
         row = diagnosis[patient]
         concept = None
         if str(row['Measure']) == "10":
-            concept = "2000000254" #MCI
+            concept = "2000000254"  # MCI
         elif str(row['Measure']) == "1":
-            concept = "2000000256" #SCI
+            concept = "2000000256"  # SCI
         elif str(row['Measure']) == "81" or str(row['Measure']) == "8":
-            concept = "2000000470" #Depression
+            concept = "2000000470"  # Depression
         elif str(row['Measure']) == "2" or str(row['Measure']) == "3":
-            concept = "2000000700" #Other
+            concept = "2000000700"  # Other
         elif str(row['Measure']) == "5" or str(row['Measure']) == "6" or str(row['Measure']) == "7":
             if patient in etiology:
                 if str(etiology[patient]['Measure']) == "1":
-                    concept = "2000000255" #AD
+                    concept = "2000000255"  # AD
                 elif str(etiology[patient]['Measure']) == "2":
-                    concept = "2000000701" #Mixed dementia
+                    concept = "2000000701"  # Mixed dementia
                 elif str(etiology[patient]['Measure']) == "3":
-                    concept = "2000000685" #VAD
+                    concept = "2000000685"  # VAD
                 elif str(etiology[patient]['Measure']) == "5":
-                    concept = "2000000665" #FTD
+                    concept = "2000000665"  # FTD
                 elif str(etiology[patient]['Measure']) == "8":
-                    concept = "2000000699" #Other Dementia
+                    concept = "2000000699"  # Other Dementia
 
         results += [{
             'Patient ID': patient,
@@ -242,17 +253,17 @@ def processDiagnosisAndEtiology():
             'MeasureConcept': concept,
             'MeasureNumber': None,
             'MeasureString': None
-            }]
+        }]
     diagnosis = {}
     etiology = {}
     return results
 
-def processApoE():
-    global apoE
+def process_apo_e():
+    global apo_e
     print("Check and remove this shit, because now we have a standard ad hoc method for this")
     results = []
-    if len(apoE) > 0:
-        for row in apoE:
+    if len(apo_e) > 0:
+        for row in apo_e:
             measures = row['Measure'].split("/")
             if len(measures) == 2:
                 results += [{
@@ -260,28 +271,55 @@ def processApoE():
                     'Date of puncture (Liquor)': row['Date of puncture (Liquor)'],
                     'Variable': row['Variable'],
                     'Measure': row['Measure'],
-                    'VariableConcept': '2000000320', #ApoE Allele 1
+                    'VariableConcept': '2000000320',  # ApoE Allele 1
                     'MeasureConcept': None,
                     'MeasureNumber': None,
                     'MeasureString': measures[0]
-                    },{
+                }, {
                     'Patient ID': row['Patient ID'],
                     'Date of puncture (Liquor)': row['Date of puncture (Liquor)'],
                     'Variable': row['Variable'],
                     'Measure': row['Measure'],
-                    'VariableConcept': '2000000321', #ApoE Allele 2
+                    'VariableConcept': '2000000321',  # ApoE Allele 2
                     'MeasureConcept': None,
                     'MeasureNumber': None,
                     'MeasureString': measures[1]
-                    },{
+                }, {
                     'Patient ID': row['Patient ID'],
                     'Date of puncture (Liquor)': row['Date of puncture (Liquor)'],
                     'Variable': row['Variable'],
                     'Measure': row['Measure'],
-                    'VariableConcept': '2000000014', #ApoE4 Carrier
+                    'VariableConcept': '2000000014',  # ApoE4 Carrier
                     'MeasureConcept': None,
                     'MeasureNumber': None,
                     'MeasureString': "Yes" if measures[0] == "4" or measures[1] == "4" else "No"
-                    }]
-    apoE = []
+                }]
+    apo_e = []
     return results
+
+#### PERSON AD_HOC ####
+def filter_person(cohort: pd.DataFrame) -> pd.DataFrame:
+    cohort.drop_duplicates().reset_index(drop=True)
+    cohort = cohort[pd.notnull(cohort['Sex'])]
+    return cohort.reset_index(drop=True)
+
+def set_person_gender_concept_id(value):
+	gender_map = {"1":8507, "0":8532}
+	return value.map(gender_map)
+
+def set_person_year_of_birth(value):
+	return pd.DatetimeIndex(value).year
+
+def set_person_month_of_birth(value):
+	return pd.DatetimeIndex(value).month
+
+def set_person_day_of_birth(value):
+	return pd.DatetimeIndex(value).day
+
+def set_person_person_id(value):
+    print(f"PERSON_ID: {value}")
+    person_dict = value.to_dict()
+    print(f"PERSON_DICT_1: {person_dict}")
+    person_dict = {i[1]:i[0] for i in person_dict.items()}
+    print(f"PERSON_DICT_2: {person_dict}")
+    return value.map(person_dict)

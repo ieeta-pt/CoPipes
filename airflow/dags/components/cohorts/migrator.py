@@ -1,12 +1,32 @@
 import pandas as pd
 import numpy as np
+import components.cohorts.ad_hoc as ad_hoc
 from airflow.decorators import task
-from components.extract.csv import extract_csv
-from components.cohorts.transform_to_kv import transform_to_kv
-from components.cohorts.harmonizer import harmonize
+
+COLUMNS_DST = [
+            'person_id',
+            'gender_concept_id',
+            'year_of_birth',
+            'month_of_birth',
+            'day_of_birth',
+    		'birth_datetime',
+            'death_datetime',
+            'race_concept_id',
+            'ethnicity_concept_id',
+            'location_id',
+    		'provider_id',
+            'care_site_id',
+            'person_source_value',
+            'gender_source_value',
+            'gender_source_concept_id',
+    		'race_source_value',
+            'race_source_concept_id',
+            'ethnicity_source_value',
+            'ethnicity_source_concept_id'
+        ]
 
 @task
-def migrate(data: list[dict], mappings: dict) -> dict:
+def migrate(data: list[dict], mappings: dict, adhoc_migration: bool = False) -> dict:
     """
     Migrates data into structured Person and Observation objects.
     
@@ -25,19 +45,31 @@ def migrate(data: list[dict], mappings: dict) -> dict:
             df_person = pd.DataFrame(d["data"])
             f_person = d["filename"]
             break   
-
-    person_data, person_mapping = migrate_person(df_person, f_person, mappings_df)
+    
+    print(f"Person: {df_person}\n")
+    person_data = migrate_person(df_person, f_person, mappings_df, True)
     # migrate_observation(df, data["filename"])
+    # person_data = person_data.where(pd.notna(person_data), None)
+    
+    person_dict = person_data.to_dict(orient="records")
+    person_dict_clean = replace_nan_with_none(person_dict)
 
-    return {"person": {"data": person_data.to_dict(orient="records"), "mapping": person_mapping}}
+    return {"person": {"data": person_dict_clean}}
 
 
-def migrate_person(df: pd.DataFrame, filename: str, mappings: pd.DataFrame) -> dict:
+
+def migrate_person(df: pd.DataFrame, filename: str, mappings: pd.DataFrame, adhoc_migration: bool = False):
     domain = "person"
-    columns, columns_mapping = getColumnsMapping(filename, domain, mappings)
+    columns, columns_mapping = get_columns_mapping(filename, domain, mappings)
     df = df.reindex(columns=columns)
+    
+    if adhoc_migration:
+        methodName = "filter_" + domain
+        if(hasattr(ad_hoc, methodName)):
+            df = getattr(ad_hoc, methodName)(df)
 
-    return df, columns_mapping    
+    result = populate(df, domain, columns_mapping)
+    return result
 
 
 def migrate_observation(df: pd.DataFrame, filename: str) -> dict:
@@ -64,7 +96,7 @@ def calculate_visit_concepts(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def getColumnsMapping(filename:str, domain: str, mappings: pd.DataFrame, source_name_as_key = False):
+def get_columns_mapping(filename:str, domain: str, mappings: pd.DataFrame, source_name_as_key = False):
     rows_source_code = mappings[mappings['sourceCode'].str.contains(filename)]
     rows_domain = rows_source_code[rows_source_code['targetDomainId'].str.contains(domain)]
     data_rows = rows_domain[['sourceName','targetConceptName']]
@@ -76,3 +108,34 @@ def getColumnsMapping(filename:str, domain: str, mappings: pd.DataFrame, source_
 	
     columns = data_rows['sourceName'].drop_duplicates().reset_index(drop=True).tolist()
     return columns, columns_mapping
+
+def populate(cohort, domain, columns_mapping):
+    mapping = pd.DataFrame(columns=COLUMNS_DST, dtype=object)
+    for element in COLUMNS_DST:
+        sourceField = None
+        
+        if(element in columns_mapping):
+            sourceField = columns_mapping[element]
+        
+        mapping[element] = None #Default value as None
+        methodName = "set_" + domain + "_" + element
+        
+        if(hasattr(ad_hoc, methodName)): 
+            #In case of exist an ad hoc method defined
+            mapping[element] = getattr(ad_hoc, methodName)(cohort[sourceField] if sourceField in cohort else None)
+        else:
+            if(sourceField in cohort): #Normal behavior
+                mapping[element] = cohort[sourceField]
+    
+    return mapping
+
+
+def replace_nan_with_none(obj):
+    if isinstance(obj, dict):
+        return {k: replace_nan_with_none(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [replace_nan_with_none(item) for item in obj]
+    elif isinstance(obj, float) and pd.isna(obj):
+        return None
+    else:
+        return obj

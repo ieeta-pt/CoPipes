@@ -1,9 +1,10 @@
 import pandas as pd
 from typing import Dict
 from airflow.decorators import task
+import components.cohorts.ad_hoc as ad_hoc
 
 @task
-def harmonize(data: dict, mappings: dict, args = None, adhoc_harmonization=None) -> Dict[dict, str]:
+def harmonize(data: dict, mappings: dict, adhoc_harmonization: bool = False, args = None) -> Dict[dict, str]:
     print(f"\nHarmonizing {data['filename']}\n")
 
     df = pd.DataFrame.from_dict(data["data"])
@@ -21,16 +22,15 @@ def harmonize(data: dict, mappings: dict, args = None, adhoc_harmonization=None)
 
 
 
-def harmonize_data(data: pd.DataFrame, data_file: str, mappings: pd.DataFrame, args = None, adhoc_harmonization=None):
+def harmonize_data(data: pd.DataFrame, data_file: str, mappings: pd.DataFrame, adhoc_harmonization: bool = False, args = None):
     data = filter_data(data)
     data = harmonize_variable_concept(data, data_file, mappings)
     data = harmonize_measure_concept(data, mappings)
     data = harmonize_measure_number(data)
-
     data = harmonize_measure_string(data)
+    # Ad hoc specific functions
+    data = harmonize_measure_adhoc(data, adhoc_harmonization)
 
-    ## Ad hoc specific functions
-    # data = harmonize_measure_adhoc(data, adhoc_harmonization)
     # patient_id_label = get_patient_id_label(file, args)
     # load_new_measures(data, patient_id_label, args, adhoc_harmonization)
 
@@ -96,9 +96,9 @@ def harmonize_measure_string(data):
 
 def harmonize_measure_adhoc(data, adhoc_harmonization):
     if adhoc_harmonization:
-        output_data = [adhoc_harmonization.harmonizer(row) for row in data.to_dict('records')]
-        if hasattr(adhoc_harmonization, "addMissingRows"):
-            output_data += adhoc_harmonization.addMissingRows()
+        output_data = [ad_hoc.harmonizer(row) for row in data.to_dict('records')]
+        if hasattr(ad_hoc, "add_missing_rows"):
+            output_data += ad_hoc.add_missing_rows()
         data = pd.DataFrame(output_data)
     return data
 
