@@ -1,9 +1,10 @@
 import pandas as pd
-import numpy as np
+from dateutil import parser, relativedelta
+import math
 import components.cohorts.ad_hoc as ad_hoc
 from airflow.decorators import task
 
-COLUMNS_DST = [
+COLUMNS_PERSON = [
             'person_id',
             'gender_concept_id',
             'year_of_birth',
@@ -25,8 +26,32 @@ COLUMNS_DST = [
             'ethnicity_source_concept_id'
         ]
 
+COLUMNS_OBSERVATION = [
+            'observation_id',
+            'person_id',
+            'observation_concept_id',
+            'observation_date',
+            'observation_datetime',
+            'observation_type_concept_id',
+            'value_as_number',
+            'value_as_string',
+            'value_as_concept_id',
+            'unit_concept_id',
+            'provider_id',
+            'visit_occurrence_id',
+            'visit_detail_id',
+            'observation_source_value',
+            'observation_source_concept_id',
+            'unit_source_value',
+            'qualifier_source_value'
+        ]
+
+PATIENT_IDS = {}
+OBSERVATION_ID = 0
+OBSERVATION_ID_SET = []
+
 @task
-def migrate(data: list[dict], mappings: dict, adhoc_migration: bool = False) -> dict:
+def migrate(person_data: list[dict], observation_data: list[dict], mappings: dict, adhoc_migration: bool = False) -> dict:
     """
     Migrates data into structured Person and Observation objects.
     
@@ -34,27 +59,34 @@ def migrate(data: list[dict], mappings: dict, adhoc_migration: bool = False) -> 
     :return: Processed data as a dictionary.
     
     """
-    
+
     mappings_df = pd.DataFrame.from_dict(mappings["data"])
-    
+
     df_person = None
     f_person = None
 
-    for d in data:
+    for d in person_data:
         if d["filename"].lower().find("patient") != -1:
             df_person = pd.DataFrame(d["data"])
             f_person = d["filename"]
-            break   
-    
-    print(f"Person: {df_person}\n")
-    person_data = migrate_person(df_person, f_person, mappings_df, True)
-    # migrate_observation(df, data["filename"])
-    # person_data = person_data.where(pd.notna(person_data), None)
-    
-    person_dict = person_data.to_dict(orient="records")
-    person_dict_clean = replace_nan_with_none(person_dict)
+            break
 
-    return {"person": {"data": person_dict_clean}}
+    person_data = migrate_person(df_person, f_person, mappings_df, adhoc_migration)
+
+    person_dict = person_data.to_dict(orient="records")
+    person_clean = replace_nan_with_none(person_dict)
+
+    observations = []
+    for d in observation_data:
+        df = pd.DataFrame(d["data"])
+        fname = d["filename"]
+        observations += [migrate_observation(df, fname, mappings_df, adhoc_migration)]
+
+    observation_result = pd.concat(observations)
+    observation_dict = observation_result.to_dict(orient="records")
+    observation_clean = replace_nan_with_none(observation_dict)
+    
+    return {"person": person_clean, "observation": observation_clean}
 
 
 
@@ -63,37 +95,103 @@ def migrate_person(df: pd.DataFrame, filename: str, mappings: pd.DataFrame, adho
     columns, columns_mapping = get_columns_mapping(filename, domain, mappings)
     df = df.reindex(columns=columns)
     
-    if adhoc_migration:
-        methodName = "filter_" + domain
-        if(hasattr(ad_hoc, methodName)):
-            df = getattr(ad_hoc, methodName)(df)
+    if adhoc_migration: df = cohort_filter(df, domain)
 
     result = populate(df, domain, columns_mapping)
     return result
 
 
-def migrate_observation(df: pd.DataFrame, filename: str) -> dict:
-    """Processes and structures observation-related data."""
-    df["VisitConcept"] = "2100000000"
-    df = calculate_visit_concepts(df)
+def migrate_observation(df: pd.DataFrame, filename: str, mappings: pd.DataFrame, adhoc_migration: bool = False) -> dict:
+    global OBSERVATION_ID, OBSERVATION_ID_SET
+    domain = "observation"
     
-    return {"data": df.to_dict(orient="records"), "filename": f"observation_{filename}"}
+    columns, columns_mapping = get_columns_mapping(filename, domain, mappings)
+    columns += ["Variable", "Measure", "VariableConcept", "MeasureConcept", "MeasureString", "MeasureNumber", "VisitConcept"]
 
+    columns_mapping["observation_source_value"] = "Variable"
+    columns_mapping["qualifier_source_value"] = "Measure"
+    columns_mapping["observation_concept_id"] = "VariableConcept" 
+    columns_mapping["value_as_concept_id"] = "MeasureConcept"
+    columns_mapping["value_as_string"] = "MeasureString" 
+    columns_mapping["value_as_number"] = "MeasureNumber" 
+    columns_mapping["observation_type_concept_id"] = "VisitConcept"
 
-def calculate_visit_concepts(df: pd.DataFrame) -> pd.DataFrame:
-    """Assigns visit concept IDs based on observation date differences."""
-    df["VisitConcept"] = "2100000000"
+    df = calculate_visit_concepts(df, columns_mapping)
+    df = df.reindex(columns=columns)
+
+    if adhoc_migration: df = cohort_filter(df, domain)
+
+    OBSERVATION_ID_SET = range(OBSERVATION_ID, OBSERVATION_ID + len(df))
+    OBSERVATION_ID += len(df)
+
+    result = populate(df, domain, columns_mapping)
     
-    if "observation_date" in df.columns and "person_id" in df.columns:
-        df = df.dropna(subset=["observation_date"])
-        df["observation_date"] = pd.to_datetime(df["observation_date"], errors="coerce")
-        
-        first_visits = df.groupby("person_id")["observation_date"].min()
-        df["months_since_first"] = df.apply(lambda row: (row["observation_date"] - first_visits[row["person_id"]]).days // 30, axis=1)
-        df["VisitConcept"] = df["months_since_first"].apply(lambda x: f"21000000{str(min(max(x // 6, 0), 40)).zfill(2)}")
-        df.drop(columns=["months_since_first"], inplace=True)
-    
-    return df
+    return result
+
+def calculate_visit_concepts(cohort_df, columns_mapping, logger=None, base_visit_code="2100000000", visit_prefix="21000000", max_months=40):
+    df = cohort_df.copy()
+    df["VisitConcept"] = base_visit_code
+
+    patient_col = columns_mapping["person_id"].strip()
+    date_col = columns_mapping["observation_date"].strip()
+
+    # Step 1: Get the earliest observation date per patient
+    earliest_dates = {}
+
+    for _, row in df.iterrows():
+        patient_id = row[patient_col]
+        date = row[date_col]
+
+        if isinstance(date, float) and math.isnan(date):
+            continue
+
+        try:
+            parsed_date = parser.parse(str(date), dayfirst=False)
+        except Exception:
+            continue
+
+        if patient_id not in earliest_dates or parsed_date < earliest_dates[patient_id]:
+            earliest_dates[patient_id] = parsed_date
+
+    # Step 2: Calculate months and assign VisitConcept
+    result_rows = []
+
+    for _, row in df.iterrows():
+        patient_id = row[patient_col]
+        date = row[date_col]
+
+        if isinstance(date, float) and math.isnan(date):
+            row["VisitConcept"] = base_visit_code
+            result_rows.append(row)
+            continue
+
+        try:
+            current_date = parser.parse(str(date), dayfirst=False)
+            baseline_date = earliest_dates.get(patient_id)
+            if not baseline_date:
+                continue
+        except Exception:
+            continue
+
+        delta = relativedelta.relativedelta(current_date, baseline_date)
+        months_diff = round(((delta.years * 12) + delta.months) / 6)
+
+        if 0 <= months_diff <= max_months:
+            row["VisitConcept"] = f"{visit_prefix}{str(months_diff).zfill(2)}"
+        else:
+            if logger:
+                logger(
+                    warn_type="OUT_OF_RANGE",
+                    patientID=patient_id,
+                    variable="Visit Concept",
+                    measure=months_diff * 6,
+                    msg="Difference of follow up months superior to 90 (rounded)"
+                )
+            continue
+
+        result_rows.append(row)
+
+    return pd.DataFrame(result_rows, columns=cohort_df.columns)
 
 
 def get_columns_mapping(filename:str, domain: str, mappings: pd.DataFrame, source_name_as_key = False):
@@ -109,9 +207,30 @@ def get_columns_mapping(filename:str, domain: str, mappings: pd.DataFrame, sourc
     columns = data_rows['sourceName'].drop_duplicates().reset_index(drop=True).tolist()
     return columns, columns_mapping
 
+
+def cohort_filter(df, domain, patient_id_label = "Patient ID"):
+    methodName = "filter_" + domain
+    df_filtered = df.copy()
+    
+    if(hasattr(ad_hoc, methodName)):
+        df_filtered = getattr(ad_hoc, methodName)(df)
+    
+    if domain == 'observation':
+        df_filtered[pd.notnull(df_filtered["VariableConcept"])]
+        df_filtered[pd.notnull(df_filtered[patient_id_label].map(PATIENT_IDS))].reset_index(drop=True)
+
+    return df_filtered
+
+
 def populate(cohort, domain, columns_mapping):
-    mapping = pd.DataFrame(columns=COLUMNS_DST, dtype=object)
-    for element in COLUMNS_DST:
+    global PATIENT_IDS
+    columns = None
+    if domain == 'person':
+        columns = COLUMNS_PERSON
+    elif domain == 'observation':
+        columns = COLUMNS_OBSERVATION
+    mapping = pd.DataFrame(columns=columns, dtype=object)
+    for element in columns:
         sourceField = None
         
         if(element in columns_mapping):
@@ -120,15 +239,19 @@ def populate(cohort, domain, columns_mapping):
         mapping[element] = None #Default value as None
         methodName = "set_" + domain + "_" + element
         
-        if(hasattr(ad_hoc, methodName)): 
+        if(methodName == "set_person_person_id"):
+            mapping[element], PATIENT_IDS = getattr(ad_hoc, methodName)(cohort[sourceField] if sourceField in cohort else None)
+        elif(methodName == "set_observation_observation_id"):
+            mapping[element] = OBSERVATION_ID_SET if sourceField in cohort else None
+        elif(methodName == "set_observation_person_id"):
+            mapping[element] = cohort[sourceField].map(PATIENT_IDS) if sourceField in cohort else None
+        elif(hasattr(ad_hoc, methodName)): 
             #In case of exist an ad hoc method defined
             mapping[element] = getattr(ad_hoc, methodName)(cohort[sourceField] if sourceField in cohort else None)
-        else:
-            if(sourceField in cohort): #Normal behavior
-                mapping[element] = cohort[sourceField]
+        elif(sourceField in cohort): #Normal behavior
+            mapping[element] = cohort[sourceField]
     
     return mapping
-
 
 def replace_nan_with_none(obj):
     if isinstance(obj, dict):

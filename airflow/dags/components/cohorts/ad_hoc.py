@@ -317,9 +317,6 @@ def set_person_day_of_birth(value):
 	return pd.DatetimeIndex(value).day
 
 def set_person_person_id(value):
-    print(f"PERSON_ID: {value}")
     person_dict = value.to_dict()
-    print(f"PERSON_DICT_1: {person_dict}")
     person_dict = {i[1]:i[0] for i in person_dict.items()}
-    print(f"PERSON_DICT_2: {person_dict}")
-    return value.map(person_dict)
+    return value.map(person_dict), person_dict
