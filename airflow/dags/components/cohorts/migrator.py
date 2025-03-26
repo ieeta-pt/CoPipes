@@ -3,6 +3,7 @@ from dateutil import parser, relativedelta
 import math
 import components.cohorts.ad_hoc as ad_hoc
 from airflow.decorators import task
+from airflow.utils.log.logging_mixin import LoggingMixin
 
 COLUMNS_PERSON = [
             'person_id',
@@ -49,6 +50,8 @@ COLUMNS_OBSERVATION = [
 PATIENT_IDS = {}
 OBSERVATION_ID = 0
 OBSERVATION_ID_SET = []
+
+logger = LoggingMixin().log
 
 @task
 def migrate(person_data: list[dict], observation_data: list[dict], mappings: dict, adhoc_migration: bool = False) -> dict:
@@ -128,7 +131,7 @@ def migrate_observation(df: pd.DataFrame, filename: str, mappings: pd.DataFrame,
     
     return result
 
-def calculate_visit_concepts(cohort_df, columns_mapping, logger=None, base_visit_code="2100000000", visit_prefix="21000000", max_months=40):
+def calculate_visit_concepts(cohort_df, columns_mapping, base_visit_code="2100000000", visit_prefix="21000000", max_months=40):
     df = cohort_df.copy()
     df["VisitConcept"] = base_visit_code
 
@@ -179,14 +182,11 @@ def calculate_visit_concepts(cohort_df, columns_mapping, logger=None, base_visit
         if 0 <= months_diff <= max_months:
             row["VisitConcept"] = f"{visit_prefix}{str(months_diff).zfill(2)}"
         else:
-            if logger:
-                logger(
-                    warn_type="OUT_OF_RANGE",
-                    patientID=patient_id,
-                    variable="Visit Concept",
-                    measure=months_diff * 6,
-                    msg="Difference of follow up months superior to 90 (rounded)"
-                )
+            logger.warning(
+                "OUT_OF_RANGE | Patient ID: %s | Variable: Visit Concept | Measure: %d | Message: Difference of follow up months superior to 90 (rounded)",
+                patient_id,
+                months_diff * 6
+            )
             continue
 
         result_rows.append(row)

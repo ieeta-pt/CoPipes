@@ -14,10 +14,6 @@ def harmonize(data: dict, mappings: dict, adhoc_harmonization: bool = False) -> 
 
     harmonized_data = harmonize_data(df, data_file, mappings_df, adhoc_harmonization)
 
-    # harmonized_data = harmonized_data.where(pd.notna(harmonized_data), None)
-
-    # final_stage(harmonized_data, args) 
-
     harmonized_data = harmonized_data.to_dict(orient="records")
     harmonized_data = replace_nan_with_none(harmonized_data)
 
@@ -34,19 +30,11 @@ def harmonize_data(data: pd.DataFrame, data_file: str, mappings: pd.DataFrame, a
     # Ad hoc specific functions
     if adhoc_harmonization:
         data = harmonize_measure_adhoc(data)
+        create_new_measures(data)
 
     patient_id_label = "Patient ID"
-    # load_new_measures(data, patient_id_label, adhoc_harmonization)
     data = clean_empty_measure(data)
     return data
-
-
-# def final_stage(data, data_file, dest_dir, file_sep, file_manager, args):
-#     source_code = file.split(CSV_MARK)[1]
-#     patient_id_label = get_patient_id_label(file, args)
-#     data = calculate_new_measures(data, patient_id_label, args, adhoc_harmonization)
-#     file_manager.toCsv(data, dest_dir, f"{CSV_MARK}{source_code}", file_sep)
-
 
 def filter_data(data):
     return data[pd.notnull(data["Measure"])]
@@ -142,28 +130,11 @@ def clean_empty_measure(data):
     data = data[data["MeasureString"] != "n.a."]
     return data.dropna(how='all', subset=["MeasureConcept", "MeasureNumber", "MeasureString"])
 
-
-# def load_new_measures(data, patient_id_label, adhoc_harmonization):
-#     data_dict = data.to_dict(orient='records')
-#     if adhoc_harmonization:
-#         sah = ad_hoc.cutOff()
-#         sah.definePatientIDLabel(patient_id_label)
-#         sah.processLoadingStage(data.to_dict('records'))
-
-
-
-
-# def calculate_new_measures(data, patient_id_label, args, adhoc_harmonization):
-#     if args.adhocmethods:
-#         sah = StandardAdHoc(adhoc_harmonization.cutOff if adhoc_harmonization else None)
-#         sah.definePatientIDLabel(patient_id_label)
-#         return pd.DataFrame(sah.processCalculationAndAppendingStage(data.to_dict('records')))
-#     return data
-
-
-# def get_patient_id_label(file, args):
-#     file_name = file.split(CSV_MARK)[1].replace(" ", "_")
-#     return args.settings["patient_ids"].get(file_name, "").strip('"')
+def create_new_measures(data):
+    data_dict = data.to_dict('records')
+    
+    
+    pass
 
 def replace_nan_with_none(obj):
     if isinstance(obj, dict):

@@ -1,11 +1,62 @@
 from datetime import datetime
 import pandas as pd
 
-cerad_wl_rounds = []
+cerad_wl_rounds      = []
 cerad_wl_recognition = []
-apo_e = []
-diagnosis = {}
-etiology = {}
+apo_e                = []
+diagnosis            = {}
+etiology             = {}
+
+#### CUT OFF AD_HOC ####
+
+def calculate_cut_off_values(row):
+    '''
+		CSF date before 03.12.2014:
+			Cutoffs not available
+		CSF date between 03.12.2014 and 31.12.2016:
+			Cutoff: amyloid <600, cutoff t-tau >300, cutoff p-tau >60
+		CSF date between 31.12.2016 and 28.11.2018:
+			Cutoff amyloid <1000, cutoff t-tau >400, cutoff p-tau >62
+		CSF date after 28.11.2018:
+			Cutoff amyloid <680, cutoff t-tau >400, cutoff p-tau >62.
+	'''
+    try:
+        date = datetime.datetime.strptime(row['Date of puncture (Liquor)'], '%d-%M-%Y')
+    except:
+        print("No date defined for the cutOffs, which is necessary in this cohort:\t", row)
+        return None, None
+    if date < datetime.datetime(2014, 12, 3):
+        return None, None
+    elif date < datetime.datetime(2016, 12, 31):
+        if "2000000070" in row["VariableConcept"]: 
+            return "<", 600
+        if "2000000073" in row["VariableConcept"]:
+            return ">", 60
+        if "2000000075" in row["VariableConcept"]:
+            return ">", 300
+    elif date < datetime.datetime(2018, 11, 28):
+        if "2000000070" in row["VariableConcept"]:
+            return "<", 1000
+        if "2000000073" in row["VariableConcept"]:
+            return ">", 62
+        if "2000000075" in row["VariableConcept"]:
+            return ">", 400
+    else:
+        if "2000000070" in row["VariableConcept"]:
+            return "<", 680
+        if "2000000073" in row["VariableConcept"]:
+            return ">", 62
+        if "2000000075" in row["VariableConcept"]:
+            return ">", 400
+    return None, None
+
+CUT_OFF = {
+		"2000000297":{"conditionalMethod": calculate_cut_off_values}, #Amyloid Beta 1-42 Cut-off
+		"2000000298":{"conditionalMethod": calculate_cut_off_values}, #Total Tau Cut-off
+		"2000000463":{"conditionalMethod": calculate_cut_off_values}  #Phosphorylated Tau Cut-off
+		}
+
+#### HARMONIZER AD_HOC ####
 
 def harmonizer(row):
     variable_concept = str(row["VariableConcept"])
