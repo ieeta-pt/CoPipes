@@ -86,3 +86,39 @@ CONCEPT_NAMES = {#This dictionary was created to simplify the method for Pirorit
 	"2000000045":"Copy of CERAD Figures",
 	"2000000062":"Clock Drawing",
 	}
+
+#Comorbidities to calculate yes
+AAL_COMORBIDITIES = {
+	"2000000637":{
+		"name":"Cardiovascular Disorders",
+		"concepts":["2000000326", "2000000341", "2000000357", "2000000360", "2000000367", "2000000390", "2000000400"]
+	},
+	"2000000638":{
+		"name":"Cardiovascular Risk Factors",
+		"concepts":["2000000381", "2000000382", "2000000383", "2000000396", "2000000402"]
+	},
+	"2000000639":{
+		"name":"Cerebrovascular Disorders",
+		"concepts":["2000000337", "2000000403", "2000000438", "2000000441"]
+	},
+	"2000000640":{
+		"name":"Endocrine Disorders",
+		"concepts":["2000000363", "2000000384", "2000000385", "2000000405"]
+	},
+	"2000000641":{
+		"name":"Neurological Disorders",
+		"concepts":["2000000378", "2000000408", "2000000416", "2000000434"]
+	},
+	"2000000473":{
+		"name":"Other Cardiac Diseases",
+		"concepts":["2000000334", "2000000379", "2000000415"]
+	},
+	"2000000642":{
+		"name":"Psychiatric Disorders",
+		"concepts":["2000000331", "2000000469", "2000000470", "2000000410"]
+	},
+	"2000000643":{
+		"name":"Somatic Disorders",
+		"concepts":["2000000343", "2000000432", "2000000433", "2000000412"]
+	}
+}
