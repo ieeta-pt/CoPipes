@@ -32,7 +32,8 @@ def harmonize_data(data: pd.DataFrame, data_file: str, mappings: pd.DataFrame, a
     data = harmonize_measure_number(data)
     data = harmonize_measure_string(data)
     # Ad hoc specific functions
-    data = harmonize_measure_adhoc(data, adhoc_harmonization)
+    if adhoc_harmonization:
+        data = harmonize_measure_adhoc(data)
 
     patient_id_label = "Patient ID"
     # load_new_measures(data, patient_id_label, adhoc_harmonization)
@@ -123,13 +124,18 @@ def harmonize_measure_string(data):
     return data
 
 
-def harmonize_measure_adhoc(data, adhoc_harmonization):
-    if adhoc_harmonization:
-        output_data = [ad_hoc.harmonizer(row) for row in data.to_dict('records')]
-        if hasattr(ad_hoc, "add_missing_rows"):
-            output_data += ad_hoc.add_missing_rows()
-        data = pd.DataFrame(output_data)
-    return data
+def harmonize_measure_adhoc(data):
+    data_dict = data.to_dict('records')
+    output_data = []
+    for row in data_dict:
+        harmonized_data = ad_hoc.harmonizer(row)
+        if isinstance(harmonized_data, list):
+            output_data += harmonized_data
+        else:
+            output_data += [harmonized_data]
+    if hasattr(ad_hoc, "add_missing_rows"):
+        output_data += ad_hoc.add_missing_rows()
+    return pd.DataFrame(output_data, columns=data.columns.values)
 
 
 def clean_empty_measure(data):

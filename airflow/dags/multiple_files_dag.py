@@ -38,7 +38,7 @@ with DAG (
     )
 
     extract_column_mappings_task = extract_csv(
-        filename = "/opt/airflow/data/input_data/UsagiExportContentMapping_v6.csv"
+        filename = "/opt/airflow/data/input_data/UsagiExportColumnMapping_v2.csv"
     )
 
     migrator_task = migrate(person_data=extract_csv_task, observation_data=harmonizer_task, mappings=extract_column_mappings_task, adhoc_migration=True)

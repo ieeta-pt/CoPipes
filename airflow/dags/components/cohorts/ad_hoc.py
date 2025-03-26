@@ -1,6 +1,12 @@
 from datetime import datetime
 import pandas as pd
 
+cerad_wl_rounds = []
+cerad_wl_recognition = []
+apo_e = []
+diagnosis = {}
+etiology = {}
+
 def harmonizer(row):
     variable_concept = str(row["VariableConcept"])
     if "2000000049" in variable_concept:
