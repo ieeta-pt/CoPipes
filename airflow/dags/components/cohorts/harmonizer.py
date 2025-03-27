@@ -2,6 +2,7 @@ import pandas as pd
 from typing import Dict
 from airflow.decorators import task
 import components.cohorts.ad_hoc as ad_hoc
+import components.cohorts.standard_ad_hoc as sah
 
 @task
 def harmonize(data: dict, mappings: dict, adhoc_harmonization: bool = False) -> Dict[dict, str]:

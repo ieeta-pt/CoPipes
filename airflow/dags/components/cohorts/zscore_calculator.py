@@ -1,10 +1,7 @@
-from airflow.decorators import task
-
 MALE = 8507
 FEMALE = 8532
 
-@task
-def calculate_zscore(row_data, patient_id_label, variable_concept):
+def calculate(row_data, patient_id_label, variable_concept):
     row = dict(row_data)
     patient_id = str(row[patient_id_label])
     measure_number = row.get('MeasureNumber')

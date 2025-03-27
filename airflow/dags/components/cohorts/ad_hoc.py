@@ -50,7 +50,7 @@ def calculate_cut_off_values(row):
             return ">", 400
     return None, None
 
-CUT_OFF = {
+CUT_OFFS = {
 		"2000000297":{"conditionalMethod": calculate_cut_off_values}, #Amyloid Beta 1-42 Cut-off
 		"2000000298":{"conditionalMethod": calculate_cut_off_values}, #Total Tau Cut-off
 		"2000000463":{"conditionalMethod": calculate_cut_off_values}  #Phosphorylated Tau Cut-off
