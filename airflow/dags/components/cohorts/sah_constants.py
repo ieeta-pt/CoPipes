@@ -1,6 +1,6 @@
 PATIENT_ID_LABEL = "Patient ID"
 
-DATE_FORMAT = "%%d-%%M-%%Y"
+DATE_FORMAT = "%d-%m-%Y"
 
 NO 		= 2000000239
 YES 	= 2000000238

@@ -1,18 +1,38 @@
 from datetime import datetime
 import pandas as pd
-import zscore_calculator as zc
-import cutoff_calculator as cc
-import sah_constants as sahc
-import ad_hoc
+import components.cohorts.zscore_calculator as zc
+import components.cohorts.cutoff_calculator as cc
+import components.cohorts.sah_constants as sahc
+import components.cohorts.ad_hoc as ad_hoc
 
 from airflow.decorators import task
 from airflow.utils.log.logging_mixin import LoggingMixin
 
 date_of_diagnosis = {}
 years_of_education = {}
+def get_years_of_education(patient_id):
+    global years_of_education
+    eduy = None
+    if patient_id in years_of_education:
+        eduy = years_of_education.get(patient_id)
+    return eduy
+
 birthday_date = {}
 gender = {}
+def get_gender(patient_id):
+    global gender
+    gender_local = None
+    if patient_id in gender:
+        gender_local = gender.get(patient_id)
+    return gender_local
+
 age = {}
+def get_age(patient_id):
+    global age
+    age_local = None
+    if patient_id in age:
+        age_local = age.get(patient_id)
+    return age_local
 
 body_length = {}
 weight = {}
@@ -26,20 +46,27 @@ priority_domains = {}
 logger = LoggingMixin().log
 
 @task
-def create_new_measures(data: list[dict], adhoc_harmonization : bool = False) -> dict:
+def create_new_measures(data: list[dict], adhoc_harmonization : bool = False) -> list[dict]:
+    temp_result = {}
     for file in data:
         df = file["data"]
-        process_loading_stage(df, adhoc_harmonization)
+        fname = file["filename"]
+        _, temp_result[fname] = process_loading_stage(df)
 
     result = []
-    for file in data:
-        df = file['data']
+    for file in temp_result:
+        df = temp_result[file]
+        fname = file
         processed_df = pd.DataFrame(df)
-        processed_df += process_calculation_and_appending_stage(df, adhoc_harmonization)
+        new_data = pd.DataFrame(process_calculation_and_appending_stage(df, adhoc_harmonization))
+
+        processed_df = pd.concat([processed_df, new_data], ignore_index=True)
         processed_df = processed_df.to_dict(orient='records')
         processed_df = replace_nan_with_none(processed_df)
-        result += processed_df
-    return result 
+
+        result.append({"data":processed_df, "filename":fname})
+    return result
+
 
 def replace_nan_with_none(obj):
     if isinstance(obj, dict):
@@ -76,9 +103,9 @@ def process_calculation_and_appending_stage(data_dict, adhoc_harmonization):
 	#	Loading stage 	#
 	#####################
 
-def process_loading_stage(data_dict, adhoc_harmonization : bool = False):
+def process_loading_stage(data_dict):
     for row in data_dict:
-        variable_concept = str(row["variable_concept"])
+        variable_concept = str(row["VariableConcept"])
         patient_id = str(row[sahc.PATIENT_ID_LABEL])
 
         if "2000000540" in variable_concept:
@@ -104,14 +131,14 @@ def process_loading_stage(data_dict, adhoc_harmonization : bool = False):
         for comorbidity in sahc.AAL_COMORBIDITIES:
             for variable in sahc.AAL_COMORBIDITIES[comorbidity]["concepts"]:
                 if variable in variable_concept:
-                    return __add_comorbidities_sub_class(row, patient_id, sahc.AAL_COMORBIDITIES[comorbidity]["name"], comorbidity)
+                    return __add_comorbidities_sub_class(row, patient_id, sahc.AAL_COMORBIDITIES[comorbidity]["name"], comorbidity), data_dict
+    return None, data_dict
 
 def __load_date_of_diagnosis(row, patient_id):
     global date_of_diagnosis, birthday_date
     if row['Measure'] != "":
         date_of_diagnosis[patient_id] = row['Measure']
-    if len(birthday_date) > 0:
-        if patient_id in birthday_date:
+    if len(birthday_date) > 0 and patient_id in birthday_date:
             __calculate_age(row)
 
 def __load_years_of_education(row, patient_id):
@@ -128,14 +155,14 @@ def __load_body_length(row, patient_id):
     global body_length, weight
     if row['Measure'] != "":
         body_length[patient_id] = row['MeasureNumber']
-    if len(weight) > 0:
+    if len(weight) > 0 and patient_id in weight:
         __calculate_body_mass_index(row, patient_id)
 
 def __load_weight(row, patient_id):
     global weight, body_length
     if row['Measure'] != "":
         weight[patient_id] = row['MeasureNumber']
-    if len(body_length) > 0:
+    if len(body_length) > 0 and patient_id in body_length:
         __calculate_body_mass_index(row, patient_id)
 
 def __load_extra_apo_e(row, patient_id):
@@ -194,8 +221,7 @@ def __load_birthday_date(row, patient_id):
     global birthday_date, date_of_diagnosis
     if row['Measure'] != "":
         birthday_date[patient_id] = row['Measure']
-    if len(date_of_diagnosis) > 0:
-        if patient_id in date_of_diagnosis:
+    if len(date_of_diagnosis) > 0 and patient_id in date_of_diagnosis:
             __calculate_age(row, patient_id)
 
 def __load_priority_domains(row, variable_concept):
@@ -209,14 +235,14 @@ def __calculate_age(row, patient_id):
     try:
         delta = __compare_dates(date_of_diagnosis[patient_id], birthday_date[patient_id])
         if delta:
-            age = int(delta.days/365)
-            age[patient_id] = age
+            patient_age = int(delta.days/365)
+            age[patient_id] = patient_age
             age_measurement += [__merge_dictionaries(row, {
 				sahc.PATIENT_ID_LABEL:patient_id,
-				'Age':age,
+				'Age':patient_age,
 				'Variable': 'Calculated age', 
 				'Measure': "",
-				'MeasureNumber': age, 
+				'MeasureNumber': patient_age, 
 				'VariableConcept': '2000000488', 
 				'MeasureConcept': None
 			})]
@@ -229,12 +255,12 @@ def __calculate_age(row, patient_id):
             var = "Birthday Date"
         else:
             msg = "Age calculation fail maybe due to the date format."
-            logger.warning(
-                "MISSING_VALUE | Patient ID: %s | Variable: %s | Message: %s",
-                patient_id,
-                var,
-                msg
-            )
+        logger.warning(
+            "MISSING_VALUE | Patient ID: %s | Variable: %s | Message: %s",
+            patient_id,
+            var,
+            msg
+        )
 
 def __calculate_body_mass_index(row, patient_id):
     global weight, body_length, body_mass
@@ -283,21 +309,35 @@ def __deal_with_age(row, patient_id):
     else:   
         __load_birthday_date(row, patient_id)
 
-def __compare_dates(inital_date, final_date):
-	try:
-		d0 = datetime.strptime(inital_date, sahc.DATE_FORMAT)
-		d1 = datetime.strptime(final_date, sahc.DATE_FORMAT)
-		return (d0 - d1)
-	except:
-		return None
+def __parse_to_standard_format(date_str):
+    known_formats = ["%d-%b-%y", "%m/%d/%Y", "%Y-%m-%d"]  # Extend if needed
+    for fmt in known_formats:
+        try:
+            dt = datetime.strptime(date_str, fmt)
+            return dt.strftime(sahc.DATE_FORMAT)  # Normalize to your desired format
+        except ValueError:
+            continue
+    return None
 
+def __compare_dates(initial_date, final_date):
+    norm_initial = __parse_to_standard_format(initial_date)
+    norm_final = __parse_to_standard_format(final_date)
+
+    if not norm_initial or not norm_final:
+        return None
+
+    d0 = datetime.strptime(norm_initial, sahc.DATE_FORMAT)
+    d1 = datetime.strptime(norm_final, sahc.DATE_FORMAT)
+
+    return d0 - d1
+    
 def __merge_dictionaries(row, newData):
 	for key in row:
 		if key not in newData:
 			newData[key] = row[key]
 	return newData
 
-def __add_comorbidities_sub_class(self, row, patient_id, variable, concept_id):
+def __add_comorbidities_sub_class(row, patient_id, variable, concept_id):
     global comorbidities
     if row["MeasureConcept"] == sahc.YES:
         if variable not in comorbidities:
@@ -342,8 +382,8 @@ def __validate_measure_content(row, patient_id, variable_concept):
 		}
 	for variable in list_of_ranges:
 		if variable in variable_concept:
-			return __is_variable_in_numeric_range(variableConcept=variable_concept, 
-												   patientID=patient_id,
+			return __is_variable_in_numeric_range(variable_concept=variable_concept, 
+												   patient_id=patient_id,
 												   measure=row["Measure"], 
 												   minimum=list_of_ranges[variable]["min"], 
 												   maximum=list_of_ranges[variable]["max"])
@@ -414,14 +454,6 @@ def __deal_with_dates_differences_in_days(row, patient_id):
             msg
         )
     return []
-
-def __compare_dates(inital_date, final_date):
-    try:
-        d0 = datetime.datetime.strptime(inital_date, sahc.DATE_FORMAT)
-        d1 = datetime.datetime.strptime(final_date, sahc.DATE_FORMAT)
-        return (d0 - d1)
-    except:
-    	return None
     
 def __cleaner(row, variable_concept):
 	if "2000000488" in variable_concept:

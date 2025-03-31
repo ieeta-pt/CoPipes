@@ -2,7 +2,6 @@ import pandas as pd
 from typing import Dict
 from airflow.decorators import task
 import components.cohorts.ad_hoc as ad_hoc
-import components.cohorts.standard_ad_hoc as sah
 
 @task
 def harmonize(data: dict, mappings: dict, adhoc_harmonization: bool = False) -> Dict[dict, str]:
@@ -31,9 +30,7 @@ def harmonize_data(data: pd.DataFrame, data_file: str, mappings: pd.DataFrame, a
     # Ad hoc specific functions
     if adhoc_harmonization:
         data = harmonize_measure_adhoc(data)
-        create_new_measures(data)
 
-    patient_id_label = "Patient ID"
     data = clean_empty_measure(data)
     return data
 
@@ -44,11 +41,11 @@ def filter_data(data):
 def harmonize_variable_concept(data: pd.DataFrame, data_file: str, mappings: pd.DataFrame) -> pd.DataFrame:
     # Filter the mappings for the given file
     data_mapping = mappings[mappings["sourceCode"].str.contains(data_file, na=False)]
-    data_mapping = data_mapping.reindex(columns=["sourceName", "conceptId"])
+    data_mapping = data_mapping.reindex(columns=["sourceName", "targetConceptId"])
 
     # Build lookup dictionary
     lookup = {
-        row["sourceName"].strip(): row["conceptId"]
+        row["sourceName"].strip(): row["targetConceptId"]
         for _, row in data_mapping.iterrows()
     }
 
@@ -82,16 +79,14 @@ def harmonize_variable_concept(data: pd.DataFrame, data_file: str, mappings: pd.
     return result_df
 
 
-
-
 def harmonize_measure_concept(data, mappings):
     filtered_mapping = mappings[~mappings["sourceCode"].str.contains(".csv")]
-    filtered_mapping = filtered_mapping.reindex(columns=["sourceCode", "sourceName", "conceptId"])
+    filtered_mapping = filtered_mapping.reindex(columns=["sourceCode", "sourceName", "targetConceptId"])
 
     key_mapping_series = filtered_mapping[["sourceCode", "sourceName"]].apply(tuple, axis=1)
-    key_mapping = pd.concat([key_mapping_series, filtered_mapping["conceptId"]], axis=1)
+    key_mapping = pd.concat([key_mapping_series, filtered_mapping["targetConceptId"]], axis=1)
     key_mapping = key_mapping.rename(columns={0: 'source'})
-    key_mapping = key_mapping.set_index("source")["conceptId"].to_dict()
+    key_mapping = key_mapping.set_index("source")["targetConceptId"].to_dict()
 
     data["MeasureConcept"] = data[["Variable", "Measure"]].apply(tuple, axis=1).map(key_mapping)
     return data
@@ -126,16 +121,9 @@ def harmonize_measure_adhoc(data):
         output_data += ad_hoc.add_missing_rows()
     return pd.DataFrame(output_data, columns=data.columns.values)
 
-
 def clean_empty_measure(data):
     data = data[data["MeasureString"] != "n.a."]
     return data.dropna(how='all', subset=["MeasureConcept", "MeasureNumber", "MeasureString"])
-
-def create_new_measures(data):
-    data_dict = data.to_dict('records')
-    
-    
-    pass
 
 def replace_nan_with_none(obj):
     if isinstance(obj, dict):

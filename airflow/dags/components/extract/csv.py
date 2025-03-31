@@ -1,35 +1,60 @@
 import pandas as pd
 import chardet
+import unicodedata
 from typing import Dict
 from airflow.decorators import task
 
 @task
-def extract_csv(filename: str, 
-                file_sep: str = ',') -> Dict[dict, str]:
-    """Load a CSV file into a DataFrame."""
-
+def extract_csv(filename: str, file_sep: str = ',') -> Dict[dict, str]:
+    """
+    Load a CSV file into a DataFrame with robust handling of character encodings.
+    Specifically handles special characters like umlauts (ä, ö, ü).
+    """
+    # First try to detect the encoding
     with open(filename, 'rb') as f:
-        result = chardet.detect(f.read())
+        raw_data = f.read()
+        result = chardet.detect(raw_data)
+        print(f"Detected encoding: {result['encoding']} with confidence: {result['confidence']}")
     
-    df_read = pd.read_csv(
-        filename, 
-        na_values='null', 
-        sep=file_sep, 
-        dtype=str, 
-        encoding=result['encoding']
-    )
-
-    # print("CSV Columns:", df_read.columns.tolist())
-
-    # # df_read.columns = [col.encode('ISO-8859-1').decode('utf-8', 'ignore') for col in df_read.columns]
-    # df_read.columns = df_read.columns.str.encode('latin1').str.decode('utf-8', errors='ignore')
-    # df_read.columns = df_read.columns.str.strip().str.normalize("NFKC")
-
-    # print("CSV Columns:", df_read.columns.tolist())
-
-    df_read = df_read.where(pd.notna(df_read), None)
-
-    data_file = filename.split("/")[-1]
-
-    return {"data": df_read.to_dict(orient="records"), "filename": data_file}
-
+    # Try these encodings in order
+    encodings_to_try = ['utf-8-sig', 'utf-8', result['encoding'], 'ISO-8859-1', 'latin1', 'cp1252']
+    
+    # Try each encoding until one works
+    for encoding in encodings_to_try:
+        try:
+            print(f"Attempting to read with encoding: {encoding}")
+            df_read = pd.read_csv(
+                filename,
+                na_values='null',
+                sep=file_sep,
+                dtype=str,
+                encoding=encoding
+            )
+            
+            # If we get here, the encoding worked
+            print(f"Successfully read CSV with encoding: {encoding}")
+            
+            # Normalize column names to handle special characters
+            df_read.columns = df_read.columns.astype(str)
+            df_read.columns = [unicodedata.normalize('NFKC', col) for col in df_read.columns]
+            
+            # Print column names to verify
+            print("CSV Columns after normalization:", df_read.columns.tolist())
+            
+            # Check if 'Folsäure' is properly encoded
+            problem_columns = [col for col in df_read.columns if 'Fols' in col]
+            if problem_columns:
+                print(f"Found potentially problematic columns: {problem_columns}")
+            
+            # Replace NaN with None for consistent handling
+            df_read = df_read.where(pd.notna(df_read), None)
+            
+            data_file = filename.split("/")[-1]
+            return {"data": df_read.to_dict(orient="records"), "filename": data_file}
+        
+        except UnicodeDecodeError as e:
+            print(f"Failed with encoding {encoding}: {e}")
+            continue
+    
+    # If we get here, none of the encodings worked
+    raise ValueError(f"Unable to read CSV file with any of the attempted encodings: {encodings_to_try}")

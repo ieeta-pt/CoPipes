@@ -4,9 +4,11 @@ from airflow import DAG
 from components.extract.csv import extract_csv
 from components.cohorts.transform_to_kv import transform_to_kv
 from components.cohorts.harmonizer import harmonize
+from components.cohorts.standard_ad_hoc import create_new_measures
 from components.cohorts.migrator import migrate
 from components.postgres.create_conn import create_connection
 from components.postgres.create_table import create_table
+from components.postgres.write_to_db import write_to_postgres
 
 ##### UTILS FUNCTIONS #####
 
@@ -15,7 +17,7 @@ def get_files():
     return csv_files
 
 with DAG (
-    'multiple_files_dag',
+    'cohort_harmonization_dag',
     schedule_interval=None,
     start_date=datetime(2025, 2, 3),
     catchup=False
@@ -28,47 +30,87 @@ with DAG (
     transform_task = transform_to_kv.expand(data=extract_csv_task)
 
     extract_content_mappings_task = extract_csv(
-        filename = "/opt/airflow/data/input_data/UsagiContentMapping_v5.csv"
+        filename = "/opt/airflow/data/input_data/UsagiExportContentMapping_v6.csv"
     )
 
     harmonizer_task = harmonize.partial(
-            mappings=extract_content_mappings_task, adhoc_harmonization=True
+            mappings=extract_content_mappings_task, 
+            adhoc_harmonization=True
         ).expand(
             data = transform_task,
+    )
+
+    adhoc_task = create_new_measures(
+        data=harmonizer_task, 
+        adhoc_harmonization=True
     )
 
     extract_column_mappings_task = extract_csv(
         filename = "/opt/airflow/data/input_data/UsagiExportColumnMapping_v2.csv"
     )
 
-    migrator_task = migrate(person_data=extract_csv_task, observation_data=harmonizer_task, mappings=extract_column_mappings_task, adhoc_migration=True)
+    migrator_task = migrate(
+        person_data=extract_csv_task, 
+        observation_data=adhoc_task, 
+        mappings=extract_column_mappings_task, 
+        adhoc_migration=True
+    )
 
-    # create_conn_task = create_connection()
+    create_conn_task = create_connection()
 
-    # create_table_task = create_table(
-    #     columns = [
-    #         'person_id',
-    #         'gender_concept_id',
-    #         'year_of_birth',
-    #         'month_of_birth',
-    #         'day_of_birth',
-    # 		'birth_datetime',
-    #         'death_datetime',
-    #         'race_concept_id',
-    #         'ethnicity_concept_id',
-    #         'location_id',
-    # 		'provider_id',
-    #         'care_site_id',
-    #         'person_source_value',
-    #         'gender_source_value',
-    #         'gender_source_concept_id',
-    # 		'race_source_value',
-    #         'race_source_concept_id',
-    #         'ethnicity_source_value',
-    #         'ethnicity_source_concept_id'
-    #     ],
-    #     table_name = "person"
-    # )
+    create_table_person_task = create_table(
+        columns = [
+            'person_id',
+            'gender_concept_id',
+            'year_of_birth',
+            'month_of_birth',
+            'day_of_birth',
+    		'birth_datetime',
+            'death_datetime',
+            'race_concept_id',
+            'ethnicity_concept_id',
+            'location_id',
+    		'provider_id',
+            'care_site_id',
+            'person_source_value',
+            'gender_source_value',
+            'gender_source_concept_id',
+    		'race_source_value',
+            'race_source_concept_id',
+            'ethnicity_source_value',
+            'ethnicity_source_concept_id'
+        ],
+        table_name = "person"
+    )
+
+    write_to_table_person_task = write_to_postgres(
+        data=migrator_task,
+        table="person"
+    )
+
+    create_table_obs_task = create_table(
+        columns = [
+            'observation_id',
+            'person_id',
+            'observation_concept_id',
+            'observation_date',
+            'observation_datetime',
+            'observation_type_concept_id',
+            'value_as_number',
+            'value_as_string',
+            'value_as_concept_id',
+            'unit_concept_id',
+            'provider_id',
+            'visit_occurrence_id',
+            'visit_detail_id',
+            'observation_source_value',
+            'observation_source_concept_id',
+            'unit_source_value',
+            'qualifier_source_value'
+        ],
+        table_name = "observation"
+    )
 
     extract_csv_task >> transform_task >> extract_content_mappings_task >> harmonizer_task >> extract_column_mappings_task >> migrator_task
-    # create_conn_task >> create_table_task
+    create_conn_task >> create_table_person_task >> write_to_table_person_task
+    create_conn_task >> create_table_obs_task

@@ -1,7 +1,9 @@
 import pandas as pd
 from dateutil import parser, relativedelta
+from datetime import datetime
 import math
 import components.cohorts.ad_hoc as ad_hoc
+import components.cohorts.sah_constants as sahc
 from airflow.decorators import task
 from airflow.utils.log.logging_mixin import LoggingMixin
 
@@ -55,14 +57,6 @@ logger = LoggingMixin().log
 
 @task
 def migrate(person_data: list[dict], observation_data: list[dict], mappings: dict, adhoc_migration: bool = False) -> dict:
-    """
-    Migrates data into structured Person and Observation objects.
-    
-    :param data: Harmonized data from the previous step.
-    :return: Processed data as a dictionary.
-    
-    """
-
     mappings_df = pd.DataFrame.from_dict(mappings["data"])
 
     df_person = None
@@ -90,7 +84,6 @@ def migrate(person_data: list[dict], observation_data: list[dict], mappings: dic
     observation_clean = replace_nan_with_none(observation_dict)
     
     return {"person": person_clean, "observation": observation_clean}
-
 
 
 def migrate_person(df: pd.DataFrame, filename: str, mappings: pd.DataFrame, adhoc_migration: bool = False):
@@ -133,7 +126,7 @@ def migrate_observation(df: pd.DataFrame, filename: str, mappings: pd.DataFrame,
 
 def calculate_visit_concepts(cohort_df, columns_mapping, base_visit_code="2100000000", visit_prefix="21000000", max_months=40):
     df = cohort_df.copy()
-    df["VisitConcept"] = base_visit_code
+    df["VisitConcept"] = pd.Series(base_visit_code)
 
     patient_col = columns_mapping["person_id"].strip()
     date_col = columns_mapping["observation_date"].strip()
@@ -145,16 +138,22 @@ def calculate_visit_concepts(cohort_df, columns_mapping, base_visit_code="210000
         patient_id = row[patient_col]
         date = row[date_col]
 
-        if isinstance(date, float) and math.isnan(date):
+        if isinstance(date, float) and math.isnan(date) or not date:
             continue
 
-        try:
-            parsed_date = parser.parse(str(date), dayfirst=False)
-        except Exception:
-            continue
+        if patient_id in earliest_dates:
+            norm_0 = __parse_to_standard_format(earliest_dates[patient_id])
+            norm_1 = __parse_to_standard_format(date)
 
-        if patient_id not in earliest_dates or parsed_date < earliest_dates[patient_id]:
-            earliest_dates[patient_id] = parsed_date
+            d0 = datetime.strptime(norm_0, sahc.DATE_FORMAT)
+            d1 = datetime.strptime(norm_1, sahc.DATE_FORMAT)
+
+            r = relativedelta.relativedelta(d1, d0)
+
+            if (r.years * 12) + r.months < 0:
+                earliest_dates[patient_id] = date
+        else:
+            earliest_dates[patient_id] = date
 
     # Step 2: Calculate months and assign VisitConcept
     result_rows = []
@@ -163,21 +162,19 @@ def calculate_visit_concepts(cohort_df, columns_mapping, base_visit_code="210000
         patient_id = row[patient_col]
         date = row[date_col]
 
-        if isinstance(date, float) and math.isnan(date):
+        if isinstance(date, float) and math.isnan(date) or not date:
             row["VisitConcept"] = base_visit_code
             result_rows.append(row)
             continue
 
-        try:
-            current_date = parser.parse(str(date), dayfirst=False)
-            baseline_date = earliest_dates.get(patient_id)
-            if not baseline_date:
-                continue
-        except Exception:
-            continue
-
-        delta = relativedelta.relativedelta(current_date, baseline_date)
-        months_diff = round(((delta.years * 12) + delta.months) / 6)
+        norm_0 = __parse_to_standard_format(earliest_dates[patient_id])
+        norm_1 = __parse_to_standard_format(date)
+        
+        d0 = datetime.strptime(norm_0, sahc.DATE_FORMAT)
+        d1 = datetime.strptime(norm_1, sahc.DATE_FORMAT)
+        
+        r = relativedelta.relativedelta(d1, d0)
+        months_diff = round((r.years * 12 + r.months) / 6)
 
         if 0 <= months_diff <= max_months:
             row["VisitConcept"] = f"{visit_prefix}{str(months_diff).zfill(2)}"
@@ -188,11 +185,17 @@ def calculate_visit_concepts(cohort_df, columns_mapping, base_visit_code="210000
                 months_diff * 6
             )
             continue
-
-        result_rows.append(row)
-
     return pd.DataFrame(result_rows, columns=cohort_df.columns)
 
+def __parse_to_standard_format(date_str):
+    known_formats = ["%d-%b-%y", "%m/%d/%Y", "%Y-%m-%d"]  # Extend if needed
+    for fmt in known_formats:
+        try:
+            dt = datetime.strptime(date_str, fmt)
+            return dt.strftime(sahc.DATE_FORMAT)  # Normalize to your desired format
+        except ValueError:
+            continue
+    return None
 
 def get_columns_mapping(filename:str, domain: str, mappings: pd.DataFrame, source_name_as_key = False):
     rows_source_code = mappings[mappings['sourceCode'].str.contains(filename)]

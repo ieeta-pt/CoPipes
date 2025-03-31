@@ -21,20 +21,31 @@ def calculate_cut_off_values(row):
 			Cutoff amyloid <680, cutoff t-tau >400, cutoff p-tau >62.
 	'''
     try:
-        date = datetime.datetime.strptime(row['Date of puncture (Liquor)'], '%d-%M-%Y')
+        # date_str = row['Date of puncture (Liquor)']
+        # dt = None
+        # known_formats = ["%d-%b-%y", "%m/%d/%Y", "%Y-%m-%d"]  # Extend if needed
+        # for fmt in known_formats:
+        #     try:
+        #         dt = datetime.strptime(date_str, fmt)
+        #         dt = dt.strftime("%d-%m-%Y")  # Normalize to your desired format
+        #     except ValueError:
+        #         continue
+
+        dt = __parse_to_standard_format(row['Date of puncture (Liquor)'])
+        date = datetime.strptime(dt, "%d-%m-%Y")
     except:
         print("No date defined for the cutOffs, which is necessary in this cohort:\t", row)
         return None, None
-    if date < datetime.datetime(2014, 12, 3):
+    if date < datetime(2014, 12, 3):
         return None, None
-    elif date < datetime.datetime(2016, 12, 31):
+    elif date < datetime(2016, 12, 31):
         if "2000000070" in row["VariableConcept"]: 
             return "<", 600
         if "2000000073" in row["VariableConcept"]:
             return ">", 60
         if "2000000075" in row["VariableConcept"]:
             return ">", 300
-    elif date < datetime.datetime(2018, 11, 28):
+    elif date < datetime(2018, 11, 28):
         if "2000000070" in row["VariableConcept"]:
             return "<", 1000
         if "2000000073" in row["VariableConcept"]:
@@ -159,7 +170,10 @@ def deal_with_csf_assay(row):
         Assay: Luminex
     '''
     try:
-        date = datetime.strptime(row['Date of puncture (Liquor)'], '%d-%M-%Y')
+        dt = __parse_to_standard_format(row['Date of puncture (Liquor)'])
+        print(f"dt: {dt}")
+        date = datetime.strptime(dt, '%d-%m-%Y')
+        print(f"date: {date}")
     except:
         print("No date defined in CSF Assay:\t", row)
         return []
@@ -377,3 +391,16 @@ def set_person_person_id(value):
     person_dict = value.to_dict()
     person_dict = {i[1]:i[0] for i in person_dict.items()}
     return value.map(person_dict), person_dict
+
+
+################################
+
+def __parse_to_standard_format(date_str):
+    known_formats = ["%d-%b-%y", "%m/%d/%Y", "%Y-%m-%d"]  # Extend if needed
+    for fmt in known_formats:
+        try:
+            dt = datetime.strptime(date_str, fmt)
+            return dt.strftime("%d-%m-%Y")  # Normalize to your desired format
+        except ValueError:
+            continue
+    return None

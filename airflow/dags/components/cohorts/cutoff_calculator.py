@@ -1,4 +1,4 @@
-import sah_constants as sahc
+import components.cohorts.sah_constants as sahc
 
 Relation = {
 	"2000000070":{"cutOff"	:"2000000297", "cutOffName"		:"Amyloid Beta 1-42 Cut-off",
@@ -42,7 +42,7 @@ def __cutOffBuilder(row, variableConcept, operator, value):
 	row['MeasureString'] 	= operator + str(value)
 	return row
 
-def __abnormalBuilder(self, row, variableConcept, operator, cutOffValue):
+def __abnormalBuilder(row, variableConcept, operator, cutOffValue):
 	value = row['Measure']
 	row['Variable'] 		= Relation[variableConcept]["abnormalName"]
 	row['VariableConcept'] 	= Relation[variableConcept]["abnormal"]
