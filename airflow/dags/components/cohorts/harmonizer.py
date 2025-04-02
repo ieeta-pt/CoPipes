@@ -24,14 +24,14 @@ def harmonize(data: dict, mappings: dict, adhoc_harmonization: bool = False) -> 
 def harmonize_data(data: pd.DataFrame, data_file: str, mappings: pd.DataFrame, adhoc_harmonization: bool = False):
     data = filter_data(data)
     data = harmonize_variable_concept(data, data_file, mappings)
-    data = harmonize_measure_concept(data, mappings)
+    data = harmonize_measure_concept(data, mappings, data_file)
     data = harmonize_measure_number(data)
     data = harmonize_measure_string(data)
     # Ad hoc specific functions
     if adhoc_harmonization:
         data = harmonize_measure_adhoc(data)
 
-    data = clean_empty_measure(data)
+    # data = clean_empty_measure(data)
     return data
 
 def filter_data(data):
@@ -39,74 +39,66 @@ def filter_data(data):
 
 
 def harmonize_variable_concept(data: pd.DataFrame, data_file: str, mappings: pd.DataFrame) -> pd.DataFrame:
-    # Filter the mappings for the given file
-    data_mapping = mappings[mappings["sourceCode"].str.contains(data_file, na=False)]
-    data_mapping = data_mapping.reindex(columns=["sourceName", "targetConceptId"])
+    df_mapping = get_content_mapping_by_file(mappings, data_file)
+    df_mapping = df_mapping.reindex(columns=["sourceName", "targetConceptId"])
 
-    # Build lookup dictionary
-    lookup = {
-        row["sourceName"].strip(): row["targetConceptId"]
-        for _, row in data_mapping.iterrows()
-    }
+    mappings_list = df_mapping.to_dict(orient="records")
+    data_dict = data.to_dict(orient="records")
+    output_data = []
 
-    # Copy input to avoid mutation
-    df = data.copy()
+    for row in data_dict:
+        added = False
+        for mapping in mappings_list:
+            if mapping["sourceName"].strip() == row["Variable"].strip():
+                temp_row = row.copy()
+                temp_row["VariableConcept"] = mapping["targetConceptId"]
+                if mapping["targetConceptId"] != '0':
+                    output_data.append(temp_row)
+                added = True
+        if not added:
+            output_data.append(row)
 
-    # Apply mapping logic row by row
-    def map_variable(row):
-        var = row.get("Variable", "")
-        concept_id = lookup.get(var.strip())
-        if concept_id is None:
-            row["VariableConcept"] = None  # no mapping found
-            return row
-        elif concept_id != '0':
-            row["VariableConcept"] = concept_id
-            return row
-        else:
-            return None  # skip rows where conceptId == '0'
+    result = pd.DataFrame(output_data, columns=data.columns.to_list() + ["VariableConcept"])
+    return result
 
-    # Map each row, filter out None results
-    mapped_rows = [map_variable(row) for _, row in df.iterrows()]
-    filtered_rows = [row for row in mapped_rows if row is not None]
-
-    # Rebuild final DataFrame
-    result_df = pd.DataFrame(filtered_rows)
-
-    # Ensure VariableConcept column is always present
-    if "VariableConcept" not in result_df.columns:
-        result_df["VariableConcept"] = None
-
-    return result_df
+def get_content_mapping_by_file(mappings: pd.DataFrame, data_file: str) -> pd.DataFrame:
+    if not mappings.empty:
+        filtered_mapping = mappings[mappings["sourceCode"].str.contains(data_file)]
+        return filtered_mapping[["sourceCode", "sourceName", "targetConceptId"]]
+    return None
 
 
-def harmonize_measure_concept(data, mappings):
-    filtered_mapping = mappings[~mappings["sourceCode"].str.contains(".csv")]
-    filtered_mapping = filtered_mapping.reindex(columns=["sourceCode", "sourceName", "targetConceptId"])
-
-    key_mapping_series = filtered_mapping[["sourceCode", "sourceName"]].apply(tuple, axis=1)
-    key_mapping = pd.concat([key_mapping_series, filtered_mapping["targetConceptId"]], axis=1)
+def harmonize_measure_concept(data: pd.DataFrame, mappings: pd.DataFrame, fname: str) -> pd.DataFrame:
+    df_mapping = get_content_mapping(mappings, fname)
+    key_mapping_series = df_mapping[["sourceCode", "sourceName"]].apply(tuple, axis=1)
+    key_mapping = pd.concat([key_mapping_series, df_mapping["targetConceptId"]], axis=1)
     key_mapping = key_mapping.rename(columns={0: 'source'})
-    key_mapping = key_mapping.set_index("source")["targetConceptId"].to_dict()
+    content_mapping = key_mapping.set_index("source")["targetConceptId"].to_dict()
 
-    data["MeasureConcept"] = data[["Variable", "Measure"]].apply(tuple, axis=1).map(key_mapping)
+    data["MeasureConcept"] = data[["Variable", "Measure"]].apply(tuple, axis=1).map(content_mapping)
     return data
+
+def get_content_mapping(mappings: pd.DataFrame, fname: str) -> pd.DataFrame:
+    if not mappings.empty:
+        filtered_mapping = mappings 
+        filtered_mapping = filtered_mapping[~filtered_mapping["sourceCode"].str.contains(fname)]
+        return filtered_mapping[["sourceCode", "sourceName", "targetConceptId"]]
+    return None
 
 
 def harmonize_measure_number(data):
-    data["MeasureNumber"] = data["Measure"].astype(str).str.replace(",", ".")
+    data["MeasureNumber"] = data["Measure"]
+    data["MeasureNumber"] = data["MeasureNumber"].astype(str).str.replace(",", ".")
     data["MeasureNumber"] = pd.to_numeric(data["MeasureNumber"], errors='coerce')
 
-    data["MeasureNumber"] = data["MeasureNumber"].astype(object)
-    data.loc[data["MeasureConcept"].notna(), "MeasureNumber"] = None
-
+    data["MeasureNumber"] = data["MeasureNumber"][data["MeasureConcept"].isnull()]
     return data
-
 
 def harmonize_measure_string(data):
     data["MeasureString"] = data["Measure"]
-    data.loc[data["MeasureConcept"].notnull() | data["MeasureNumber"].notnull(), "MeasureString"] = None
+    data["MeasureString"] = data["MeasureString"][data["MeasureConcept"].isnull()]
+    data["MeasureString"] = data["MeasureString"][data["MeasureNumber"].isnull()]
     return data
-
 
 def harmonize_measure_adhoc(data):
     data_dict = data.to_dict('records')

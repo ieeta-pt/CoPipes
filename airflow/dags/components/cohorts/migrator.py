@@ -217,7 +217,6 @@ def cohort_filter(df, domain, patient_id_label = "Patient ID"):
     
     if(hasattr(ad_hoc, methodName)):
         df_filtered = getattr(ad_hoc, methodName)(df)
-    
     if domain == 'observation':
         df_filtered[pd.notnull(df_filtered["VariableConcept"])]
         df_filtered[pd.notnull(df_filtered[patient_id_label].map(PATIENT_IDS))].reset_index(drop=True)

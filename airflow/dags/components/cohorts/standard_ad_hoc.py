@@ -52,6 +52,7 @@ def create_new_measures(data: list[dict], adhoc_harmonization : bool = False) ->
         df = file["data"]
         fname = file["filename"]
         _, temp_result[fname] = process_loading_stage(df)
+        temp_result[fname] = clean_empty_measure(temp_result[fname])
 
     result = []
     for file in temp_result:
@@ -67,6 +68,11 @@ def create_new_measures(data: list[dict], adhoc_harmonization : bool = False) ->
         result.append({"data":processed_df, "filename":fname})
     return result
 
+def clean_empty_measure(data):
+    data_df = pd.DataFrame(data)    
+    data_df = data_df[data_df["MeasureString"] != "n.a."]
+    data_df = data_df.dropna(how='all', subset=["MeasureConcept", "MeasureNumber", "MeasureString"])
+    return data_df.to_dict(orient="records")
 
 def replace_nan_with_none(obj):
     if isinstance(obj, dict):
