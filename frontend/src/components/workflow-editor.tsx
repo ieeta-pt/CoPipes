@@ -14,8 +14,9 @@ import {
   useSortable,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable"
+import { restrictToVerticalAxis } from "@dnd-kit/modifiers"
 import { CSS } from "@dnd-kit/utilities"
-import { X, Download, Play } from "lucide-react"
+import { X, Download, Play, GripVertical } from "lucide-react"
 
 const componentCategories = [
   { name: "Extraction", items: ["Extraction 1", "Extraction 2"] },
@@ -95,7 +96,6 @@ export default function WorkflowEditor() {
     <div className="flex h-screen">
       <aside className="w-64 bg-base-200 border-r border-base-300 flex flex-col">
         <div className="p-4 text-2xl font-bold">LOGO</div>
-        <div className="divider m-0"></div>
         <div className="flex-1 overflow-auto">
           {componentCategories.map((category) => (
             <div key={category.name} className="collapse collapse-arrow">
@@ -115,11 +115,10 @@ export default function WorkflowEditor() {
             </div>
           ))}
         </div>
-        <div className="p-4 border-t border-base-300 text-sm">
+        {/* <div className="p-4 border-t border-base-300 text-sm">
           <div className="font-medium">Profile Name</div>
           <div className="text-base-content/70">View profile</div>
-          <div className="text-base-content/60 mt-2">Made with Visily</div>
-        </div>
+        </div> */}
       </aside>
 
       <main className="flex-1 flex flex-col overflow-hidden">
@@ -133,29 +132,45 @@ export default function WorkflowEditor() {
               sensors={sensors}
               collisionDetection={closestCenter}
               onDragEnd={handleDragEnd}
+              modifiers={[restrictToVerticalAxis]}
             >
-              <SortableContext items={workflowItems.map(item => item.id)} strategy={verticalListSortingStrategy}>
-                <div className="space-y-4">
-                  {workflowItems.map((item, index) => (
-                    <SortableItem
-                      key={item.id}
-                      item={item}
-                      index={index}
-                      remove={removeComponent}
-                    />
-                  ))}
+              <SortableContext
+                items={workflowItems.map((item) => item.id)}
+                strategy={verticalListSortingStrategy}
+                >
+                <div className="min-h-full flex flex-col">
+                    <div className="space-y-4">
+                    {workflowItems.map((item, index) => (
+                        <SortableItem
+                        key={item.id}
+                        item={item}
+                        index={index}
+                        remove={removeComponent}
+                        />
+                    ))}
+                    </div>
+
+                    <div className="flex justify-center mt-6 gap-4 mt-auto p-4">
+                    <button onClick={testWorkflow} className="btn btn-primary">
+                        <Play className="h-4 w-4 mr-2" /> Test
+                    </button>
+                    <button onClick={downloadWorkflow} className="btn btn-outline">
+                        <Download className="h-4 w-4 mr-2" /> Download
+                    </button>
+                    </div>
                 </div>
-              </SortableContext>
+                </SortableContext>
+
             </DndContext>
 
-            <div className="flex justify-center mt-6 gap-4">
+            {/* <div className="flex justify-center mt-6 gap-4">
               <button onClick={testWorkflow} className="btn btn-primary">
                 <Play className="h-4 w-4 mr-2" /> Test
               </button>
               <button onClick={downloadWorkflow} className="btn btn-outline">
                 <Download className="h-4 w-4 mr-2" /> Download
               </button>
-            </div>
+            </div> */}
           </section>
 
           <aside className="w-80 border-l border-base-300 p-4 flex flex-col">
@@ -185,44 +200,64 @@ export default function WorkflowEditor() {
   )
 }
 
-function SortableItem({ item, index, remove }: any) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-  } = useSortable({ id: item.id })
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    borderLeft: `4px solid ${getColorForType(item.type)}`,
-  }
-
-  return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners} className="card bg-base-100 shadow-md">
-      <div className="card-body p-4">
-        <div className="flex justify-between items-start">
+function SortableItem({ item, index, remove, activeId }: any) {
+    const {
+      attributes,
+      listeners,
+      setNodeRef,
+      transform,
+      transition,
+    } = useSortable({ id: item.id })
+  
+    const style = {
+      transform: CSS.Transform.toString(transform),
+      transition,
+      borderLeft: `4px solid ${getColorForType(item.type)}`,
+      opacity: item.id === activeId ? 0.5 : 1,
+    }
+  
+    return (
+      <div
+        ref={setNodeRef}
+        style={style}
+        className="card bg-base-100 shadow-md"
+      >
+        <div className="card-body p-4">
+          <div className="flex justify-between items-start">
           <div className="font-medium">{item.content}</div>
-          <div className="flex gap-1">
-            <button className="btn btn-xs btn-soft btn-error" onClick={() => remove(item.id)}><X className="h-4 w-4" /></button>
+            <div className="flex gap-2">
+            <button className="btn btn-xs btn-soft btn-info"
+                {...listeners}
+                {...attributes}
+              >
+                <GripVertical className="h-4 w-4" />
+            </button>
+              <button
+                className="btn btn-xs btn-soft btn-error"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  remove(item.id)
+                }}
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
           </div>
+  
+          {componentParams[item.content as keyof typeof componentParams] && (
+            <div className="mt-3 space-y-2">
+              {componentParams[item.content as keyof typeof componentParams].map((param, i) => (
+                <div key={i} className="text-sm text-base-content/70">
+                  {param.name}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-
-        {componentParams[item.content as keyof typeof componentParams] && (
-          <div className="mt-3 space-y-2">
-            {componentParams[item.content as keyof typeof componentParams].map((param, i) => (
-              <div key={i} className="text-sm text-base-content/70">
-                {param.name}
-              </div>
-            ))}
-          </div>
-        )}
       </div>
-    </div>
-  )
-}
+    )
+  }
+  
 
 function getColorForType(type: string): string {
   const colors: Record<string, string> = {
