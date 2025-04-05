@@ -1,52 +1,39 @@
-version: "3.8"
-
 services:
   postgres:
     image: postgres:15
     container_name: airflow_postgres
-    restart: always
-    environment:
-      POSTGRES_USER: airflow
-      POSTGRES_PASSWORD: airflow
-      POSTGRES_DB: airflow
+    restart: unless-stopped
+    env_file: .env.prod
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
 
   airflow-init:
     image: apache/airflow:2.10.4
     depends_on:
       - postgres
+    env_file: .env.prod
     environment:
       AIRFLOW_HOME: /opt/airflow
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
-      AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW__WEBSERVER__SECRET_KEY}
       AIRFLOW__API__AUTH_BACKENDS: "airflow.api.auth.backend.basic_auth"
-    entrypoint: ["/bin/bash", "-c"]
-    command:
-      - >
-        airflow db migrate &&
-        airflow users create --username admin --password admin --firstname Admin --lastname User --role Admin --email admin@example.com
+    entrypoint: ["/bin/bash", "/opt/airflow/init.sh"]
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./airflow/data:/opt/airflow/data
+      - ./airflow/init.sh:/opt/airflow/init.sh
+
 
   airflow-webserver:
     build: ./airflow
     container_name: airflow_webserver
-    restart: always
+    restart: unless-stopped
     depends_on:
       - postgres
       - airflow-init
-    ports:
-      - "8080:8080"
+    env_file: .env.prod
     environment:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
       AIRFLOW__WEBSERVER__RBAC: "True"
-      AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW__WEBSERVER__SECRET_KEY}
       PYTHONWARNINGS: ignore
       AIRFLOW__CORE__DAG_DIR_LIST_INTERVAL: 10
     command: ["webserver"]
@@ -57,34 +44,48 @@ services:
   airflow-scheduler:
     build: ./airflow
     container_name: airflow_scheduler
-    restart: always
+    restart: unless-stopped
     depends_on:
       - airflow-webserver
+    env_file: .env.prod
     environment:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
-      AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW__WEBSERVER__SECRET_KEY}
       AIRFLOW__CORE__IS_PAUSED_UPON_CREATION: False
       AIRFLOW__CORE__DAG_DIR_LIST_INTERVAL: 10
-
     command: ["scheduler"]
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./airflow/data:/opt/airflow/data
     
   fastapi:
-    build: ./backend/api
-    container_name: fastapi
-    ports:
-      - "8000:8000"
-    env_file:
-      - .env
-    volumes:
-      - ./backend/api:/app
-      - ./airflow/dags:/opt/airflow/dags
-      - ./airflow/data:/opt/airflow/data
+    build:
+      context: ./backend/api
+      dockerfile: Dockerfile.prod
+    restart: unless-stopped
+    env_file: .env.prod
     depends_on:
       - postgres
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+    restart: unless-stopped
+    env_file: .env.prod
+    depends_on:
+      - fastapi
+
+  nginx:
+    image: nginx:alpine
+    container_name: reverse_proxy
+    ports:
+      - "80:80"
+    depends_on:
+      - frontend
+      - fastapi
+      - airflow-webserver
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
 
 volumes:
   postgres_data:

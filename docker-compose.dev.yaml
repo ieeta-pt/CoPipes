@@ -1,0 +1,88 @@
+services:
+  postgres:
+    image: postgres:15
+    restart: on-failure
+    env_file: .env.dev
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  airflow-init:
+    image: apache/airflow:2.10.4
+    depends_on:
+      - postgres
+    env_file: .env.dev
+    environment:
+      AIRFLOW_HOME: /opt/airflow
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__API__AUTH_BACKENDS: "airflow.api.auth.backend.basic_auth"
+    entrypoint: ["/bin/bash", "/opt/airflow/init.sh"]
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/data:/opt/airflow/data
+      - ./airflow/init.sh:/opt/airflow/init.sh
+
+  airflow-webserver:
+    build: ./airflow
+    restart: on-failure
+    depends_on:
+      - postgres
+      - airflow-init
+    ports:
+      - "8080:8080"
+    env_file: .env.dev
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__WEBSERVER__RBAC: "True"
+      PYTHONWARNINGS: ignore
+      AIRFLOW__CORE__DAG_DIR_LIST_INTERVAL: 10
+    command: ["webserver"]
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/data:/opt/airflow/data
+
+  airflow-scheduler:
+    build: ./airflow
+    restart: on-failure
+    depends_on:
+      - airflow-webserver
+    env_file: .env.dev
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__IS_PAUSED_UPON_CREATION: False
+      AIRFLOW__CORE__DAG_DIR_LIST_INTERVAL: 10
+
+    command: ["scheduler"]
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/data:/opt/airflow/data
+    
+  fastapi:
+    build: 
+      context: ./backend/api
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8000:8000"
+    env_file: .env.dev
+    volumes:
+      - ./backend/api:/app
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/data:/opt/airflow/data
+    depends_on:
+      - postgres
+
+  frontend:
+    build: 
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+    env_file: .env.dev
+    depends_on:
+      - fastapi
+
+volumes:
+  postgres_data:

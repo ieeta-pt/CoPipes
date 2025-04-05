@@ -8,6 +8,8 @@ import {
   useSensor,
   useSensors,
   DragOverlay,
+  DragStartEvent,
+  DragEndEvent,
 } from "@dnd-kit/core"
 import {
   arrayMove,
@@ -52,7 +54,6 @@ export default function WorkflowEditor() {
 
   const [input, setInput] = useState("")
   const [output, setOutput] = useState("")
-  const [activeId, setActiveId] = useState<string | null>(null)
   const [activeItem, setActiveItem] = useState<WorkflowItem | null>(null)
 
 
@@ -67,17 +68,16 @@ export default function WorkflowEditor() {
     setWorkflowItems(workflowItems.filter((item) => item.id !== id))
   }
 
-  const handleDragStart = (event: any) => {
+  const handleDragStart = (event: DragStartEvent) => {
     const { active } = event
     const item = workflowItems.find((i) => i.id === active.id)
     if (item) {
-      setActiveId(active.id)
       setActiveItem(item)
     }
   }
   
 
-  const handleDragEnd = (event: any) => {
+  const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
   
     if (active.id !== over?.id) {
@@ -86,7 +86,6 @@ export default function WorkflowEditor() {
       setWorkflowItems(arrayMove(workflowItems, oldIndex, newIndex))
     }
   
-    setActiveId(null)
     setActiveItem(null)
   }
   
@@ -157,11 +156,10 @@ export default function WorkflowEditor() {
                 >
                 <div className="min-h-full flex flex-col">
                     <div className="space-y-4">
-                    {workflowItems.map((item, index) => (
+                    {workflowItems.map((item) => (
                         <SortableItem
                         key={item.id}
                         item={item}
-                        index={index}
                         remove={removeComponent}
                         />
                     ))}
@@ -181,7 +179,6 @@ export default function WorkflowEditor() {
                 {activeItem ? (
                     <SortableItem
                     item={activeItem}
-                    index={-1}
                     remove={() => {}}
                     isOverlay
                     />
@@ -219,7 +216,14 @@ export default function WorkflowEditor() {
   )
 }
 
-function SortableItem({ item, index, remove, isOverlay = false }: any) {
+interface SortableItemProps {
+    item: WorkflowItem
+    remove: (id: string) => void
+    isOverlay?: boolean
+  }
+  
+
+function SortableItem({ item, remove, isOverlay = false }: SortableItemProps) {
     const {
       attributes,
       listeners,
