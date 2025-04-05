@@ -7,6 +7,7 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
+  DragOverlay,
 } from "@dnd-kit/core"
 import {
   arrayMove,
@@ -52,6 +53,8 @@ export default function WorkflowEditor() {
   const [input, setInput] = useState("")
   const [output, setOutput] = useState("")
   const [activeId, setActiveId] = useState<string | null>(null)
+  const [activeItem, setActiveItem] = useState<WorkflowItem | null>(null)
+
 
   const sensors = useSensors(useSensor(PointerSensor))
 
@@ -64,16 +67,29 @@ export default function WorkflowEditor() {
     setWorkflowItems(workflowItems.filter((item) => item.id !== id))
   }
 
-  const handleDragEnd = (event: any) => {
-    const { active, over } = event
-    setActiveId(null)
-    if (active.id !== over?.id) {
-      const oldIndex = workflowItems.findIndex((item) => item.id === active.id)
-      const newIndex = workflowItems.findIndex((item) => item.id === over.id)
-      const newItems = arrayMove(workflowItems, oldIndex, newIndex)
-      setWorkflowItems(newItems)
+  const handleDragStart = (event: any) => {
+    const { active } = event
+    const item = workflowItems.find((i) => i.id === active.id)
+    if (item) {
+      setActiveId(active.id)
+      setActiveItem(item)
     }
   }
+  
+
+  const handleDragEnd = (event: any) => {
+    const { active, over } = event
+  
+    if (active.id !== over?.id) {
+      const oldIndex = workflowItems.findIndex((item) => item.id === active.id)
+      const newIndex = workflowItems.findIndex((item) => item.id === over?.id)
+      setWorkflowItems(arrayMove(workflowItems, oldIndex, newIndex))
+    }
+  
+    setActiveId(null)
+    setActiveItem(null)
+  }
+  
 
   const testWorkflow = () => {
     setOutput(`Test results for workflow with ${workflowItems.length} components`)
@@ -131,6 +147,7 @@ export default function WorkflowEditor() {
             <DndContext
               sensors={sensors}
               collisionDetection={closestCenter}
+              onDragStart={handleDragStart}
               onDragEnd={handleDragEnd}
               modifiers={[restrictToVerticalAxis]}
             >
@@ -154,23 +171,25 @@ export default function WorkflowEditor() {
                     <button onClick={testWorkflow} className="btn btn-primary">
                         <Play className="h-4 w-4 mr-2" /> Test
                     </button>
-                    <button onClick={downloadWorkflow} className="btn btn-outline">
+                    <button onClick={downloadWorkflow} className="btn btn-secondary">
                         <Download className="h-4 w-4 mr-2" /> Download
                     </button>
                     </div>
                 </div>
                 </SortableContext>
+                <DragOverlay>
+                {activeItem ? (
+                    <SortableItem
+                    item={activeItem}
+                    index={-1}
+                    remove={() => {}}
+                    isOverlay
+                    />
+                ) : null}
+                </DragOverlay>
+
 
             </DndContext>
-
-            {/* <div className="flex justify-center mt-6 gap-4">
-              <button onClick={testWorkflow} className="btn btn-primary">
-                <Play className="h-4 w-4 mr-2" /> Test
-              </button>
-              <button onClick={downloadWorkflow} className="btn btn-outline">
-                <Download className="h-4 w-4 mr-2" /> Download
-              </button>
-            </div> */}
           </section>
 
           <aside className="w-80 border-l border-base-300 p-4 flex flex-col">
@@ -200,7 +219,7 @@ export default function WorkflowEditor() {
   )
 }
 
-function SortableItem({ item, index, remove, activeId }: any) {
+function SortableItem({ item, index, remove, isOverlay = false }: any) {
     const {
       attributes,
       listeners,
@@ -213,35 +232,40 @@ function SortableItem({ item, index, remove, activeId }: any) {
       transform: CSS.Transform.toString(transform),
       transition,
       borderLeft: `4px solid ${getColorForType(item.type)}`,
-      opacity: item.id === activeId ? 0.5 : 1,
+      opacity: isOverlay ? 0.8 : 1,
+      cursor: isOverlay ? "grabbing" : "default",
+      zIndex: isOverlay ? 999 : "auto",
     }
   
     return (
       <div
         ref={setNodeRef}
         style={style}
-        className="card bg-base-100 shadow-md"
+        className={`card bg-base-100 shadow-md ${isOverlay ? "pointer-events-none" : ""}`}
       >
         <div className="card-body p-4">
           <div className="flex justify-between items-start">
-          <div className="font-medium">{item.content}</div>
-            <div className="flex gap-2">
-            <button className="btn btn-xs btn-soft btn-info"
-                {...listeners}
-                {...attributes}
-              >
-                <GripVertical className="h-4 w-4" />
-            </button>
-              <button
-                className="btn btn-xs btn-soft btn-error"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  remove(item.id)
-                }}
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
+            <div className="font-medium">{item.content}</div>
+            {!isOverlay && (
+              <div className="flex gap-2">
+                <button
+                  className="btn btn-xs btn-soft btn-secondary cursor-grab"
+                  {...listeners}
+                  {...attributes}
+                >
+                  <GripVertical className="h-4 w-4" />
+                </button>
+                <button
+                  className="btn btn-xs btn-soft btn-error"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    remove(item.id)
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            )}
           </div>
   
           {componentParams[item.content as keyof typeof componentParams] && (
@@ -257,6 +281,7 @@ function SortableItem({ item, index, remove, activeId }: any) {
       </div>
     )
   }
+  
   
 
 function getColorForType(type: string): string {
