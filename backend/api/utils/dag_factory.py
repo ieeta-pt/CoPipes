@@ -10,7 +10,7 @@ from datetime import datetime
 
 {dynamic_imports}
 
-with DAG(
+with DAG (
     dag_id="{dag_id}",
     schedule_interval={schedule_interval},
     start_date=datetime({start_date}),

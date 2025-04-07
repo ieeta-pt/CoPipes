@@ -8,7 +8,7 @@ from components.extract.csv import extract_csv
 from components.postgres.write_to_db import write_to_postgres
 from components.cohorts.harmonizer import harmonize
 
-with DAG(
+with DAG (
     dag_id="harmonize_dag",
     schedule_interval=None,
     start_date=datetime(2025, 2, 3),

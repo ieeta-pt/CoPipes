@@ -21,6 +21,7 @@ services:
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./airflow/data:/opt/airflow/data
+      - shared-data:/shared_data
       - ./airflow/init.sh:/opt/airflow/init.sh
 
   airflow-webserver:
@@ -41,6 +42,7 @@ services:
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./airflow/data:/opt/airflow/data
+      - shared-data:/shared_data
 
   airflow-scheduler:
     build: ./airflow
@@ -57,6 +59,7 @@ services:
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./airflow/data:/opt/airflow/data
+      - shared-data:/shared_data
     
   fastapi:
     build: 
@@ -69,6 +72,7 @@ services:
       - ./backend/api:/app
       - ./airflow/dags:/opt/airflow/dags
       - ./airflow/data:/opt/airflow/data
+      - shared-data:/shared_data
     depends_on:
       - postgres
 
@@ -80,9 +84,11 @@ services:
       - "3000:3000"
     volumes:
       - ./frontend:/app
+      - shared-data:/shared_data
     env_file: .env.dev
     depends_on:
       - fastapi
 
 volumes:
   postgres_data:
+  shared-data:

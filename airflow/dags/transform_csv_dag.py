@@ -7,7 +7,7 @@ from components.postgres.create_table import create_table
 from components.extract.csv import extract_csv
 from components.postgres.write_to_db import write_to_postgres
 
-with DAG(
+with DAG (
     dag_id="transform_csv_dag",
     schedule_interval=None,
     start_date=datetime(2025, 2, 3),
