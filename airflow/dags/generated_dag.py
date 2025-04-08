@@ -4,7 +4,7 @@ from datetime import datetime
 from components.extraction.csv import csv
 
 with DAG (
-    dag_id="test_dag",
+    dag_id="generated_dag",
     schedule_interval=None,
     start_date=datetime((2025, 2, 3)),
     catchup=False,

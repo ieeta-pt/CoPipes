@@ -45,7 +45,7 @@ export const SortableItem: React.FC<Props> = ({
                 <GripVertical className="h-4 w-4" />
               </button>
               <button
-                className="btn btn-xs btn-error"
+                className="btn btn-xs btn-error btn-soft"
                 onClick={() => onRemove(item.id)}
               >
                 <X className="h-4 w-4" />
