@@ -1,8 +1,11 @@
+import os
 import pandas as pd
 import chardet
 import unicodedata
 from typing import Dict
 from airflow.decorators import task
+
+UPLOAD_DIR = "/shared_data/"
 
 @task
 def extract_csv(filename: str, file_sep: str = ',') -> Dict[dict, str]:
@@ -10,8 +13,11 @@ def extract_csv(filename: str, file_sep: str = ',') -> Dict[dict, str]:
     Load a CSV file into a DataFrame with robust handling of character encodings.
     Specifically handles special characters like umlauts (ä, ö, ü).
     """
+
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+    file = os.path.join(UPLOAD_DIR, filename)
     # First try to detect the encoding
-    with open(filename, 'rb') as f:
+    with open(file, 'rb') as f:
         raw_data = f.read()
         result = chardet.detect(raw_data)
         print(f"Detected encoding: {result['encoding']} with confidence: {result['confidence']}")
@@ -24,7 +30,7 @@ def extract_csv(filename: str, file_sep: str = ',') -> Dict[dict, str]:
         try:
             print(f"Attempting to read with encoding: {encoding}")
             df_read = pd.read_csv(
-                filename,
+                file,
                 na_values='null',
                 sep=file_sep,
                 dtype=str,

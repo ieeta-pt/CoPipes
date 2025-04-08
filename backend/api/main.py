@@ -16,7 +16,7 @@ AIRFLOW_PASSWORD = os.getenv("AIRFLOW_PASSWORD")
 
 API_AUTH = auth = (AIRFLOW_USERNAME, AIRFLOW_PASSWORD)
 
-UPLOAD_DIR = "/shared_data"
+UPLOAD_DIR = "/shared_data/"
 
 @app.get("/")
 def read_root():
