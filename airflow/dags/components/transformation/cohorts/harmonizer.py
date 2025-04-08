@@ -1,7 +1,7 @@
 import pandas as pd
 from typing import Dict
 from airflow.decorators import task
-import components.cohorts.ad_hoc as ad_hoc
+import components.utils.cohorts.ad_hoc as ad_hoc
 
 @task
 def harmonize(data: dict, mappings: dict, adhoc_harmonization: bool = False) -> Dict[dict, str]:
@@ -18,7 +18,6 @@ def harmonize(data: dict, mappings: dict, adhoc_harmonization: bool = False) -> 
     harmonized_data = replace_nan_with_none(harmonized_data)
 
     return {"data": harmonized_data, "filename": data["filename"]}
-
 
 
 def harmonize_data(data: pd.DataFrame, data_file: str, mappings: pd.DataFrame, adhoc_harmonization: bool = False):

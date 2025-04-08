@@ -1,4 +1,6 @@
-export async function submitWorkflow(payload: any) {
+import { WorkflowRequest } from "@/components/airflow-tasks/types"
+
+export async function submitWorkflow(payload: WorkflowRequest) {
   const res = await fetch("/api/workflows", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

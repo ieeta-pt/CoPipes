@@ -1,9 +1,9 @@
 from datetime import datetime
 import pandas as pd
-import components.cohorts.zscore_calculator as zc
-import components.cohorts.cutoff_calculator as cc
-import components.cohorts.sah_constants as sahc
-import components.cohorts.ad_hoc as ad_hoc
+import components.utils.cohorts.zscore_calculator as zc
+import components.utils.cohorts.cutoff_calculator as cc
+import components.utils.cohorts.sah_constants as sahc
+import components.utils.cohorts.ad_hoc as ad_hoc
 
 from airflow.decorators import task
 from airflow.utils.log.logging_mixin import LoggingMixin

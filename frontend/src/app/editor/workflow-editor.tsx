@@ -1,42 +1,61 @@
 "use client";
 
 import { useState } from "react";
-import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragOverlay, DragStartEvent, DragEndEvent } from "@dnd-kit/core";
-import { arrayMove, SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragOverlay,
+  DragStartEvent,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import { Download, Play } from "lucide-react";
 
 import { Registry } from "@/components/airflow-tasks/Registry";
-import { WorkflowItem } from "@/components/airflow-tasks/types";
+import { WorkflowComponent } from "@/components/airflow-tasks/types";
 import { SortableItem } from "@/app/editor/SortableItem";
 import { submitWorkflow } from "@/api/workflow/test";
 
 function groupTasksByType() {
   return Object.entries(
     Object.values(Registry).reduce((acc, task) => {
-      if (!acc[task.type]) acc[task.type] = []
-      const taskName = Object.keys(Registry).find(key => Registry[key] === task)
-      if (taskName) acc[task.type].push(taskName)
-      return acc
+      if (!acc[task.type]) acc[task.type] = [];
+      const taskName = Object.keys(Registry).find(
+        (key) => Registry[key] === task
+      );
+      if (taskName) acc[task.type].push(taskName);
+      return acc;
     }, {} as Record<string, string[]>)
-  ).map(([name, items]) => ({ name, items }))
+  ).map(([name, items]) => ({ name, items }));
 }
 
-const componentCategories = groupTasksByType()
+const componentCategories = groupTasksByType();
 
+function createIdBuilder(prefix: string = "id") {
+  let counter = 0;
+  return `${prefix}_${++counter}`;
+}
 
 export default function WorkflowEditor() {
-  const [workflowItems, setWorkflowItems] = useState<WorkflowItem[]>([]);
+  const [workflowItems, setWorkflowItems] = useState<WorkflowComponent[]>([]);
   const [input, setInput] = useState("");
   const [output, setOutput] = useState("");
-  const [activeItem, setActiveItem] = useState<WorkflowItem | null>(null);
+  const [activeItem, setActiveItem] = useState<WorkflowComponent | null>(null);
 
   const sensors = useSensors(useSensor(PointerSensor));
 
   const addComponent = (content: string, type: string) => {
     const taskDef = Registry[content];
-    const newItem: WorkflowItem = {
-      id: `item-${crypto.randomUUID()}`,
+    const newItem: WorkflowComponent = {
+      id: createIdBuilder(content),
       content,
       type,
       config: [...taskDef.defaultConfig],
@@ -68,22 +87,21 @@ export default function WorkflowEditor() {
 
   const testWorkflow = async () => {
     const payload = {
-      components: workflowItems,
-      input,
-      output,
-    }
-  
+      dag_id: "test_dag",
+      tasks: workflowItems,
+    };
+
     try {
-      const result = await submitWorkflow(payload)
-      setOutput(JSON.stringify(result, null, 2))
+      const result = await submitWorkflow(payload);
+      setOutput(JSON.stringify(result, null, 2));
     } catch (err) {
-      console.error(err)
-      setOutput("❌ Failed to submit workflow")
+      console.error(err);
+      setOutput("❌ Failed to submit workflow");
     }
-  }
+  };
 
   const downloadWorkflow = () => {
-    const workflowData = { components: workflowItems, input, output };
+    const workflowData = { tasks: workflowItems, input, output };
     const blob = new Blob([JSON.stringify(workflowData, null, 2)], {
       type: "application/json",
     });
@@ -245,14 +263,14 @@ export default function WorkflowEditor() {
 //   ],
 // }
 
-// type WorkflowItem = {
+// type WorkflowComponent = {
 //   id: string
 //   content: string
 //   type: string
 // }
 
 // export default function WorkflowEditor() {
-//   const [workflowItems, setWorkflowItems] = useState<WorkflowItem[]>([
+//   const [workflowItems, setWorkflowItems] = useState<WorkflowComponent[]>([
 //     { id: "item-1", content: "Extraction 2", type: "Extraction" },
 //     { id: "item-2", content: "Transformation 2", type: "Transformation" },
 //     { id: "item-3", content: "Transformation 3", type: "Transformation" },
@@ -262,7 +280,7 @@ export default function WorkflowEditor() {
 
 //   const [input, setInput] = useState("")
 //   const [output, setOutput] = useState("")
-//   const [activeItem, setActiveItem] = useState<WorkflowItem | null>(null)
+//   const [activeItem, setActiveItem] = useState<WorkflowComponent | null>(null)
 
 //   const sensors = useSensors(useSensor(PointerSensor))
 
@@ -421,7 +439,7 @@ export default function WorkflowEditor() {
 // }
 
 // interface SortableItemProps {
-//     item: WorkflowItem
+//     item: WorkflowComponent
 //     remove: (id: string) => void
 //     isOverlay?: boolean
 //   }

@@ -25,9 +25,11 @@ def read_root():
 @app.post("/api/workflows")
 async def receive_workflow(workflow: WorkflowRequest):
     print("✅ Received workflow:")
-    for comp in workflow.components:
-        print(f"  • {comp.content} [{comp.type}]")
-    return {"status": "success", "received": len(workflow.components)}
+    try:
+        dag_file = generate_dag(workflow.dict())
+        return {"message": "DAG created successfully", "dag_path": str(dag_file)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/upload")
 async def upload_file(file: UploadFile = File(...)):

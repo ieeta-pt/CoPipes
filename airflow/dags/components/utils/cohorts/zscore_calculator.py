@@ -1,5 +1,5 @@
-import components.cohorts.sah_constants as sahc
-import components.cohorts.standard_ad_hoc as sah
+import components.utils.cohorts.sah_constants as sahc
+import components.utils.cohorts.standard_ad_hoc as sah
 
 MALE = 8507
 FEMALE = 8532

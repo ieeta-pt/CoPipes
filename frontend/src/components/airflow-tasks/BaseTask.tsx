@@ -1,6 +1,6 @@
 // BaseTask.tsx
 import React from "react";
-import { TaskConfig, TaskConfigField } from "./types";
+import { TaskConfig, ConfigField } from "./types";
 
 interface BaseTaskProps {
   config: TaskConfig;

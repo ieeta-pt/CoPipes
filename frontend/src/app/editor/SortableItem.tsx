@@ -1,18 +1,24 @@
-import { useSortable } from "@dnd-kit/sortable"
-import { CSS } from "@dnd-kit/utilities"
-import { X, GripVertical } from "lucide-react"
-import { WorkflowItem } from "@/components/airflow-tasks/types"
-import { Registry } from "@/components/airflow-tasks/Registry"
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { X, GripVertical } from "lucide-react";
+import { WorkflowComponent } from "@/components/airflow-tasks/types";
+import { Registry } from "@/components/airflow-tasks/Registry";
 
 type Props = {
-  item: WorkflowItem
-  onRemove: (id: string) => void
-  onUpdate: (config: WorkflowItem["config"]) => void
-  isOverlay?: boolean
-}
+  item: WorkflowComponent;
+  onRemove: (id: string) => void;
+  onUpdate: (config: WorkflowComponent["config"]) => void;
+  isOverlay?: boolean;
+};
 
-export const SortableItem: React.FC<Props> = ({ item, onRemove, onUpdate, isOverlay = false }) => {
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: item.id })
+export const SortableItem: React.FC<Props> = ({
+  item,
+  onRemove,
+  onUpdate,
+  isOverlay = false,
+}) => {
+  const { attributes, listeners, setNodeRef, transform, transition } =
+    useSortable({ id: item.id });
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -20,9 +26,9 @@ export const SortableItem: React.FC<Props> = ({ item, onRemove, onUpdate, isOver
     opacity: isOverlay ? 0.8 : 1,
     cursor: isOverlay ? "grabbing" : "default",
     zIndex: isOverlay ? 999 : "auto",
-  }
+  };
 
-  const TaskComponent = Registry[item.content]?.component
+  const TaskComponent = Registry[item.content]?.component;
 
   return (
     <div ref={setNodeRef} style={style} className="card bg-base-100 shadow-md">
@@ -31,10 +37,17 @@ export const SortableItem: React.FC<Props> = ({ item, onRemove, onUpdate, isOver
           <div className="font-medium">{item.content}</div>
           {!isOverlay && (
             <div className="flex gap-2">
-              <button className="btn btn-xs btn-soft btn-secondary cursor-grab" {...listeners} {...attributes}>
+              <button
+                className="btn btn-xs btn-soft btn-secondary cursor-grab"
+                {...listeners}
+                {...attributes}
+              >
                 <GripVertical className="h-4 w-4" />
               </button>
-              <button className="btn btn-xs btn-error" onClick={() => onRemove(item.id)}>
+              <button
+                className="btn btn-xs btn-error"
+                onClick={() => onRemove(item.id)}
+              >
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -45,8 +58,8 @@ export const SortableItem: React.FC<Props> = ({ item, onRemove, onUpdate, isOver
         )}
       </div>
     </div>
-  )
-}
+  );
+};
 
 function getColorForType(type: string): string {
   const colors: Record<string, string> = {
@@ -55,6 +68,6 @@ function getColorForType(type: string): string {
     Loading: "#f59e0b",
     Analysis: "#8b5cf6",
     General: "#6b7280",
-  }
-  return colors[type] || "#6b7280"
+  };
+  return colors[type] || "#6b7280";
 }

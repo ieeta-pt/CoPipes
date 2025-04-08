@@ -1,4 +1,4 @@
-import components.cohorts.sah_constants as sahc
+import components.utils.cohorts.sah_constants as sahc
 
 Relation = {
 	"2000000070":{"cutOff"	:"2000000297", "cutOffName"		:"Amyloid Beta 1-42 Cut-off",

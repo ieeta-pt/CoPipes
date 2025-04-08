@@ -2,8 +2,8 @@ import pandas as pd
 from dateutil import parser, relativedelta
 from datetime import datetime
 import math
-import components.cohorts.ad_hoc as ad_hoc
-import components.cohorts.sah_constants as sahc
+import components.utils.cohorts.ad_hoc as ad_hoc
+import components.utils.cohorts.sah_constants as sahc
 from airflow.decorators import task
 from airflow.utils.log.logging_mixin import LoggingMixin
 

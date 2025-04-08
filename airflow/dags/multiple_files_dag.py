@@ -1,14 +1,14 @@
 from datetime import datetime
 from airflow import DAG
 
-from components.extract.csv import extract_csv
-from components.cohorts.transform_to_kv import transform_to_kv
-from components.cohorts.harmonizer import harmonize
-from components.cohorts.standard_ad_hoc import create_new_measures
-from components.cohorts.migrator import migrate
-from components.postgres.create_conn import create_connection
-from components.postgres.create_table import create_table
-from components.postgres.write_to_db import write_to_postgres
+from components.extraction.csv import csv
+from components.transformation.cohorts.transform_to_kv import transform_to_kv
+from components.transformation.cohorts.harmonizer import harmonize
+from components.utils.cohorts.standard_ad_hoc import create_new_measures
+from components.transformation.cohorts.migrator import migrate
+from components.loading.postgres.create_conn import create_connection
+from components.loading.postgres.create_table import create_table
+from components.loading.postgres.write_to_db import write_to_postgres
 
 ##### UTILS FUNCTIONS #####
 
@@ -25,11 +25,11 @@ with DAG (
 
     files = get_files()
 
-    extract_csv_task = extract_csv.expand(filename=files)
+    extract_csv_task = csv.expand(filename=files)
 
     transform_task = transform_to_kv.expand(data=extract_csv_task)
 
-    extract_content_mappings_task = extract_csv(
+    extract_content_mappings_task = csv(
         filename = "/opt/airflow/data/input_data/UsagiExportContentMapping_v6.csv"
     )
 
@@ -45,7 +45,7 @@ with DAG (
         adhoc_harmonization=True
     )
 
-    extract_column_mappings_task = extract_csv(
+    extract_column_mappings_task = csv(
         filename = "/opt/airflow/data/input_data/UsagiExportColumnMapping_v2.csv"
     )
 
