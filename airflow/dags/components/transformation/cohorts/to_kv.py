@@ -7,7 +7,7 @@ HEADERS_FILE = "/opt/airflow/data/input_data/4_Content_Organized/headers.txt"
 MEASURES_FILE = "/opt/airflow/data/input_data/4_Content_Organized/measures.txt"
 
 @task
-def transform_to_kv(data: dict,
+def to_kv(data: dict,
                     fixed_columns: list[str] = None, 
                     measurement_columns: list[str] = None) -> Dict[dict, str]:
     """Transforms a DataFrame into a key-value structure."""

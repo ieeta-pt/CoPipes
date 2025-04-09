@@ -1,6 +1,5 @@
-// BaseTask.tsx
 import React from "react";
-import { TaskConfig, ConfigField } from "./types";
+import { TaskConfig } from "@/components/airflow-tasks/types";
 
 interface BaseTaskProps {
   config: TaskConfig;

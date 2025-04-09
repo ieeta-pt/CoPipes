@@ -3,7 +3,7 @@ from airflow.decorators import task
 from airflow.hooks.postgres_hook import PostgresHook
 
 @task
-def write_to_postgres(data: dict, table: str, postgres_conn_id: str = "my_postgres"):
+def write_to_db(data: dict, table: str, postgres_conn_id: str = "my_postgres"):
     """Writes a DataFrame to a PostgreSQL table."""
 
     # table_name = data["filename"]

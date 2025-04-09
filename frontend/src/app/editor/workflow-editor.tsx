@@ -24,6 +24,7 @@ import { WorkflowComponent } from "@/components/airflow-tasks/types";
 import { SortableItem } from "@/app/editor/SortableItem";
 import { submitWorkflow } from "@/api/workflow/test";
 
+
 function groupTasksByType() {
   return Object.entries(
     Object.values(Registry).reduce((acc, task) => {
@@ -40,8 +41,10 @@ function groupTasksByType() {
 const componentCategories = groupTasksByType();
 
 function createIdBuilder(prefix: string = "id") {
-  let counter = 0;
-  return `${prefix}_${++counter}`;
+  return () => {
+    const rand = Math.random().toString(36).substring(2, 4);
+    return `${prefix}_${rand}`;
+  };
 }
 
 export default function WorkflowEditor() {
@@ -55,11 +58,12 @@ export default function WorkflowEditor() {
   const addComponent = (content: string, type: string) => {
     const taskDef = Registry[content];
     const newItem: WorkflowComponent = {
-      id: createIdBuilder(content),
+      id: createIdBuilder(content)(),
       content,
       type,
       config: [...taskDef.defaultConfig],
     };
+    console.log("Adding component:", newItem.id);
     setWorkflowItems([...workflowItems, newItem]);
   };
 
@@ -144,6 +148,25 @@ export default function WorkflowEditor() {
         <div className="p-4 border-b border-base-300">
           <h1 className="text-2xl font-bold">Workflow</h1>
         </div>
+        {/* <div className="p-4 border-b border-base-300">
+          <label className="input validator">
+            <span className="label-text">Name</span>
+            <input
+              type="input"
+              required
+              placeholder="Username"
+              pattern="[A-Za-z][A-Za-z0-9_]*"
+              minlength="3"
+              maxlength="30"
+              title="Only letters, numbers or underscore"
+            />
+          </label>
+          <p className="validator-hint">
+            Must be 3 to 30 characters
+            <br />
+            containing only letters, numbers or underscore
+          </p>
+        </div> */}
 
         <div className="flex-1 flex overflow-hidden">
           <section className="flex-1 overflow-auto p-6">

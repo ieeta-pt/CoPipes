@@ -9,7 +9,7 @@ AIRFLOW_PASSWORD = os.getenv("AIRFLOW_ADMIN_PASSWORD")
 API_AUTH = (AIRFLOW_USERNAME, AIRFLOW_PASSWORD)
 
 
-async def wait_for_dag_to_register(dag_id: str, retries: int = 100, delay: float = 2.0):
+async def wait_for_dag_to_register(dag_id: str, retries: int = 100, delay: float = 5.0):
     """Poll the Airflow API until the DAG is available (or until retries are exhausted)."""
     dag_url = f"{AIRFLOW_API_URL}/dags/{dag_id}"
     

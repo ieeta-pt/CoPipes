@@ -3,16 +3,19 @@ import Navbar from '@/components/Navbar';
 
 export default function HomePage() {
   return (
-    <main className="flex min-h-full flex-col items-center justify-center bg-gray-100 text-gray-900 p-6">
-      <Navbar />
-      <div className="max-w-2xl text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome!</h1>
-        <div className="flex justify-center gap-4 mt-6">
-          <Link href="/editor" className="btn btn-lg btn-active btn-primary">
-            Try the Workflow Editor
-          </Link>
+    <main className="min-h-screen bg-contain bg-no-repeat bg-center flex items-center justify-center bg-opacity-10" style={{ backgroundImage: "url('/bg.jpg')" }}>
+      <div className="text-center max-w-2xl ">
+        <h1 className="text-5xl font-bold mb-4 text-gray-900">Welcome!</h1>
+        <div className="flex flex-col sm:flex-row justify-center gap-4">
+          <a
+            href="/editor"
+            className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 px-6 rounded transition "
+          >
+            Create your first workflow!
+          </a>
         </div>
       </div>
     </main>
   );
 }
+

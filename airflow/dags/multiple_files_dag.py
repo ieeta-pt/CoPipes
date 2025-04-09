@@ -2,13 +2,13 @@ from datetime import datetime
 from airflow import DAG
 
 from components.extraction.csv import csv
-from components.transformation.cohorts.transform_to_kv import transform_to_kv
-from components.transformation.cohorts.harmonizer import harmonize
+from components.transformation.cohorts.to_kv import to_kv
+from components.transformation.cohorts.harmonize import harmonize
 from components.utils.cohorts.standard_ad_hoc import create_new_measures
-from components.transformation.cohorts.migrator import migrate
-from components.loading.postgres.create_conn import create_connection
+from components.transformation.cohorts.migrate import migrate
+from components.loading.postgres.create_connection import create_connection
 from components.loading.postgres.create_table import create_table
-from components.loading.postgres.write_to_db import write_to_postgres
+from components.loading.postgres.write_to_db import write_to_db
 
 ##### UTILS FUNCTIONS #####
 
@@ -27,7 +27,7 @@ with DAG (
 
     extract_csv_task = csv.expand(filename=files)
 
-    transform_task = transform_to_kv.expand(data=extract_csv_task)
+    transform_task = to_kv.expand(data=extract_csv_task)
 
     extract_content_mappings_task = csv(
         filename = "/opt/airflow/data/input_data/UsagiExportContentMapping_v6.csv"
@@ -83,7 +83,7 @@ with DAG (
         table_name = "person"
     )
 
-    write_to_table_person_task = write_to_postgres(
+    write_to_table_person_task = write_to_db(
         data=migrator_task,
         table="person"
     )

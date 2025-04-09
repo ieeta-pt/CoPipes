@@ -1,4 +1,3 @@
-import components.utils.cohorts.sah_constants as sahc
 import components.utils.cohorts.standard_ad_hoc as sah
 
 MALE = 8507
