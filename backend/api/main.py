@@ -2,6 +2,7 @@ import os
 
 from fastapi import FastAPI, HTTPException, UploadFile, File
 import httpx
+from fastapi import BackgroundTasks
 
 from utils.dag_factory import generate_dag
 from utils.dag_run import trigger_dag_run
@@ -23,13 +24,13 @@ def read_root():
     return {"Hello": "World"}
 
 @app.post("/api/workflows")
-async def receive_workflow(workflow: WorkflowRequest):
+async def receive_workflow(workflow: WorkflowRequest, background_tasks: BackgroundTasks):
     print("✅ Received workflow:")
     try:
         dag_file = generate_dag(workflow.dict())
         dag_id = workflow.dag_id
-        res = await trigger_dag_run(dag_id)
-        return {"status": "success", "message": res}
+        background_tasks.add_task(trigger_dag_run, dag_id)
+        return {"status": "success", "message": "Workflow received and DAG triggered", "dag_id": dag_id}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

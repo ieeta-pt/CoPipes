@@ -13,7 +13,6 @@ from datetime import datetime
 with DAG (
     dag_id="{dag_id}",
     schedule_interval={schedule_interval},
-    start_date=datetime({start_date}),
     catchup=False,
     is_paused_upon_creation=False
 ) as dag:
@@ -33,8 +32,8 @@ def generate_dag(config):
     print("Generating DAG from config...")
     ## Worflow parameters ##
     dag_id = config["dag_id"]
-    schedule_interval = f'"{config["schedule_interval"]}"' if config["schedule_interval"] else None # Mudar para valor default
-    start_date = ", ".join(map(str, datetime.fromisoformat(config["start_date"]).timetuple()[:3])) if config["start_date"] else (2025, 2, 3) # Mudar para valor default
+    schedule_interval = f'"{config["schedule_interval"]}"' if config["schedule_interval"] else None 
+    start_date = ", ".join(map(str, datetime.fromisoformat(config["start_date"]).timetuple()[:3])) if config["start_date"] else None
 
     print(f"dag_id: {dag_id} \nstart_date: {start_date} \nschedule_interval: {schedule_interval}")
 
@@ -96,5 +95,3 @@ def generate_dag(config):
 
     with open(dag_file, "w") as f:
         f.write(dag_code)
-
-    return dag_file
