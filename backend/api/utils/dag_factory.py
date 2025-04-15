@@ -43,7 +43,7 @@ def generate_dag(config):
 
     for task in config["tasks"]:
         print(f"Processing task: {task}")
-        task_id = task["id"]
+        task_id = task["id"].replace(" ", "_").lower()
         module_path = task["type"].replace(" ", "_").lower()
         if task["subtype"]:
             module_path += "." + task["subtype"].replace(" ", "_").lower()
@@ -58,9 +58,8 @@ def generate_dag(config):
 
         resolved_params = []
         for param in params:
-            print(f"Resolving parameter: {param}")
-            resolved_params.append(f"{param['name']}={repr(param['value'])}")
-        print(f"Resolved parameters: {resolved_params}")
+            name = param["name"].replace(" ", "_").lower()
+            resolved_params.append(f"{name}={repr(param['value'])}")
 
         # for key, value in params.items():
         #     if isinstance(value, str) and value.startswith("$ref:"):

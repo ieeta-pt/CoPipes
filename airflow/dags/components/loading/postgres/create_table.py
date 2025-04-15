@@ -14,7 +14,7 @@ def create_table(columns: list[str], table_name: str) -> dict:
     for element in columns:
         db_data[element] = None    
 
-    pg_hook = PostgresHook(postgres_conn_id="my_postgres")
+    pg_hook = PostgresHook(connection_id="my_postgres")
     conn = pg_hook.get_conn()
     cursor = conn.cursor()
 

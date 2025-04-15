@@ -8,7 +8,7 @@ export const Registry: TaskRegistry = {
     type: "Extraction",
     defaultConfig: [
       { name: "filename", value: "", type: "file" },
-      { name: "file_sep", value: ",", type: "string" }
+      { name: "file separation", value: ",", type: "string" }
     ],
     component: BaseTask,
   },
@@ -16,7 +16,9 @@ export const Registry: TaskRegistry = {
     type: "Transformation",
     subtype: "Cohorts",
     defaultConfig: [
-      { name: "filename", value: "", type: "string" },
+      { name: "data", value: "Data to reorganize", type: "string" },
+      { name: "fixed columns", value: "List of fixed columns names", type: "string" },
+      { name: "measurement columns", value: "List of measurement columns", type: "string" },
     ],
     component: BaseTask,
   },
@@ -24,7 +26,9 @@ export const Registry: TaskRegistry = {
     type: "Transformation",
     subtype: "Cohorts",
     defaultConfig: [
-      { name: "filename", value: "", type: "string" },
+      { name: "data", value: "Data to harmonize", type: "string" },
+      { name: "mappings", value: "Data mappings", type: "string" },
+      { name: "adhoc harmonization", value: "True / False", type: "string" },
     ],
     component: BaseTask,
   },
@@ -32,7 +36,10 @@ export const Registry: TaskRegistry = {
     type: "Transformation",
     subtype: "Cohorts",
     defaultConfig: [
-      { name: "filename", value: "", type: "string" },
+      { name: "person data", value: "Data for personal information table", type: "string" },
+      { name: "observation data", value: "Data for personal information table", type: "string" },
+      { name: "mappings", value: "Data mappings", type: "string" },
+      { name: "adhoc migration", value: "True / False", type: "string" },
     ],
     component: BaseTask,
   },
@@ -40,7 +47,7 @@ export const Registry: TaskRegistry = {
     type: "Loading",
     subtype: "Postgres",
     defaultConfig: [
-      { name: "filename", value: "", type: "string" },
+      { name: "database name", value: "My database", type: "string" },
     ],
     component: BaseTask,
   },
@@ -48,7 +55,8 @@ export const Registry: TaskRegistry = {
     type: "Loading",
     subtype: "Postgres",
     defaultConfig: [
-      { name: "filename", value: "", type: "string" },
+      { name: "columns", value: "List of columns", type: "string" },
+      { name: "table name", value: "My table", type: "string" },
     ],
     component: BaseTask,
   },
@@ -56,7 +64,8 @@ export const Registry: TaskRegistry = {
     type: "Loading",
     subtype: "Postgres",
     defaultConfig: [
-      { name: "filename", value: "", type: "string" },
+      { name: "data", value: "Table contents", type: "string" },
+      { name: "table name", value: "My table", type: "string" },
     ],
     component: BaseTask,
   },

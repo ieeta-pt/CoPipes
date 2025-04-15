@@ -20,7 +20,7 @@ def write_to_db(**kwargs):
     if not records:
         raise ValueError("No records to insert into the database.")
 
-    postgres_hook = PostgresHook(postgres_conn_id="my_postgres")
+    postgres_hook = PostgresHook(connection_id="my_postgres")
     insert_query = """
         INSERT INTO student_grades (NMec, NotaT, NotaP, NotaF)
         VALUES (%s, %s, %s, %s)

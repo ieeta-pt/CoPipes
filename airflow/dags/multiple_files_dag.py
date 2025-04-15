@@ -2,7 +2,7 @@ from datetime import datetime
 from airflow import DAG
 
 from components.extraction.csv import csv
-from components.transformation.cohorts.to_kv import to_kv
+from components.transformation.cohorts.to_key_value import to_key_value
 from components.transformation.cohorts.harmonize import harmonize
 from components.utils.cohorts.standard_ad_hoc import create_new_measures
 from components.transformation.cohorts.migrate import migrate
@@ -27,7 +27,7 @@ with DAG (
 
     extract_csv_task = csv.expand(filename=files)
 
-    transform_task = to_kv.expand(data=extract_csv_task)
+    transform_task = to_key_value.expand(data=extract_csv_task)
 
     extract_content_mappings_task = csv(
         filename = "/opt/airflow/data/input_data/UsagiExportContentMapping_v6.csv"

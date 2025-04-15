@@ -8,7 +8,7 @@ from airflow.decorators import task
 UPLOAD_DIR = "/shared_data/"
 
 @task
-def csv(filename: str, file_sep: str = ',') -> Dict[dict, str]:
+def csv(filename: str, file_separation: str = ',') -> Dict[dict, str]:
     """
     Load a CSV file into a DataFrame with robust handling of character encodings.
     Specifically handles special characters like umlauts (ä, ö, ü).
@@ -32,7 +32,7 @@ def csv(filename: str, file_sep: str = ',') -> Dict[dict, str]:
             df_read = pd.read_csv(
                 file,
                 na_values='null',
-                sep=file_sep,
+                sep=file_separation,
                 dtype=str,
                 encoding=encoding
             )

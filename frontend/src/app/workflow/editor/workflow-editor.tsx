@@ -66,7 +66,7 @@ function createIdBuilder(prefix: string = "id") {
 
 export default function WorkflowEditor() {
   const [workflowItems, setWorkflowItems] = useState<WorkflowComponent[]>([]);
-  const [input, setInput] = useState("");
+  // const [input, setInput] = useState("");
   const [output, setOutput] = useState("");
   const [activeItem, setActiveItem] = useState<WorkflowComponent | null>(null);
 
@@ -123,7 +123,7 @@ export default function WorkflowEditor() {
   };
 
   const downloadWorkflow = () => {
-    const workflowData = { tasks: workflowItems, input, output };
+    const workflowData = { tasks: workflowItems, output };
     const blob = new Blob([JSON.stringify(workflowData, null, 2)], {
       type: "application/json",
     });
@@ -266,8 +266,8 @@ export default function WorkflowEditor() {
             </DndContext>
           </section>
 
-          <aside className="w-80 border-l border-base-300 p-4 flex flex-col">
-            <div className="flex-1">
+          <aside className="w-[45%] border-l border-base-300 p-4 flex flex-col">
+            {/* <div className="flex-1">
               <h3 className="font-semibold mb-2">Input</h3>
               <textarea
                 className="textarea textarea-bordered w-full h-[200px]"
@@ -275,13 +275,13 @@ export default function WorkflowEditor() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
               ></textarea>
-            </div>
-            <div className="divider"></div>
+            </div> */}
+            {/* <div className="divider"></div> */}
             <div className="flex-1">
-              <h3 className="font-semibold mb-2">Output</h3>
+              <h3 className="font-semibold mb-2">Logs</h3>
               <textarea
-                className="textarea textarea-bordered w-full h-[200px]"
-                placeholder="Output will appear here..."
+                className="textarea textarea-bordered w-full h-[95%]"
+                placeholder="Compilation logs will appear here..."
                 value={output}
                 readOnly
               ></textarea>

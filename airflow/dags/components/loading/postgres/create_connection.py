@@ -4,8 +4,8 @@ from airflow.decorators import task
 
 @task
 def create_connection(
-        conn_id: str = "my_postgres",
-        conn_type: str = "postgres",
+        connection_id: str = "my_postgres",
+        connection_type: str = "postgres",
         host: str = "postgres",
         schema: str = "airflow",
         login: str = "airflow",
@@ -15,15 +15,15 @@ def create_connection(
     """Creates a PostgreSQL connection in Airflow if it doesn't already exist."""
     session = Session()
 
-    existing_conn = session.query(Connection).filter(Connection.conn_id == conn_id).first()
+    existing_conn = session.query(Connection).filter(Connection.connection_id == connection_id).first()
     if existing_conn:
-        print(f"Connection '{conn_id}' already exists.")
+        print(f"Connection '{connection_id}' already exists.")
         session.close()
         return
     
     new_conn = Connection(
-        conn_id=conn_id,
-        conn_type=conn_type,
+        connection_id=connection_id,
+        connection_type=connection_type,
         host=host,
         schema=schema,
         login=login,
@@ -34,4 +34,4 @@ def create_connection(
     session.add(new_conn)
     session.commit()
     session.close()
-    print(f"Connection '{conn_id}' created successfully.")
+    print(f"Connection '{connection_id}' created successfully.")
