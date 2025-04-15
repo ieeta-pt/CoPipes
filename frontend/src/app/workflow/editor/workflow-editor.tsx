@@ -17,25 +17,42 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
-import { Download, Play } from "lucide-react";
+import { Download, Settings } from "lucide-react";
 
 import { Registry } from "@/components/airflow-tasks/Registry";
 import { WorkflowComponent } from "@/components/airflow-tasks/types";
-import { SortableItem } from "@/app/editor/SortableItem";
+import { SortableItem } from "@/app/workflow/editor/SortableItem";
 import { submitWorkflow } from "@/api/workflow/test";
 
-
 function groupTasksByType() {
-  return Object.entries(
-    Object.values(Registry).reduce((acc, task) => {
-      if (!acc[task.type]) acc[task.type] = [];
-      const taskName = Object.keys(Registry).find(
-        (key) => Registry[key] === task
-      );
-      if (taskName) acc[task.type].push(taskName);
-      return acc;
-    }, {} as Record<string, string[]>)
-  ).map(([name, items]) => ({ name, items }));
+  const grouped = Object.values(Registry).reduce((acc, task) => {
+    const type = task.type || "Unknown";
+    const subtype = task.subtype || null;
+    const taskName = Object.keys(Registry).find(
+      (key) => Registry[key] === task
+    );
+    if (!taskName) return acc;
+
+    if (!acc[type]) acc[type] = {};
+
+    if (subtype) {
+      if (!acc[type][subtype]) acc[type][subtype] = [];
+      acc[type][subtype].push(taskName);
+    } else {
+      if (!acc[type]["_no_subtype"]) acc[type]["_no_subtype"] = [];
+      acc[type]["_no_subtype"].push(taskName);
+    }
+
+    return acc;
+  }, {} as Record<string, Record<string, string[]>>);
+
+  return Object.entries(grouped).map(([type, subtypes]) => ({
+    name: type,
+    subtypes: Object.entries(subtypes).map(([subtype, items]) => ({
+      name: subtype === "_no_subtype" ? null : subtype,
+      items,
+    })),
+  }));
 }
 
 const componentCategories = groupTasksByType();
@@ -55,12 +72,13 @@ export default function WorkflowEditor() {
 
   const sensors = useSensors(useSensor(PointerSensor));
 
-  const addComponent = (content: string, type: string) => {
+  const addComponent = (content: string) => {
     const taskDef = Registry[content];
     const newItem: WorkflowComponent = {
       id: createIdBuilder(content)(),
       content,
-      type,
+      type: taskDef.type,
+      subtype: taskDef.subtype,
       config: [...taskDef.defaultConfig],
     };
     console.log("Adding component:", newItem.id);
@@ -89,7 +107,7 @@ export default function WorkflowEditor() {
     setActiveItem(null);
   };
 
-  const testWorkflow = async () => {
+  const compileWorkflow = async () => {
     const payload = {
       dag_id: "generated_dag",
       tasks: workflowItems,
@@ -100,7 +118,7 @@ export default function WorkflowEditor() {
       setOutput(JSON.stringify(result, null, 2));
     } catch (err) {
       console.error(err);
-      setOutput("❌ Failed to submit workflow");
+      setOutput("❌ Failed to compile workflow");
     }
   };
 
@@ -129,15 +147,40 @@ export default function WorkflowEditor() {
               <input type="checkbox" />
               <div className="collapse-title font-medium">{category.name}</div>
               <div className="collapse-content">
-                {category.items.map((item) => (
-                  <div
-                    key={item}
-                    className="btn btn-sm btn-ghost w-full justify-start"
-                    onClick={() => addComponent(item, category.name)}
-                  >
-                    {item}
-                  </div>
-                ))}
+                {category.subtypes.map((sub) =>
+                  sub.name ? (
+                    <div
+                      key={sub.name}
+                      className="ml-2 collapse collapse-arrow"
+                    >
+                      <input type="checkbox" />
+                      <div className="collapse-title text-sm font-medium">
+                        {sub.name}
+                      </div>
+                      <div className="collapse-content">
+                        {sub.items.map((item) => (
+                          <div
+                            key={item}
+                            className="btn btn-sm btn-ghost w-full justify-start"
+                            onClick={() => addComponent(item)}
+                          >
+                            {item}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    sub.items.map((item) => (
+                      <div
+                        key={item}
+                        className="btn btn-sm btn-ghost w-full justify-start"
+                        onClick={() => addComponent(item)}
+                      >
+                        {item}
+                      </div>
+                    ))
+                  )
+                )}
               </div>
             </div>
           ))}
@@ -146,7 +189,7 @@ export default function WorkflowEditor() {
 
       <main className="flex-1 flex flex-col overflow-hidden">
         <div className="p-4 border-b border-base-300">
-          <h1 className="text-2xl font-bold">Workflow</h1>
+          <h1 className="text-2xl font-bold">Workflow whiteboard</h1>
         </div>
         {/* <div className="p-4 border-b border-base-300">
           <label className="input validator">
@@ -195,8 +238,11 @@ export default function WorkflowEditor() {
                     />
                   ))}
                   <div className="flex justify-center mt-6 gap-4 mt-auto p-4">
-                    <button onClick={testWorkflow} className="btn btn-primary">
-                      <Play className="h-4 w-4 mr-2" /> Test
+                    <button
+                      onClick={compileWorkflow}
+                      className="btn btn-primary"
+                    >
+                      <Settings className="h-4 w-4 mr-2" /> Compile
                     </button>
                     <button
                       onClick={downloadWorkflow}

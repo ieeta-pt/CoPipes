@@ -24,13 +24,13 @@ def read_root():
     return {"Hello": "World"}
 
 @app.post("/api/workflows")
-async def receive_workflow(workflow: WorkflowRequest, background_tasks: BackgroundTasks):
+async def receive_workflow(workflow: WorkflowRequest):
     print("✅ Received workflow:")
     try:
-        dag_file = generate_dag(workflow.dict())
+        generate_dag(workflow.dict())
         dag_id = workflow.dag_id
-        background_tasks.add_task(trigger_dag_run, dag_id)
-        return {"status": "success", "message": "Workflow received and DAG triggered", "dag_id": dag_id}
+        # background_tasks.add_task(trigger_dag_run, dag_id)
+        return {"status": "success", "message": "Workflow received and DAG created", "dag_id": dag_id}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

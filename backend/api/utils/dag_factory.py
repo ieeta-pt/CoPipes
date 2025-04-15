@@ -42,7 +42,7 @@ def generate_dag(config):
     dynamic_imports = set()
 
     for task in config["tasks"]:
-        print(f"Processing task: {task['id']}")
+        print(f"Processing task: {task}")
         task_id = task["id"]
         module_path = task["type"].replace(" ", "_").lower()
         if task["subtype"]:
