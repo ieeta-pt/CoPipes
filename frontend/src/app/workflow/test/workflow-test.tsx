@@ -21,7 +21,7 @@ import { Download, Settings } from "lucide-react";
 
 import { Registry } from "@/components/airflow-tasks/Registry";
 import { WorkflowComponent } from "@/components/airflow-tasks/types";
-import { SortableItem } from "@/app/workflow/editor/SortableItem";
+import { SortableItem } from "@/components/SortableItem";
 import { submitWorkflow } from "@/api/workflow/test";
 
 function groupTasksByType() {
@@ -141,7 +141,7 @@ export default function WorkflowEditor() {
     <div className="flex h-screen">
       <aside className="w-64 bg-base-200 border-r border-base-300 flex flex-col">
         <div className="p-4 text-2xl font-bold">LOGO</div>
-        <div className="flex-1 overflow-auto">
+        {/* <div className="flex-1 overflow-auto">
           {componentCategories.map((category) => (
             <div key={category.name} className="collapse collapse-arrow">
               <input type="checkbox" />
@@ -184,6 +184,43 @@ export default function WorkflowEditor() {
               </div>
             </div>
           ))}
+        </div> */}
+        <div className="flex-1 overflow-auto font-medium">
+          <ul className="menu bg-base-200 rounded-box w-full">
+            {componentCategories.map((category) => (
+              <li key={category.name}>
+                <details>
+                  <summary>{category.name}</summary>
+                  <ul>
+                    {category.subtypes.map((sub) =>
+                      sub.name ? (
+                        <li key={sub.name}>
+                          <details>
+                            <summary>{sub.name}</summary>
+                            <ul>
+                              {sub.items.map((item) => (
+                                <li key={item}>
+                                  <a onClick={() => addComponent(item)}>
+                                    {item}
+                                  </a>
+                                </li>
+                              ))}
+                            </ul>
+                          </details>
+                        </li>
+                      ) : (
+                        sub.items.map((item) => (
+                          <li key={item}>
+                            <a onClick={() => addComponent(item)}>{item}</a>
+                          </li>
+                        ))
+                      )
+                    )}
+                  </ul>
+                </details>
+              </li>
+            ))}
+          </ul>
         </div>
       </aside>
 

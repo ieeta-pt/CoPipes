@@ -21,7 +21,7 @@ import { Download, Settings } from "lucide-react";
 
 import { Registry } from "@/components/airflow-tasks/Registry";
 import { WorkflowComponent } from "@/components/airflow-tasks/types";
-import { SortableItem } from "@/app/workflow/editor/SortableItem";
+import { SortableItem } from "@/components/SortableItem";
 import { submitWorkflow } from "@/api/workflow/test";
 
 function groupTasksByType() {
