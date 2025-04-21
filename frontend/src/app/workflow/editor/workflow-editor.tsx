@@ -17,12 +17,13 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
-import { Download, Settings } from "lucide-react";
+import { Download, Settings, PanelLeftDashed } from "lucide-react";
 
 import { Registry } from "@/components/airflow-tasks/Registry";
 import { WorkflowComponent } from "@/components/airflow-tasks/types";
 import { SortableItem } from "@/components/SortableItem";
 import { submitWorkflow } from "@/api/workflow/test";
+import { get } from "http";
 
 function groupTasksByType() {
   const grouped = Object.values(Registry).reduce((acc, task) => {
@@ -107,9 +108,18 @@ export default function WorkflowEditor() {
     setActiveItem(null);
   };
 
+  const [workflowName, setName] = useState("");
+
   const compileWorkflow = async () => {
+    if (!workflowName) {
+      setOutput("❌ Workflow name is required");
+      document.getElementById("workflowName")?.classList.remove("input-ghost");
+      document.getElementById("workflowName")?.classList.add("input-error");
+      return;
+    }
+
     const payload = {
-      dag_id: "generated_dag",
+      dag_id: workflowName,
       tasks: workflowItems,
     };
 
@@ -122,24 +132,24 @@ export default function WorkflowEditor() {
     }
   };
 
-  const downloadWorkflow = () => {
-    const workflowData = { tasks: workflowItems, output };
-    const blob = new Blob([JSON.stringify(workflowData, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "workflow.json";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
+  // const downloadWorkflow = () => {
+  //   const workflowData = { tasks: workflowItems, output };
+  //   const blob = new Blob([JSON.stringify(workflowData, null, 2)], {
+  //     type: "application/json",
+  //   });
+  //   const url = URL.createObjectURL(blob);
+  //   const a = document.createElement("a");
+  //   a.href = url;
+  //   a.download = "workflow.json";
+  //   document.body.appendChild(a);
+  //   a.click();
+  //   document.body.removeChild(a);
+  //   URL.revokeObjectURL(url);
+  // };
+  const [isOpen, setIsOpen] = useState(true);
   return (
     <div className="flex h-screen">
-      <aside className="w-64 bg-base-200 border-r border-base-300 flex flex-col">
+      {/* <aside className="w-64 bg-base-200 border-r border-base-300 flex flex-col">
         <div className="p-4 text-2xl font-bold">LOGO</div>
         <div className="flex-1 overflow-auto">
           {componentCategories.map((category) => (
@@ -185,11 +195,80 @@ export default function WorkflowEditor() {
             </div>
           ))}
         </div>
-      </aside>
+      </aside> */}
+      <aside
+        className={`bg-base-200 border-r border-base-300 flex flex-col transition-all duration-300 ${
+          isOpen ? "w-64" : "w-16"
+        }`}
+      >
+        {/* Top section with logo and toggle button */}
+        <div className="p-4 flex items-center justify-between">
+          {isOpen && <div className="text-2xl font-bold">LOGO</div>}
+          <button
+            className="btn btn-ghost btn-sm ml-auto"
+            onClick={() => setIsOpen((prev) => !prev)}
+            title={isOpen ? "Collapse" : "Expand"}
+          >
+            <PanelLeftDashed />
+          </button>
+        </div>
 
+        {/* Collapsible menu content */}
+        {isOpen && (
+          <div className="flex-1 overflow-auto font-medium">
+            <ul className="menu bg-base-200 rounded-box w-full text-sm">
+              {componentCategories.map((category) => (
+                <li key={category.name}>
+                  <details>
+                    <summary>{category.name}</summary>
+                    <ul>
+                      {category.subtypes.map((sub) =>
+                        sub.name ? (
+                          <li key={sub.name}>
+                            <details>
+                              <summary>{sub.name}</summary>
+                              <ul>
+                                {sub.items.map((item) => (
+                                  <li key={item}>
+                                    <a onClick={() => addComponent(item)}>
+                                      {item}
+                                    </a>
+                                  </li>
+                                ))}
+                              </ul>
+                            </details>
+                          </li>
+                        ) : (
+                          sub.items.map((item) => (
+                            <li key={item}>
+                              <a onClick={() => addComponent(item)}>{item}</a>
+                            </li>
+                          ))
+                        )
+                      )}
+                    </ul>
+                  </details>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </aside>
       <main className="flex-1 flex flex-col overflow-hidden">
         <div className="p-4 border-b border-base-300">
-          <h1 className="text-2xl font-bold">Workflow whiteboard</h1>
+          <input
+            id="workflowName"
+            name="workflowName"
+            type="text"
+            placeholder="Nameless workflow"
+            className="input input-ghost text-lg"
+            value={workflowName}
+            onChange={(e) => {
+              setName(e.target.value);
+              document.getElementById("workflowName")?.classList.add("input-ghost");
+              document.getElementById("workflowName")?.classList.remove("input-error");
+            }}
+          />
         </div>
         {/* <div className="p-4 border-b border-base-300">
           <label className="input validator">
@@ -244,12 +323,12 @@ export default function WorkflowEditor() {
                     >
                       <Settings className="h-4 w-4 mr-2" /> Compile
                     </button>
-                    <button
+                    {/* <button
                       onClick={downloadWorkflow}
                       className="btn btn-secondary"
                     >
                       <Download className="h-4 w-4 mr-2" /> Download
-                    </button>
+                    </button> */}
                   </div>
                 </div>
               </SortableContext>
@@ -292,3 +371,5 @@ export default function WorkflowEditor() {
     </div>
   );
 }
+
+

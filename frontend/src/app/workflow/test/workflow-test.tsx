@@ -122,69 +122,25 @@ export default function WorkflowEditor() {
     }
   };
 
-  const downloadWorkflow = () => {
-    const workflowData = { tasks: workflowItems, input, output };
-    const blob = new Blob([JSON.stringify(workflowData, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "workflow.json";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
+  // const downloadWorkflow = () => {
+  //   const workflowData = { tasks: workflowItems, input, output };
+  //   const blob = new Blob([JSON.stringify(workflowData, null, 2)], {
+  //     type: "application/json",
+  //   });
+  //   const url = URL.createObjectURL(blob);
+  //   const a = document.createElement("a");
+  //   a.href = url;
+  //   a.download = "workflow.json";
+  //   document.body.appendChild(a);
+  //   a.click();
+  //   document.body.removeChild(a);
+  //   URL.revokeObjectURL(url);
+  // };
 
   return (
     <div className="flex h-screen">
       <aside className="w-64 bg-base-200 border-r border-base-300 flex flex-col">
         <div className="p-4 text-2xl font-bold">LOGO</div>
-        {/* <div className="flex-1 overflow-auto">
-          {componentCategories.map((category) => (
-            <div key={category.name} className="collapse collapse-arrow">
-              <input type="checkbox" />
-              <div className="collapse-title font-medium">{category.name}</div>
-              <div className="collapse-content">
-                {category.subtypes.map((sub) =>
-                  sub.name ? (
-                    <div
-                      key={sub.name}
-                      className="ml-2 collapse collapse-arrow"
-                    >
-                      <input type="checkbox" />
-                      <div className="collapse-title text-sm font-medium">
-                        {sub.name}
-                      </div>
-                      <div className="collapse-content">
-                        {sub.items.map((item) => (
-                          <div
-                            key={item}
-                            className="btn btn-sm btn-ghost w-full justify-start"
-                            onClick={() => addComponent(item)}
-                          >
-                            {item}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ) : (
-                    sub.items.map((item) => (
-                      <div
-                        key={item}
-                        className="btn btn-sm btn-ghost w-full justify-start"
-                        onClick={() => addComponent(item)}
-                      >
-                        {item}
-                      </div>
-                    ))
-                  )
-                )}
-              </div>
-            </div>
-          ))}
-        </div> */}
         <div className="flex-1 overflow-auto font-medium">
           <ul className="menu bg-base-200 rounded-box w-full">
             {componentCategories.map((category) => (
@@ -281,12 +237,12 @@ export default function WorkflowEditor() {
                     >
                       <Settings className="h-4 w-4 mr-2" /> Compile
                     </button>
-                    <button
+                    {/* <button
                       onClick={downloadWorkflow}
                       className="btn btn-secondary"
                     >
                       <Download className="h-4 w-4 mr-2" /> Download
-                    </button>
+                    </button> */}
                   </div>
                 </div>
               </SortableContext>
