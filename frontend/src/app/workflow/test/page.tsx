@@ -1,10 +1,10 @@
 "use client";
-import WorkflowEditor from "@/app/workflow/editor/workflow-editor";
+import WorkflowTest from "@/app/workflow/test/workflow-test";
 
 export default function Home() {
   return (
     <main className="min-h-screen">
-      <WorkflowEditor />
+      <WorkflowTest />
     </main>
   );
 }

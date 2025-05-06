@@ -43,3 +43,15 @@ async def trigger_dag_run(dag_id: str):
         except httpx.RequestError:
             raise HTTPException(status_code=500, detail="Failed to connect to Airflow API")
         
+async def get_airflow_dags():
+    """Fetch the list of DAGs from the Airflow API."""
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(f"{AIRFLOW_API_URL}/dags", auth=API_AUTH)
+            response.raise_for_status()
+            return response.json().get("dags", [])
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail=f"Airflow API error: {e}")
+        except httpx.RequestError:
+            raise HTTPException(status_code=500, detail="Failed to connect to Airflow API")
+        

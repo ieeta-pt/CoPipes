@@ -5,7 +5,7 @@ import httpx
 from fastapi import BackgroundTasks
 
 from utils.dag_factory import generate_dag
-from utils.dag_run import trigger_dag_run
+from utils.airflow_api import trigger_dag_run, get_airflow_dags
 
 from schemas.workflow import WorkflowRequest
 
@@ -45,27 +45,13 @@ async def upload_file(file: UploadFile = File(...)):
 
     return {"status": "saved", "filename": file.filename}
 
-# @app.get("/get_dags")
-# async def get_airflow_dags():
-#     async with httpx.AsyncClient() as client:
-#         try:
-#             response = await client.get(AIRFLOW_API_URL, auth=API_AUTH)
-#             response.raise_for_status()  
-#             return response.json()
-#         except httpx.HTTPStatusError as e:
-#             raise HTTPException(status_code=e.response.status_code, detail=f"Airflow API error: {e}")
-#         except httpx.RequestError as e:
-#             raise HTTPException(status_code=500, detail="Failed to connect to Airflow API")
-        
-# @app.get("/run_dag/{dag_id}")
-# async def trigger_dag_run(dag_id: str):
-#     async with httpx.AsyncClient() as client:
-#         try:
-#             response = await client.get(f"http://airflow-webserver:8080/api/v1/dags/{dag_id}/dagRuns", auth=API_AUTH)
-#             response.raise_for_status()  
-#             return response.json()
-#         except httpx.HTTPStatusError as e:
-#             raise HTTPException(status_code=e.response.status_code, detail=f"Airflow API error: {e}")
-#         except httpx.RequestError as e:
-#             raise HTTPException(status_code=500, detail="Failed to connect to Airflow API")
+@app.get("/api/get_dags")
+async def get_dags():
+    try:
+        dags = await get_airflow_dags()
+        print(f"✅ Fetched DAGs: {dags}")
+        return {"status": "success", "dags": dags}
+    except HTTPException as e:
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
+
         

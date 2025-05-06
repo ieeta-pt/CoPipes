@@ -17,7 +17,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
-import { Download, Settings } from "lucide-react";
+import { Download, Play } from "lucide-react";
 
 import { Registry } from "@/components/airflow-tasks/Registry";
 import { WorkflowComponent } from "@/components/airflow-tasks/types";
@@ -64,7 +64,7 @@ function createIdBuilder(prefix: string = "id") {
   };
 }
 
-export default function WorkflowEditor() {
+export default function WorkflowTest() {
   const [workflowItems, setWorkflowItems] = useState<WorkflowComponent[]>([]);
   const [input, setInput] = useState("");
   const [output, setOutput] = useState("");
@@ -235,7 +235,7 @@ export default function WorkflowEditor() {
                       onClick={compileWorkflow}
                       className="btn btn-primary"
                     >
-                      <Settings className="h-4 w-4 mr-2" /> Compile
+                      <Play className="h-4 w-4 mr-2" /> Execute
                     </button>
                     {/* <button
                       onClick={downloadWorkflow}
