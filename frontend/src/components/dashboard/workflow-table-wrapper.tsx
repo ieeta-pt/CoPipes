@@ -13,5 +13,7 @@ export function WorkflowTableWrapper() {
     getWorkflows().then(setData).catch(console.error);
   }, []);
 
+  console.log("Workflow data:", data);
+
   return <DataTable columns={columns} data={data} />;
 }

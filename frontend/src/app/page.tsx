@@ -11,18 +11,25 @@ export default function HomePage() {
         <h1 className="text-5xl font-bold mb-4 text-gray-900">Welcome!</h1>
         <div className="flex flex-col sm:flex-row justify-center gap-4">
           <a
+            href="/dashboard"
+            className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 px-6 rounded transition "
+          >
+            Dashboard
+          </a>
+
+          <a
             href="/workflow/editor"
             className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 px-6 rounded transition "
           >
             Create a workflow!
           </a>
 
-          <a
+          {/* <a
             href="/workflow/test"
             className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 px-6 rounded transition "
           >
             Test your workflow!
-          </a>
+          </a> */}
         </div>
       </div>
     </main>

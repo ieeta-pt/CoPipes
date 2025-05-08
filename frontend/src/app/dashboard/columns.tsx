@@ -2,15 +2,24 @@
 
 import { ColumnDef } from "@tanstack/react-table";
 import { Pencil, Play, Trash } from "lucide-react";
-
+import { deleteWorkflowAPI } from "@/api/dashboard/table";
 export type Workflow = {
   id: string;
   name: string;
   last_edit: string;
   last_run: string;
-  last_run_status: "Success" | "Failed" | "Running";
+  last_run_status: "Success" | "Failed" | "Running" | "Not Started";
   people: string[];
 };
+
+const deleteWorkflow = async (name: string) => {
+  try {
+    const response = await deleteWorkflowAPI(name);
+    window.location.reload();
+  } catch (error) {
+    console.error("Error deleting workflow:", error);
+  }
+}
 
 export const columns: ColumnDef<Workflow>[] = [
   {
@@ -48,7 +57,8 @@ export const columns: ColumnDef<Workflow>[] = [
       const status = row.getValue("last_run_status") as
         | "Success"
         | "Failed"
-        | "Running";
+        | "Running"
+        | "Not Started";
       return (
         <span
           className={`badge badge-soft ${
@@ -56,7 +66,9 @@ export const columns: ColumnDef<Workflow>[] = [
               ? " badge-success"
               : status === "Failed"
               ? "badge-error"
-              : "badge-warning"
+              : status === "Running"
+              ? "badge-warning"
+              : "badge-info"
           }`}
         >
           {status}
@@ -91,7 +103,7 @@ export const columns: ColumnDef<Workflow>[] = [
 
           <button
             className="btn btn-soft btn-error btn-xs"
-            onClick={() => console.log("Delete")}
+            onClick={() => deleteWorkflow(workflow.name)}
           >
             <Trash className="h-4 w-4" />
           </button>

@@ -43,19 +43,15 @@ def generate_dag(config):
     dynamic_imports = set()
 
     for task in config["tasks"]:
-        print(f"Processing task: {task}")
         task_id = task["id"].replace(" ", "_").lower()
         module_path = task["type"].replace(" ", "_").lower()
         if task["subtype"]:
             module_path += "." + task["subtype"].replace(" ", "_").lower()
         function_name = task["content"].replace(" ", "_").lower()
         module_path += "." + function_name
-        print(f"Module path: {module_path}")
         params = task["config"]
-        print(f"Parameters: {params}")
 
         dynamic_imports.add(f"from components.{module_path} import {function_name}")
-        print(f"Dynamic imports: {dynamic_imports}")
 
         resolved_params = []
         for param in params:
@@ -70,7 +66,6 @@ def generate_dag(config):
         #         resolved_params.append(f"{key}={repr(value)}")
 
         params_str = ", ".join(resolved_params)
-        print(f"Parameters string: {params_str}")
 
         tasks_definitions.append(TASK_TEMPLATE.format(task_id=task_id, task_function=function_name, params=params_str))
 
@@ -79,6 +74,8 @@ def generate_dag(config):
                 dependencies.append(DEPENDENCY_TEMPLATE.format(upstream=dep, downstream=task_id))
         else: 
             dependencies = None
+
+        print(f"Task: {task_id} \nModule: {module_path} \nFunction: {function_name} \nParams: {params_str} \nDependencies: {dependencies}")
 
     dag_code = DAG_TEMPLATE.format(
         dag_id=dag_id,
@@ -95,3 +92,15 @@ def generate_dag(config):
 
     with open(dag_file, "w") as f:
         f.write(dag_code)
+        print(f"DAG file created at {dag_file}")
+    
+    return
+
+def remove_dag(dag_id):
+    """Removes an Airflow DAG file."""
+    dag_file = Path(DAG_OUTPUT_DIR) / f"{dag_id}.py"
+    if dag_file.exists():
+        dag_file.unlink()
+        print(f"DAG file {dag_id} removed.")
+    else:
+        print(f"DAG file {dag_id} does not exist.")
