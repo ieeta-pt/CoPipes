@@ -1,9 +1,9 @@
 "use client";
-import WorkflowEditor from "@/app/workflow/editor/workflow-editor";
+import WorkflowEditor from "@/components/workflow/WorkflowEditor";
 
 export default function Home() {
   return (
-    <main className="min-h-screen">
+    <main className="h-[calc(100vh-2rem)]">
       <WorkflowEditor />
     </main>
   );
