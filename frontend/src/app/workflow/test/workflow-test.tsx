@@ -184,25 +184,6 @@ export default function WorkflowTest() {
         <div className="p-4 border-b border-base-300">
           <h1 className="text-2xl font-bold">Workflow whiteboard</h1>
         </div>
-        {/* <div className="p-4 border-b border-base-300">
-          <label className="input validator">
-            <span className="label-text">Name</span>
-            <input
-              type="input"
-              required
-              placeholder="Username"
-              pattern="[A-Za-z][A-Za-z0-9_]*"
-              minlength="3"
-              maxlength="30"
-              title="Only letters, numbers or underscore"
-            />
-          </label>
-          <p className="validator-hint">
-            Must be 3 to 30 characters
-            <br />
-            containing only letters, numbers or underscore
-          </p>
-        </div> */}
 
         <div className="flex-1 flex overflow-hidden">
           <section className="flex-1 overflow-auto p-6">

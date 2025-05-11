@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import { getWorkflows } from "@/api/dashboard/table";
 import { Workflow, columns } from "@/app/dashboard/columns";
-import { DataTable } from "@/app/dashboard/data-table";
+import { DataTable } from "@/components/dashboard/DataTable";
 
 export function WorkflowTableWrapper() {
   const [data, setData] = useState<Workflow[]>([]);

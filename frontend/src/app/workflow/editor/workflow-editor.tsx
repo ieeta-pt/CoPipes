@@ -149,53 +149,6 @@ export default function WorkflowEditor() {
   const [isOpen, setIsOpen] = useState(true);
   return (
     <div className="flex h-screen">
-      {/* <aside className="w-64 bg-base-200 border-r border-base-300 flex flex-col">
-        <div className="p-4 text-2xl font-bold">LOGO</div>
-        <div className="flex-1 overflow-auto">
-          {componentCategories.map((category) => (
-            <div key={category.name} className="collapse collapse-arrow">
-              <input type="checkbox" />
-              <div className="collapse-title font-medium">{category.name}</div>
-              <div className="collapse-content">
-                {category.subtypes.map((sub) =>
-                  sub.name ? (
-                    <div
-                      key={sub.name}
-                      className="ml-2 collapse collapse-arrow"
-                    >
-                      <input type="checkbox" />
-                      <div className="collapse-title text-sm font-medium">
-                        {sub.name}
-                      </div>
-                      <div className="collapse-content">
-                        {sub.items.map((item) => (
-                          <div
-                            key={item}
-                            className="btn btn-sm btn-ghost w-full justify-start"
-                            onClick={() => addComponent(item)}
-                          >
-                            {item}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ) : (
-                    sub.items.map((item) => (
-                      <div
-                        key={item}
-                        className="btn btn-sm btn-ghost w-full justify-start"
-                        onClick={() => addComponent(item)}
-                      >
-                        {item}
-                      </div>
-                    ))
-                  )
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      </aside> */}
       <aside
         className={`bg-base-200 border-r border-base-300 flex flex-col transition-all duration-300 ${
           isOpen ? "w-64" : "w-16"
@@ -253,6 +206,16 @@ export default function WorkflowEditor() {
             </ul>
           </div>
         )}
+
+        {/* Bottom section */}
+        <div className="p-4 flex items-center justify-between">
+          <a
+            href="/dashboard"
+            className="btn btn-soft"
+          >
+            Go to dashboard
+          </a>
+        </div>
       </aside>
       <main className="flex-1 flex flex-col overflow-hidden">
         <div className="p-4 border-b border-base-300">
@@ -265,30 +228,15 @@ export default function WorkflowEditor() {
             value={workflowName}
             onChange={(e) => {
               setName(e.target.value);
-              document.getElementById("workflowName")?.classList.add("input-ghost");
-              document.getElementById("workflowName")?.classList.remove("input-error");
+              document
+                .getElementById("workflowName")
+                ?.classList.add("input-ghost");
+              document
+                .getElementById("workflowName")
+                ?.classList.remove("input-error");
             }}
           />
         </div>
-        {/* <div className="p-4 border-b border-base-300">
-          <label className="input validator">
-            <span className="label-text">Name</span>
-            <input
-              type="input"
-              required
-              placeholder="Username"
-              pattern="[A-Za-z][A-Za-z0-9_]*"
-              minlength="3"
-              maxlength="30"
-              title="Only letters, numbers or underscore"
-            />
-          </label>
-          <p className="validator-hint">
-            Must be 3 to 30 characters
-            <br />
-            containing only letters, numbers or underscore
-          </p>
-        </div> */}
 
         <div className="flex-1 flex overflow-hidden">
           <section className="flex-1 overflow-auto p-6">
@@ -371,5 +319,3 @@ export default function WorkflowEditor() {
     </div>
   );
 }
-
-
