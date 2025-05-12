@@ -62,35 +62,43 @@ export function WorkflowCanvas({
         items={workflowItems.map((item) => item.id)}
         strategy={verticalListSortingStrategy}
       >
-        <div className="h-[90%] flex flex-col gap-4 p-2 bg-base-100 border border-base-200 rounded-lg overflow-hidden">
-          {workflowItems.length === 0 ? (
-            <div className="flex items-center justify-center h-full text-gray-500">
-              Drag a task from the sidebar to begin
-            </div>
-          ) : (
-            workflowItems.map((item, index) => (
-              <SortableItem
-                key={item.id}
-                item={item}
-                onRemove={(id) =>
-                  setWorkflowItems(workflowItems.filter((i) => i.id !== id))
-                }
-                onUpdate={(newConfig) => {
-                  const updated = [...workflowItems];
-                  updated[index].config = newConfig;
-                  setWorkflowItems(updated);
-                }}
-              />
-            ))
-          )}
+        {/* Full height container */}
+        <div className="flex flex-col h-full bg-base-100">
+          {/* Scrollable area */}
+          <div className="flex-1 space-y-4">
+            {workflowItems.length === 0 ? (
+              <div className="flex items-center  rounded-lg border-2 border-dashed border-base-200 justify-center h-full text-gray-500">
+                Select a task from the sidebar to begin.
+              </div>
+            ) : (
+              workflowItems.map((item, index) => (
+                <SortableItem
+                  key={item.id}
+                  item={item}
+                  onRemove={(id) =>
+                    setWorkflowItems(workflowItems.filter((i) => i.id !== id))
+                  }
+                  onUpdate={(newConfig) => {
+                    const updated = [...workflowItems];
+                    updated[index].config = newConfig;
+                    setWorkflowItems(updated);
+                  }}
+                />
+              ))
+            )}
+          </div>
 
-          
-        </div>
-        <div className="flex justify-center mt-auto p-4 gap-4">
-            <button onClick={onCompile} className="btn btn-primary">
+          {/* Button stays pinned to bottom */}
+          <div className="flex justify-center mt-4">
+            <button
+              disabled={workflowItems.length === 0}
+              className="btn btn-primary"
+              onClick={onCompile}
+            >
               <Settings className="h-4 w-4 mr-2" /> Compile
             </button>
           </div>
+        </div>
       </SortableContext>
 
       <DragOverlay>

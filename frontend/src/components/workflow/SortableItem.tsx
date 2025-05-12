@@ -31,7 +31,7 @@ export const SortableItem: React.FC<Props> = ({
   const TaskComponent = Registry[item.content]?.component;
 
   return (
-    <div ref={setNodeRef} style={style} className="card bg-base-100 shadow-md">
+    <div ref={setNodeRef} style={style} className="card bg-base-100 shadow-md mb-2">
       <div className="card-body p-4">
         <div className="flex justify-between items-start mb-2">
           <div className="font-medium">{item.content}</div>

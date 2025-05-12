@@ -51,39 +51,42 @@ export default function WorkflowEditor() {
   };
 
   return (
-    <div className="flex h-[calc(100%-2rem)]">
-      {/* Sidebar stays unchanged */}
-      <Sidebar onAddComponent={addComponent} />
-  
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <div className="p-2 border-base-300 bg-base-100">
-          <input
-            id="workflowName"
-            name="workflowName"
-            type="text"
-            placeholder="Nameless workflow"
-            className="input input-bordered w-full max-w-md text-lg"
-            value={workflowName}
-            onChange={(e) => {
-              setWorkflowName(e.target.value);
-              document.getElementById("workflowName")?.classList.remove("input-error");
-            }}
-          />
-        </div>
-  
-        {/* Main canvas and logs section */}
-        <div className="flex-1 flex overflow-hidden">
-          <section className="flex-1 overflow-auto p-2">
-            <WorkflowCanvas
-              workflowItems={workflowItems}
-              setWorkflowItems={setWorkflowItems}
-              onCompile={compileWorkflow}
-            />
-          </section>
-          <LogsPanel output={output} />
-        </div>
+    <div className="flex flex-1 h-[calc(100vh-4rem)] p-4 gap-4">
+  {/* Sidebar stays outside this block */}
+  <Sidebar onAddComponent={addComponent} />
+
+  <div className="flex flex-1 gap-4">
+    {/* Left: Input + Canvas */}
+    <div className="flex flex-col flex-1 gap-4">
+      <div>
+        <input
+          id="workflowName"
+          name="workflowName"
+          type="text"
+          placeholder="Nameless workflow"
+          className="input input-bordered w-full max-w-md text-lg"
+          value={workflowName}
+          onChange={(e) => {
+            setWorkflowName(e.target.value);
+            document.getElementById("workflowName")?.classList.remove("input-error");
+          }}
+        />
       </div>
+
+      <section className="flex-1">
+        <WorkflowCanvas
+          workflowItems={workflowItems}
+          setWorkflowItems={setWorkflowItems}
+          onCompile={compileWorkflow}
+        />
+      </section>
     </div>
+
+    {/* Right: Logs */}
+    <LogsPanel output={output} />
+  </div>
+</div>
+
   );
   
 }
