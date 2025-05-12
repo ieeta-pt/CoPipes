@@ -89,7 +89,7 @@ export function WorkflowCanvas({
           </div>
 
           {/* Button stays pinned to bottom */}
-          <div className="flex justify-center mt-4">
+          <div className="flex justify-center mt-4 mb-1">
             <button
               disabled={workflowItems.length === 0}
               className="btn btn-primary"
