@@ -1,9 +1,9 @@
-// lib/app/getWorkflows.ts
+// lib/api/getWorkflows.ts
 
 import { Workflow } from "@/app/dashboard/columns"; 
 
 export async function getWorkflows(): Promise<Workflow[]> {
-  const res = await fetch("/workflows", {
+  const res = await fetch("/api/workflows", {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
@@ -21,7 +21,7 @@ export async function getWorkflows(): Promise<Workflow[]> {
 }
 
 export async function deleteWorkflowAPI(name: string): Promise<void> {
-  const res = await fetch(`/workflows/${name}`, {
+  const res = await fetch(`/api/workflows/${name}`, {
     method: "DELETE",
     headers: {
       "Content-Type": "application/json",
