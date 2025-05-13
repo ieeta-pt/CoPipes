@@ -2,7 +2,7 @@
 
 import { ColumnDef } from "@tanstack/react-table";
 import { Pencil, Play, Trash } from "lucide-react";
-import { deleteWorkflowAPI } from "@/api/dashboard/table";
+import { deleteWorkflowAPI, editWorkflowAPI } from "@/api/dashboard/table";
 export type Workflow = {
   id: string;
   name: string;
@@ -11,6 +11,14 @@ export type Workflow = {
   last_run_status: "Success" | "Failed" | "Running" | "Not Started";
   people: string[];
 };
+
+const editWorkflow = async (name: string) => {
+  try {
+    const response = await editWorkflowAPI(name); 
+  } catch (error) {
+    console.error("Error editing workflow:", error);
+  }
+}
 
 const deleteWorkflow = async (name: string) => {
   try {
@@ -89,7 +97,7 @@ export const columns: ColumnDef<Workflow>[] = [
         <div className="flex justify-end gap-2">
           <button
             className="btn btn-soft btn-secondary btn-xs"
-            onClick={() => console.log("Open in editor")}
+            onClick={() => editWorkflow(workflow.name)}
           >
             <Pencil className="h4 w-4" />
           </button>

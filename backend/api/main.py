@@ -38,7 +38,7 @@ async def receive_workflow(workflow: WorkflowAirflow):
             name=workflow.dag_id,
             last_edit=datetime.now().isoformat(),
         )
-        supabase.add_workflow(workflow_db)
+        supabase.add_workflow(workflow_db, workflow.tasks)
         
         # background_tasks.add_task(trigger_dag_run, dag_id)
         return {"status": "success", "message": "Workflow received and DAG created", "dag_id": workflow.dag_id}
@@ -54,6 +54,10 @@ async def get_workflows():
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
+    
+@app.put("/api/workflows/{workflow_name}")
+async def update_workflow(workflname: str, workflow: WorkflowAirflow):
+    pass
     
 @app.delete("/api/workflows/{workflow_name}")
 async def delete_workflow(workflow_name: str):

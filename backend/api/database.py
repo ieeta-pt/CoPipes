@@ -21,16 +21,15 @@ class SupabaseClient:
     def get_client(self) -> Client:
         return self.client
     
-    def add_workflow(self, workflow: WorkflowDB):
+    def add_workflow(self, workflow: WorkflowDB, tasks: list = None):
         """Add a workflow to the database."""
         try:
             # Check if the workflow already exists
             existing_workflow = self.client.table("workflows").select("*").eq("name", workflow.name).execute()
             if existing_workflow.data:
                 print(f"Workflow {workflow.name} already exists. Updating instead.")
-                self.update_workflow(workflow.name, workflow)
+                self.update_workflow(workflow.name, workflow, tasks)
                 return
-            
             self.client.table("workflows").insert(workflow.dict()).execute()
             print("Inserted workflow into Supabase")
         except Exception as e:
@@ -54,6 +53,15 @@ class SupabaseClient:
             return workflows.data
         except Exception as e:
             print(f"Failed to fetch workflows from Supabase: {e}")
+            raise
+
+    def update_workflow(self, workflow_name, update_data: WorkflowDB):
+        """Update a workflow in the database."""
+        try:
+            self.client.table("workflows").update(update_data.dict()).eq("name", workflow_name).execute()
+            print(f"Updated workflow {workflow_name} in Supabase")
+        except Exception as e:
+            print(f"Failed to update workflow {workflow_name} in Supabase: {e}")
             raise
 
     def delete_workflow(self, workflow_name):
