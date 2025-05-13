@@ -3,11 +3,8 @@
 import { House, ChevronDown } from "lucide-react";
 import { useState } from "react";
 import Image from "next/image";
-// import { ModeToggle } from "./mode-toggle"
 
 export function Header() {
-  const [menuOpen, setMenuOpen] = useState(false);
-
   return (
     <div className="navbar shadow-md bg-base-100">
       <div className="navbar-start ml-4">

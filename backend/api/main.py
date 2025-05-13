@@ -1,20 +1,12 @@
 import os
 
 from fastapi import FastAPI, HTTPException, UploadFile, File, BackgroundTasks
-import httpx
+from routers import workflows
 
-from utils.dag_factory import generate_dag, remove_dag
 from utils.airflow_api import trigger_dag_run, get_airflow_dags
 
-from schemas.workflow import WorkflowAirflow, WorkflowDB
-from datetime import datetime
-import random
-
-from database import SupabaseClient 
-import traceback
-
 app = FastAPI()
-supabase = SupabaseClient()
+app.include_router(workflows.router)
 
 AIRFLOW_API_URL = os.getenv("AIRFLOW_API_URL")
 AIRFLOW_USERNAME = os.getenv("AIRFLOW_USERNAME")
@@ -24,49 +16,7 @@ API_AUTH = auth = (AIRFLOW_USERNAME, AIRFLOW_PASSWORD)
 
 UPLOAD_DIR = "/shared_data/"
 
-@app.get("/")
-def read_root():
-    return {"Hello": "World"}
-
-@app.post("/api/workflows")
-async def receive_workflow(workflow: WorkflowAirflow):
-    try:
-        _ = generate_dag(workflow.dict())
-        
-        workflow_db = WorkflowDB(
-            created_at=datetime.now().isoformat(),
-            name=workflow.dag_id,
-            last_edit=datetime.now().isoformat(),
-        )
-        supabase.add_workflow(workflow_db)
-        
-        # background_tasks.add_task(trigger_dag_run, dag_id)
-        return {"status": "success", "message": "Workflow received and DAG created", "dag_id": workflow.dag_id}
-    except Exception as e:
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
-    
-@app.get("/api/workflows")
-async def get_workflows():
-    try:
-        workflows = supabase.get_workflows()
-        return workflows
-    except Exception as e:
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
-    
-@app.delete("/api/workflows/{workflow_name}")
-async def delete_workflow(workflow_name: str):
-    try:
-        supabase.delete_workflow(workflow_name)
-        dag_id = workflow_name.replace(" ", "_").lower()
-        remove_dag(dag_id)
-        return {"status": "success", "message": f"Workflow {workflow_name} deleted"}
-    except Exception as e:
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/api/upload")
+@app.post("/app/upload")
 async def upload_file(file: UploadFile = File(...)):
     os.makedirs(UPLOAD_DIR, exist_ok=True)
     file_location = os.path.join(UPLOAD_DIR, file.filename)
@@ -77,7 +27,7 @@ async def upload_file(file: UploadFile = File(...)):
 
     return {"status": "saved", "filename": file.filename}
 
-@app.get("/api/get_dags")
+@app.get("/app/get_dags")
 async def get_dags():
     try:
         dags = await get_airflow_dags()

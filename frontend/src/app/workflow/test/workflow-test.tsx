@@ -22,7 +22,7 @@ import { Download, Play } from "lucide-react";
 import { Registry } from "@/components/airflow-tasks/Registry";
 import { WorkflowComponent } from "@/components/airflow-tasks/types";
 import { SortableItem } from "@/components/workflow/SortableItem";
-import { submitWorkflow } from "@/api/workflow/test";
+import { submitWorkflow } from "@/api/workflow";
 
 function groupTasksByType() {
   const grouped = Object.values(Registry).reduce((acc, task) => {
