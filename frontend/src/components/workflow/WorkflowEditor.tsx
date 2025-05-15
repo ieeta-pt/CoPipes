@@ -5,21 +5,33 @@ import { WorkflowComponent } from "@/components/airflow-tasks/types";
 import { Registry } from "@/components/airflow-tasks/Registry";
 import { Sidebar } from "@/components/workflow/Sidebar";
 import { LogsPanel } from "@/components/workflow/LogsPanel";
-import { WorkflowCanvas } from "./WorkflowCanvas";
-import { submitWorkflow, getWorkflow } from "@/api/workflow/test";
+import { WorkflowCanvas } from "@/components/workflow/WorkflowCanvas";
+import {
+  submitWorkflow,
+  getWorkflow,
+  updateWorkflow,
+} from "@/api/workflow/test";
 import { useRouter } from "next/navigation";
 
-
-const createIdBuilder = (prefix = "id") => () =>
+const createIdBuilder =
+  (prefix = "id") =>
+  () =>
     `${prefix}_${Math.random().toString(36).substring(2, 5)}`;
 
-export default function WorkflowEditor({ workflowId }: { workflowId?: string }) {
+export default function WorkflowEditor({
+  workflowId,
+}: {
+  workflowId?: string;
+}) {
   const router = useRouter();
   const [workflowItems, setWorkflowItems] = useState<WorkflowComponent[]>([]);
   const [output, setOutput] = useState("");
   const [workflowName, setWorkflowName] = useState("");
   const [isLoading, setIsLoading] = useState(!!workflowId);
   const [error, setError] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [result, setResult] = useState<string | null>(null);
+
 
   useEffect(() => {
     async function fetchWorkflow() {
@@ -28,7 +40,8 @@ export default function WorkflowEditor({ workflowId }: { workflowId?: string }) 
           setIsLoading(true);
           setError(null);
           const workflow = await getWorkflow(workflowId);
-          setWorkflowName(workflow.dag_id);
+          setWorkflowName(workflow.dag_id.replace(/_/g, " "));
+          console.log("Fetched workflow:", workflow.dag_id);
           setWorkflowItems(
             workflow.tasks.map((task: any) => ({
               ...task,
@@ -41,10 +54,13 @@ export default function WorkflowEditor({ workflowId }: { workflowId?: string }) 
             }))
           );
         } catch (error) {
-          setError("Failed to fetch workflow. It might have been deleted or you don't have permission to view it.");
+          setError(
+            "Failed to fetch workflow. It might have been deleted or you don't have permission to view it."
+          );
           console.error(error);
         } finally {
           setIsLoading(false);
+          setIsEditing(true);
         }
       }
     }
@@ -73,6 +89,20 @@ export default function WorkflowEditor({ workflowId }: { workflowId?: string }) 
 
     console.log("Compiling workflow with items:", workflowItems);
 
+    const validatedItems = workflowItems.map(item => ({
+      ...item,
+      id: item.id,
+      content: item.content,
+      type: item.type,
+      subtype: item.subtype || "",
+      config: item.config.map(conf => ({
+        name: conf.name,
+        value: conf.value || "",
+        type: conf.type || "string"
+      })),
+      dependencies: item.dependencies || []
+    }));
+
     const payload = {
       dag_id: workflowName,
       tasks: workflowItems,
@@ -80,7 +110,11 @@ export default function WorkflowEditor({ workflowId }: { workflowId?: string }) 
 
     try {
       setOutput("Compiling workflow...");
-      const result = await submitWorkflow(payload);
+      if (isEditing) {
+        setResult(await updateWorkflow(payload.dag_id, payload));
+      } else {
+        setResult(await submitWorkflow(payload));
+      }
       setOutput(JSON.stringify(result, null, 2));
     } catch (err) {
       console.error(err);
@@ -100,8 +134,18 @@ export default function WorkflowEditor({ workflowId }: { workflowId?: string }) 
     return (
       <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
         <div className="alert alert-error max-w-lg">
-          <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="stroke-current shrink-0 h-6 w-6"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
           </svg>
           <span>{error}</span>
         </div>
@@ -126,13 +170,25 @@ export default function WorkflowEditor({ workflowId }: { workflowId?: string }) 
               className="input input-bordered w-full max-w-md text-lg"
               value={workflowName}
               onChange={(e) => {
-                setWorkflowName(e.target.value);
-                document
-                  .getElementById("workflowName")
-                  ?.classList.remove("input-error");
+                if (!isEditing) {
+                  document
+                    .getElementById("workflowName")
+                    ?.classList.remove("input-error");
+                  const regex = /^[a-zA-Z0-9\s]*$/;
+                  if (!regex.test(e.target.value)) {
+                    setOutput(
+                      "❌ Workflow name can only contain letters, numbers and white spaces."
+                    );
+                    document
+                      .getElementById("workflowName")
+                      ?.classList.add("input-error");
+                  } else {
+                    setWorkflowName(e.target.value);
+                  }
+                }
               }}
+              readOnly={isEditing}
             />
-            
           </div>
 
           <section className="flex-1">

@@ -14,7 +14,8 @@ export type Workflow = {
 
 const editWorkflow = async (name: string) => {
   try {
-    const response = await editWorkflowAPI(name); 
+    name = name.replace(/ /g, "_");
+    window.location.href = `/workflow/editor/${name}`;
   } catch (error) {
     console.error("Error editing workflow:", error);
   }

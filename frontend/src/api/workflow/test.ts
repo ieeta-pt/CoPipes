@@ -1,43 +1,5 @@
 import { WorkflowRequest } from "@/components/airflow-tasks/types"
 
-// Mock data for testing
-const MOCK_WORKFLOW = {
-  dag_id: "test_workflow",
-  tasks: [
-    {
-      id: "python_1",
-      content: "PythonOperator",
-      type: "operator",
-      subtype: "python",
-      config: [
-        { name: "task_id", value: "print_hello", type: "string" },
-        { name: "python_callable", value: "print('Hello World!')", type: "code" },
-      ],
-    },
-    {
-      id: "bash_1",
-      content: "BashOperator",
-      type: "operator",
-      subtype: "bash",
-      config: [
-        { name: "task_id", value: "list_files", type: "string" },
-        { name: "bash_command", value: "ls -la", type: "string" },
-      ],
-    },
-  ],
-};
-
-export async function getWorkflow(id: string) {
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 1500));
-  
-  if (id === "test") {
-    return MOCK_WORKFLOW;
-  }
-  
-  throw new Error("Workflow not found");
-}
-
 export async function submitWorkflow(payload: WorkflowRequest) {
   const res = await fetch("/api/workflows", {
     method: "POST",
@@ -54,12 +16,41 @@ export async function submitWorkflow(payload: WorkflowRequest) {
   return res.json()
 }
 
-// export async function getWorkflow(id: string) {
-//   const res = await fetch(`/workflows/${id}`);
+export async function getWorkflow(name: string) {
+  name = name.replace(/ /g, "_");
+  console.log("getWorkflow", name)
+  const res = await fetch(`/api/workflows/${name}`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+    }
+  });
 
-//   if (!res.ok) {
-//     throw new Error("Failed to fetch workflow");
-//   }
+  if (!res.ok) {
+    throw new Error("Failed to fetch workflow");
+  }
 
-//   return res.json();
-// }
+  return res.json();
+}
+
+export async function updateWorkflow(name: string, payload: WorkflowRequest) {
+  name = name.replace(/ /g, "_");
+  console.log("updateWorkflow", name) 
+  try {
+    const res = await fetch(`/api/workflows/${name}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const errorDetails = await res.json();
+      throw new Error(`Failed to update workflow: ${errorDetails.message || res.statusText}`);
+    }
+
+    return res.json();
+  } catch (error) {
+    console.error("Error updating workflow:", error);
+    throw new Error("An unexpected error occurred while updating the workflow.");
+  }
+} 

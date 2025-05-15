@@ -21,21 +21,25 @@ export async function getWorkflows(): Promise<Workflow[]> {
 }
 
 export async function editWorkflowAPI(name: string): Promise<void> {
+  name = name.replace(/ /g, "_");
+  console.log("editWorkflowAPI", name);
   const res = await fetch(`/api/workflows/${name}`, {
-    method: "PUT",
+    method: "GET",
     headers: {
       "Content-Type": "application/json",
     },
   });
 
   if (!res.ok) {
-    throw new Error("Failed to edit workflow");
+    throw new Error("Failed to get workflow");
   }
 
   console.log("Response from API:", res);
 }
 
 export async function deleteWorkflowAPI(name: string): Promise<void> {
+  name = name.replace(/ /g, "_");
+  console.log("deleteWorkflowAPI", name);
   const res = await fetch(`/api/workflows/${name}`, {
     method: "DELETE",
     headers: {

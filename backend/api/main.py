@@ -31,10 +31,9 @@ def read_root():
 @app.post("/api/workflows")
 async def receive_workflow(workflow: WorkflowAirflow):
     try:
-        _ = generate_dag(workflow.dict())
+        generate_dag(workflow.dict())
         
         workflow_db = WorkflowDB(
-            created_at=datetime.now().isoformat(),
             name=workflow.dag_id,
             last_edit=datetime.now().isoformat(),
         )
@@ -55,16 +54,38 @@ async def get_workflows():
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
     
+@app.get("/api/workflows/{workflow_name}")
+async def get_workflow(workflow_name: str):
+    try:
+        workflow_tasks = supabase.get_workflow_tasks(workflow_name)
+        if not workflow_tasks:
+            raise HTTPException(status_code=404, detail="Workflow not found")
+        return {"dag_id": workflow_name, "tasks": workflow_tasks}
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+    
 @app.put("/api/workflows/{workflow_name}")
-async def update_workflow(workflname: str, workflow: WorkflowAirflow):
-    pass
+async def update_workflow(workflow_name: str, workflow: WorkflowAirflow):
+    try:
+        workflow_db = WorkflowDB(
+            name=workflow.dag_id,
+            last_edit=datetime.now().isoformat(),
+        )
+        supabase.update_workflow(workflow_db, workflow.tasks)
+        
+        generate_dag(workflow.dict())
+        
+        return {"status": "success", "message": f"Workflow {workflow.dag_id} updated"}
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
     
 @app.delete("/api/workflows/{workflow_name}")
 async def delete_workflow(workflow_name: str):
     try:
         supabase.delete_workflow(workflow_name)
-        dag_id = workflow_name.replace(" ", "_").lower()
-        remove_dag(dag_id)
+        remove_dag(workflow_name)
         return {"status": "success", "message": f"Workflow {workflow_name} deleted"}
     except Exception as e:
         traceback.print_exc()

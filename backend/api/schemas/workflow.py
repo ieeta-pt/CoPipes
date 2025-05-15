@@ -7,14 +7,15 @@ class WorkflowBase(BaseModel):
 class ConfigField(BaseModel):
     name: str
     value: str
+    type: str = "string" or "file"
 
 class WorkflowComponent(BaseModel):
     id: str
     content: str
     type: str
-    subtype: str = None
+    subtype: str = ""
     config: List[ConfigField]
-    dependencies: List[str] = None
+    dependencies: List[str] = []
 
 class WorkflowAirflow(WorkflowBase):
     schedule_interval: str = None
@@ -22,7 +23,6 @@ class WorkflowAirflow(WorkflowBase):
     tasks: List[WorkflowComponent]
 
 class WorkflowDB(BaseModel):
-    created_at: str
     name: str
     last_edit: str
     last_run: str = None
