@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 
 class WorkflowBase(BaseModel):
     dag_id: str
@@ -28,3 +28,4 @@ class WorkflowDB(BaseModel):
     last_run: str = None
     last_run_status: str = "Not Started"
     people: List[str] = None
+    user_id: Optional[str] = None  # ID of the user who owns this workflow

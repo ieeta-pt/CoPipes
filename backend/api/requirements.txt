@@ -41,7 +41,7 @@ pytest==8.3.5
 pytest-mock==3.14.0
 python-dateutil==2.9.0.post0
 python-dotenv==1.0.1
-python-multipart==0.0.20
+python-multipart==0.0.5
 PyYAML==6.0.2
 realtime==2.4.3
 rich==13.9.4
@@ -62,3 +62,5 @@ uvloop==0.21.0
 watchfiles==1.0.4
 websockets==14.2
 yarl==1.20.0
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4

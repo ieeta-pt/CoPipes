@@ -5,15 +5,39 @@ import { useEffect, useState } from "react";
 import { getWorkflows } from "@/api/dashboard/table";
 import { Workflow, columns } from "@/app/dashboard/columns";
 import { DataTable } from "@/components/dashboard/DataTable";
+import { useAuthStore } from "@/lib/stores/authStore";
+import { workflowsApi } from "@/lib/api";
 
 export function WorkflowTableWrapper() {
-  const [data, setData] = useState<Workflow[]>([]);
+  const [workflows, setWorkflows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  
+  const isAuthenticated = useAuthStore(state => state.isAuthenticated);
+  const token = useAuthStore(state => state.token);
 
   useEffect(() => {
-    getWorkflows().then(setData).catch(console.error);
-  }, []);
+    const fetchWorkflows = async () => {
+      if (!isAuthenticated || !token) return;
+      
+      try {
+        setLoading(true);
+        setError("");
+        const data = await workflowsApi.getAll();
+        setWorkflows(data);
+      } catch (err) {
+        console.error('Error fetching workflows:', err);
+        setError('Failed to fetch workflows');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  console.log("Workflow data:", data);
+    fetchWorkflows();
+  }, [isAuthenticated, token]);
 
-  return <DataTable columns={columns} data={data} />;
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error}</div>;
+
+  return <DataTable columns={columns} data={workflows} />;
 }
