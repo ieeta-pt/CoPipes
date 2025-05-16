@@ -84,6 +84,7 @@ services:
       - "3000:3000"
     volumes:
       - ./frontend:/app
+      - /app/node_modules
       - shared-data:/shared_data
     env_file: .env.dev
     depends_on:

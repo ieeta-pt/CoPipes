@@ -33,7 +33,7 @@ def generate_dag(config):
     """Generates an Airflow DAG file from a JSON config."""
     print("Generating DAG from config...")
     ## Worflow parameters ##
-    dag_id = config["dag_id"]
+    dag_id = config["dag_id"].replace(" ", "_")
     schedule_interval = f'"{config["schedule_interval"]}"' if config["schedule_interval"] else None 
     start_date = ", ".join(map(str, datetime.fromisoformat(config["start_date"]).timetuple()[:3])) if config["start_date"] else None
 

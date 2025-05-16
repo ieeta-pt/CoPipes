@@ -85,7 +85,7 @@ with DAG (
 
     write_to_table_person_task = write_to_db(
         data=migrator_task,
-        table="person"
+        table_name="person"
     )
 
     create_table_obs_task = create_table(
