@@ -1,4 +1,4 @@
-import { useAuthStore } from "@/lib/stores/authStore";
+import { useAuthStore } from "@/api/stores/authStore";
 
 export default function UserProfile() {
   const user = useAuthStore((state) => state.user);

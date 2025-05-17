@@ -3,18 +3,18 @@ from supabase import create_client, Client
 from schemas.workflow import WorkflowDB
 from typing import Dict, Any, Optional, List
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from utils.auth import get_password_hash
 
 SUPABASE_URL = os.getenv('SUPABASE_URL')
 SUPABASE_KEY = os.getenv('SUPABASE_KEY')
-# SUPABASE_JWT_SECRET = os.getenv('SUPABASE_JWT_SECRET')
+JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY')
 # SUPABASE_BUCKET = os.getenv('SUPABASE_BUCKET')
 
 # if not all([SUPABASE_URL, SUPABASE_KEY, SUPABASE_JWT_SECRET, SUPABASE_BUCKET]):
 #     raise EnvironmentError("One or more Supabase environment variables are missing.")
 
-if not all([SUPABASE_URL, SUPABASE_KEY]):
+if not all([SUPABASE_URL, SUPABASE_KEY, JWT_SECRET_KEY]):
     raise EnvironmentError("One or more Supabase environment variables are missing.")   
 
 class SupabaseClient:
@@ -39,7 +39,7 @@ class SupabaseClient:
             
             # Create user data
             user_id = str(uuid.uuid4())
-            created_at = datetime.utcnow().isoformat()
+            created_at = datetime.now(timezone.utc).isoformat()
             
             user_data = {
                 "id": user_id,
@@ -118,7 +118,7 @@ class SupabaseClient:
             token_data = {
                 "user_id": user_id,
                 "token": refresh_token,
-                "created_at": datetime.utcnow().isoformat()
+                "created_at": datetime.now(timezone.utc).isoformat()
             }
             self.client.table("refresh_tokens").insert(token_data).execute()
         except Exception as e:

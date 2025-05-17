@@ -8,7 +8,7 @@ from utils.dag_factory import generate_dag, remove_dag
 from utils.airflow_api import trigger_dag_run, get_airflow_dags
 
 from schemas.workflow import WorkflowAirflow, WorkflowDB
-from datetime import datetime
+from datetime import datetime, timezone
 import random
 
 from database import SupabaseClient 
@@ -55,7 +55,7 @@ async def receive_workflow(workflow: WorkflowAirflow, current_user: dict = Depen
         
         workflow_db = WorkflowDB(
             name=workflow.dag_id,
-            last_edit=datetime.now().isoformat(),
+            last_edit=datetime.now(timezone.utc).isoformat(),
             user_id=current_user["id"]  # Associate the workflow with the current user
         )
         supabase.add_workflow(workflow_db, workflow.tasks)
@@ -94,7 +94,7 @@ async def update_workflow(workflow_name: str, workflow: WorkflowAirflow, current
     try:
         workflow_db = WorkflowDB(
             name=workflow.dag_id,
-            last_edit=datetime.now().isoformat(),
+            last_edit=datetime.now(timezone.utc).isoformat(),
             user_id=current_user["id"]  # Associate the workflow with the current user
         )
         supabase.update_workflow(workflow_db, workflow.tasks)

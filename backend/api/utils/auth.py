@@ -41,9 +41,9 @@ def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta]
     
     # Set expiration time
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = datetime.now() + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        expire = datetime.now() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     
     to_encode.update({"exp": expire})
     
@@ -54,7 +54,7 @@ def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta]
 
 def create_refresh_token(user_id: str) -> str:
     """Create a new refresh token with longer expiration."""
-    expires = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    expires = datetime.now() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
     return create_access_token(
         data={"sub": user_id, "type": "refresh"},
         expires_delta=timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)

@@ -1,5 +1,3 @@
-// lib/api/getWorkflows.ts
-
 import { Workflow } from "@/app/dashboard/columns"; 
 
 export async function getWorkflows(): Promise<Workflow[]> {

@@ -4,7 +4,7 @@ import { House, ChevronDown, Menu, User, LogIn } from "lucide-react";
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useAuthStore } from "@/lib/stores/authStore";
+import { useAuthStore } from "@/api/stores/authStore";
 // import { ModeToggle } from "./mode-toggle"
 
 export function Header() {
