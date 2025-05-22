@@ -30,7 +30,7 @@ class SupabaseClient:
                 print(f"Workflow {workflow.name} already exists. Updating instead.")
                 self.update_workflow(workflow.name, workflow, tasks)
                 return
-            self.client.table("workflows").insert(workflow.dict()).execute()
+            self.client.table("workflows").insert(workflow.model_dump).execute()
             if tasks: 
                 self.add_tasks(workflow.name, tasks)
             print("Inserted workflow into Supabase")

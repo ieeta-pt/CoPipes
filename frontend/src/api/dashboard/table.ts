@@ -3,7 +3,7 @@
 import { Workflow } from "@/app/dashboard/columns"; 
 
 export async function getWorkflows(): Promise<Workflow[]> {
-  const res = await fetch("/api/workflows", {
+  const res = await fetch("/api/workflows/all", {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
