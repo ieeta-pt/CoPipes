@@ -12,8 +12,11 @@ import random
 
 from database import SupabaseClient 
 import traceback
+from routes import auth
 
 app = FastAPI()
+app.include_router(auth.router)
+
 supabase = SupabaseClient()
 
 AIRFLOW_API_URL = os.getenv("AIRFLOW_API_URL")
@@ -31,7 +34,7 @@ def read_root():
 @app.post("/api/workflows")
 async def receive_workflow(workflow: WorkflowAirflow):
     try:
-        generate_dag(workflow.dict())
+        generate_dag(workflow.model_dump())
         
         workflow_db = WorkflowDB(
             name=workflow.dag_id,
@@ -74,7 +77,7 @@ async def update_workflow(workflow_name: str, workflow: WorkflowAirflow):
         )
         supabase.update_workflow(workflow_db, workflow.tasks)
         
-        generate_dag(workflow.dict())
+        generate_dag(workflow.model_dump())
         
         return {"status": "success", "message": f"Workflow {workflow.dag_id} updated"}
     except Exception as e:
