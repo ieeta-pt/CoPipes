@@ -82,7 +82,7 @@ export default function WorkflowEditor({
 
   const compileWorkflow = async () => {
     if (!workflowName) {
-      setOutput("❌ Workflow name is required");
+      setOutput("⚠️ Workflow name is required. ⚠️");
       document.getElementById("workflowName")?.classList.add("input-error");
       return;
     }
@@ -115,10 +115,10 @@ export default function WorkflowEditor({
       } else {
         setResult(await submitWorkflow(payload));
       }
-      setOutput(JSON.stringify(result, null, 2));
+      setOutput("✅ Workflow compiled successfully. ✅");
     } catch (err) {
       console.error(err);
-      setOutput("❌ Failed to compile workflow");
+      setOutput("❌ Failed to compile workflow. ❌");
     }
   };
 
@@ -177,7 +177,7 @@ export default function WorkflowEditor({
                   const regex = /^[a-zA-Z0-9\s]*$/;
                   if (!regex.test(e.target.value)) {
                     setOutput(
-                      "❌ Workflow name can only contain letters, numbers and white spaces."
+                      "⚠️ Workflow name can only contain letters, numbers and white spaces. ⚠️"
                     );
                     document
                       .getElementById("workflowName")

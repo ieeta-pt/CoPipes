@@ -8,12 +8,23 @@ import { DataTable } from "@/components/dashboard/DataTable";
 
 export function WorkflowTableWrapper() {
   const [data, setData] = useState<Workflow[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    getWorkflows().then(setData).catch(console.error);
+    setIsLoading(true);
+    getWorkflows()
+      .then(setData)
+      .catch(console.error)
+      .finally(() => setIsLoading(false));
   }, []);
 
-  console.log("Workflow data:", data);
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="loading loading-spinner loading-lg text-primary"></div>
+      </div>
+    );
+  }
 
   return <DataTable columns={columns} data={data} />;
 }
