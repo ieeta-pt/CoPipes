@@ -34,7 +34,7 @@ export const SortableItem: React.FC<Props> = ({
     <div ref={setNodeRef} style={style} className="card bg-base-100 shadow-md mb-2">
       <div className="card-body p-4">
         <div className="flex justify-between items-start mb-2">
-          <div className="font-medium">{item.content}</div>
+          <div className="text-lg font-semibold">{item.content}</div>
           {!isOverlay && (
             <div className="flex gap-2">
               <button

@@ -8,7 +8,12 @@ export const Registry: TaskRegistry = {
     type: "Extraction",
     defaultConfig: [
       { name: "filename", value: "", type: "file" },
-      { name: "file separation", value: ",", type: "string" }
+      { 
+        name: "file separation", 
+        value: "comma", 
+        type: "select",
+        options: ["comma", "semicolon", "tab"]
+      }
     ],
     component: BaseTask,
   },
@@ -28,7 +33,11 @@ export const Registry: TaskRegistry = {
     defaultConfig: [
       { name: "data", value: "Data to harmonize", type: "string" },
       { name: "mappings", value: "Data mappings", type: "string" },
-      { name: "adhoc harmonization", value: "True / False", type: "string" },
+      { 
+        name: "adhoc harmonization", 
+        value: "false", 
+        type: "boolean"
+      },
     ],
     component: BaseTask,
   },
@@ -39,7 +48,11 @@ export const Registry: TaskRegistry = {
       { name: "person data", value: "Data for personal information table", type: "string" },
       { name: "observation data", value: "Data for personal information table", type: "string" },
       { name: "mappings", value: "Data mappings", type: "string" },
-      { name: "adhoc migration", value: "True / False", type: "string" },
+      { 
+        name: "adhoc migration", 
+        value: "false", 
+        type: "boolean"
+      },
     ],
     component: BaseTask,
   },

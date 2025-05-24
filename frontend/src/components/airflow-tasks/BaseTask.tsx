@@ -75,7 +75,7 @@ export const BaseTask: React.FC<BaseTaskProps> = ({ config }) => {
           key={field.name}
           className="flex flex-col p-3 bg-white rounded border border-gray-200 shadow-sm"
         >
-          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+          <span className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">
             {field.name}
           </span>
           <span className="text-sm text-gray-900 whitespace-pre-line break-normal">

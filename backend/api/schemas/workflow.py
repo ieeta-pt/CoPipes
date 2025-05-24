@@ -1,5 +1,13 @@
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
+from enum import Enum
+
+class ConfigFieldType(str, Enum):
+    STRING = "string"
+    FILE = "file"
+    BOOLEAN = "boolean"
+    RADIO = "radio"
+    SELECT = "select"
 
 class WorkflowBase(BaseModel):
     dag_id: str
@@ -7,7 +15,8 @@ class WorkflowBase(BaseModel):
 class ConfigField(BaseModel):
     name: str
     value: str
-    type: str = "string" or "file"
+    type: ConfigFieldType
+    options: Optional[List[str]] = None
 
 class WorkflowComponent(BaseModel):
     id: str

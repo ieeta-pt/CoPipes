@@ -21,6 +21,15 @@ const editWorkflow = async (name: string) => {
   }
 }
 
+const runWorkflow = async (name: string) => {
+  try {
+    name = name.replace(/ /g, "_");
+    window.location.href = `/workflow/execute/${name}`;
+  } catch (error) {
+    console.error("Error running workflow:", error);
+  }
+}
+
 const deleteWorkflow = async (name: string) => {
   try {
     const response = await deleteWorkflowAPI(name);
@@ -105,7 +114,7 @@ export const columns: ColumnDef<Workflow>[] = [
 
           <button
             className="btn btn-soft btn-primary btn-xs"
-            onClick={() => console.log("Test")}
+            onClick={() => runWorkflow(workflow.name)}
           >
             <Play className="h-4 w-4" />
           </button>

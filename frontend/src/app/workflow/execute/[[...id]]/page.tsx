@@ -1,14 +1,14 @@
 "use client";
-import WorkflowEditor from "@/components/workflow/editor/WorkflowEditor";
+import WorkflowExecute from "@/components/workflow/execute/WorkflowExecute";
 import { useParams } from "next/navigation";
 
-export default function WorkflowEditorPage() {
+export default function WorkflowExecutePage() {
   const params = useParams() as { id?: string[] };
   const workflowId = params.id?.[0];
 
   return (
     <main className="min-h-screen">
-      <WorkflowEditor workflowId={workflowId} />
+      <WorkflowExecute workflowId={workflowId} />
     </main>
   );
 }

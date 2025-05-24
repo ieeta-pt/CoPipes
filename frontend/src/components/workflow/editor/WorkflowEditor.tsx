@@ -32,7 +32,6 @@ export default function WorkflowEditor({
   const [isEditing, setIsEditing] = useState(false);
   const [result, setResult] = useState<string | null>(null);
 
-
   useEffect(() => {
     async function fetchWorkflow() {
       if (workflowId) {
@@ -81,6 +80,9 @@ export default function WorkflowEditor({
   };
 
   const compileWorkflow = async () => {
+    // Scroll to top of the page
+    window.scrollTo({ top: 0, behavior: "smooth" });
+
     if (!workflowName) {
       setOutput("⚠️ Workflow name is required. ⚠️");
       document.getElementById("workflowName")?.classList.add("input-error");
@@ -89,18 +91,18 @@ export default function WorkflowEditor({
 
     console.log("Compiling workflow with items:", workflowItems);
 
-    const validatedItems = workflowItems.map(item => ({
+    const validatedItems = workflowItems.map((item) => ({
       ...item,
       id: item.id,
       content: item.content,
       type: item.type,
       subtype: item.subtype || "",
-      config: item.config.map(conf => ({
+      config: item.config.map((conf) => ({
         name: conf.name,
         value: conf.value || "",
-        type: conf.type || "string"
+        type: conf.type || "string",
       })),
-      dependencies: item.dependencies || []
+      dependencies: item.dependencies || [],
     }));
 
     const payload = {

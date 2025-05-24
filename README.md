@@ -2,17 +2,21 @@
 
 ## TODO
 
-- Dependencies between components
-- MLOps component
-- OMOP CDM to TransSMART (?)
-- Autentication
-- Collaboration
-- Execution page
-- Landing page
-- Login/sign up page
-- Organisations
-- Responsive
-- Plugin addition
-- Deployment
-- Usability tests
-- Use case tested
+max
+Dependencies between components,
+MLOps component,
+Autentication/authorization,
+Execution page,
+Login/sign up page,
+Plugin addition guidelines,
+Deployment,
+Use case tested,
+
+mid
+Collaboration,
+Organisations,
+
+min
+OMOP CDM to TransSMART (?),
+Responsive,
+Usability tests (?)

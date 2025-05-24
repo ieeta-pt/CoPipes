@@ -1,9 +1,10 @@
-export type ConfigFieldType = "string" | "file"
+export type ConfigFieldType = "string" | "file" | "boolean" | "radio" | "select"
 
 export interface ConfigField {
   name: string
   value: string
   type: ConfigFieldType
+  options?: string[]
 }
 
 export type TaskConfig = ConfigField[]
