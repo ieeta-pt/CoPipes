@@ -21,12 +21,11 @@ export function WorkflowNode({ data }: NodeProps<WorkflowNodeData>) {
       style={{
         borderLeft: `4px solid ${getColorForType(item.type)}`,
         minWidth: "10px",
-
       }}
     >
       <Handle type="target" position={Position.Top} className="w-3 h-3" />
 
-      <div className="card-body p-4">
+      <div className="card-body w-full p-4">
         <div className="flex justify-between items-start mb-2">
           <div className="text-lg font-semibold">{item.content}</div>
           <div className="flex gap-2">

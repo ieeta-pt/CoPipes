@@ -161,8 +161,6 @@ export default function WorkflowEditor({
       {/* Sidebar stays outside this block */}
       <Sidebar onAddComponent={addComponent} />
 
-      <div className="flex flex-1 gap-4">
-        {/* Left: Input + Canvas */}
         <div className="flex flex-col flex-1 gap-4">
           <div className="flex justify-between">
             <input
@@ -210,10 +208,6 @@ export default function WorkflowEditor({
             />
           </section>
         </div>
-
-        {/* Right: Logs */}
-        {/* <LogsPanel output={output} /> */}
       </div>
-    </div>
   );
 }

@@ -70,11 +70,11 @@ def generate_dag(config):
 
         tasks_definitions.append(TASK_TEMPLATE.format(task_id=task_id, task_function=function_name, params=params_str))
 
-        if task["dependencies"]:
+        if task["dependencies"] and len(task["dependencies"]) > 0:
             for dep in task["dependencies"]:
-                dependencies.append(DEPENDENCY_TEMPLATE.format(upstream=dep, downstream=task_id))
-        else: 
-            dependencies = None
+                if dep != None:
+                    dep = dep.replace(" ", "_").lower()
+                    dependencies.append(DEPENDENCY_TEMPLATE.format(upstream=dep, downstream=task_id))
 
         print(f"Task: {task_id} \nModule: {module_path} \nFunction: {function_name} \nParams: {params_str} \nDependencies: {dependencies}")
 
