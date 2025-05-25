@@ -8,7 +8,7 @@ export type Workflow = {
   name: string;
   last_edit: string;
   last_run: string;
-  last_run_status: "Success" | "Failed" | "Running" | "Not Started";
+  last_run_status: "Success" | "Failed" | "Queued" | "Not started";
   people: string[];
 };
 
@@ -73,23 +73,23 @@ export const columns: ColumnDef<Workflow>[] = [
     header: "Last Run Status",
     cell: ({ row }) => {
       const status = row.getValue("last_run_status") as
-        | "Success"
-        | "Failed"
-        | "Running"
-        | "Not Started";
+        | "success"
+        | "failed"
+        | "queued"
+        | "not started";
       return (
         <span
           className={`badge badge-soft ${
-            status === "Success"
+            status === "success"
               ? " badge-success"
-              : status === "Failed"
+              : status === "failed"
               ? "badge-error"
-              : status === "Running"
+              : status === "queued"
               ? "badge-warning"
               : "badge-info"
           }`}
         >
-          {status}
+          {status.charAt(0).toUpperCase() + status.slice(1)}
         </span>
       );
     },

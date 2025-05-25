@@ -1,3 +1,4 @@
+from datetime import datetime
 import os
 from supabase import create_client, Client
 from schemas.workflow import WorkflowDB
@@ -104,4 +105,14 @@ class SupabaseClient:
             print(f"Deleted workflow {workflow_name} from Supabase")
         except Exception as e:
             print(f"Failed to delete workflow {workflow_name} from Supabase: {e}")
+            raise
+
+    def update_workflow_last_run(self, workflow_name: str, status: str):
+        """Update the last run time of a workflow in the database."""
+        try:
+            workflow_name = workflow_name.replace("_", " ")
+            self.client.table("workflows").update({"last_run": datetime.now().isoformat(), "last_run_status": status}).eq("name", workflow_name).execute()
+            print(f"Updated last run for workflow {workflow_name} in Supabase")
+        except Exception as e:
+            print(f"Failed to update last run for workflow {workflow_name} in Supabase: {e}")
             raise

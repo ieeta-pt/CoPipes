@@ -1,8 +1,9 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, BackgroundTasks
 from datetime import datetime
 import traceback
 
 from utils.dag_factory import generate_dag, remove_dag
+from utils.airflow_api import trigger_dag_run
 
 from database import SupabaseClient
 from schemas.workflow import WorkflowAirflow, WorkflowDB
@@ -25,7 +26,6 @@ async def receive_workflow(workflow: WorkflowAirflow):
         )
         supabase.add_workflow(workflow_db, workflow.tasks)
         
-        # background_tasks.add_task(trigger_dag_run, dag_id)
         return {"status": "success", "message": "Workflow received and DAG created", "dag_id": workflow.dag_id}
     except Exception as e:
         traceback.print_exc()
@@ -73,6 +73,21 @@ async def delete_workflow(workflow_name: str):
         supabase.delete_workflow(workflow_name)
         remove_dag(workflow_name)
         return {"status": "success", "message": f"Workflow {workflow_name} deleted"}
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@router.post("/execute/{workflow_name}")
+async def trigger_workflow(workflow: WorkflowAirflow, background_tasks: BackgroundTasks):
+    try:
+        generate_dag(workflow.model_dump())
+        # run_status = background_tasks.add_task(trigger_dag_run, workflow.dag_id)
+        # Trigger the DAG and wait for the result
+        run_status = await trigger_dag_run(workflow.dag_id)
+        # Update the last run status with the actual result
+        supabase.update_workflow_last_run(workflow.dag_id, run_status)
+
+        return {"status": "success", "message": f"Workflow {workflow.dag_id} triggered"}
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))

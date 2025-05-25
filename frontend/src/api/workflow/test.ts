@@ -54,3 +54,19 @@ export async function updateWorkflow(name: string, payload: WorkflowRequest) {
     throw new Error("An unexpected error occurred while updating the workflow.");
   }
 } 
+
+export async function executeWorkflow(name: string, payload: WorkflowRequest) {
+  name = name.replace(/ /g, "_");
+  console.log("executeWorkflow", name)
+  const res = await fetch(`/api/workflows/execute/${name}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    throw new Error("Failed to execute workflow");
+  }
+
+  return res.json();
+}

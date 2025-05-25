@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { WorkflowComponent } from "@/components/airflow-tasks/types";
-import { getWorkflow } from "@/api/workflow/test";
+import { executeWorkflow, getWorkflow } from "@/api/workflow/test";
 import { Registry } from "@/components/airflow-tasks/Registry";
 import { LogsPanel } from "@/components/workflow/LogsPanel";
 import { ExecutableTask } from "./ExecutableTask";
+import { Play } from "lucide-react";
+import { run } from "node:test";
 
 function getColorForType(type: string): string {
   const colors: Record<string, string> = {
@@ -17,6 +19,8 @@ function getColorForType(type: string): string {
   };
   return colors[type] || "#6b7280";
 }
+
+
 
 export default function WorkflowExecute({
   workflowId,
@@ -61,6 +65,32 @@ export default function WorkflowExecute({
     }
     fetchWorkflow();
   }, [workflowId]);
+
+  async function runWorkflow() {
+    if (!workflowId) return;
+  
+    try {
+      const payload = {
+        dag_id: workflowId.replace(/ /g, "_"),
+        tasks: workflow.map((task) => ({
+          id: task.id,
+          type: task.type,
+          content: task.content,
+          config: task.config.map((field) => ({
+            name: field.name,
+            value: field.value,
+            type: field.type,
+          })),
+        })),
+      };
+  
+      const result = await executeWorkflow(workflowId, payload);
+      setOutput(result.output);
+    } catch (error) {
+      console.error("Error executing workflow:", error);
+      setOutput("Failed to execute workflow. Please check the console for details.");
+    }
+  }
 
   const handleTaskUpdate = (taskId: string, newConfig: any) => {
     setWorkflow((prevWorkflow) =>
@@ -117,10 +147,14 @@ export default function WorkflowExecute({
               value={workflowName}
               readOnly={true}
             />
+
+            
           </div>
+          
 
           <section className="flex-1">
             {/* Full height container */}
+           
             <div className="flex flex-col h-full bg-base-100">
               {/* Scrollable area */}
               <div className="flex-1 space-y-4">
@@ -142,9 +176,8 @@ export default function WorkflowExecute({
                           <div className="text-lg font-semibold">
                             {task.content}
                           </div>
-                          <div className="flex gap-2">
                             <div
-                              className="badge text-md"
+                              className="flex gap-2 badge text-md"
                               style={{
                                 backgroundColor: getColorForType(task.type),
                                 color: "white",
@@ -152,12 +185,6 @@ export default function WorkflowExecute({
                             >
                               {task.type}
                             </div>
-                            {task.subtype && (
-                              <div className="badge badge-secondary text-md">
-                                {task.subtype}
-                              </div>
-                            )}
-                          </div>
                         </div>
                         <ExecutableTask
                           config={task.config}
@@ -170,6 +197,14 @@ export default function WorkflowExecute({
                   ))
                 )}
               </div>
+              <div className="flex justify-center m-4">
+            <button
+              className="btn btn-wide btn-primary"
+              onClick={runWorkflow}
+            >
+              <Play className="h-4 w-4 mr-2" /> Execute
+            </button>
+          </div>
             </div>
           </section>
         </div>
