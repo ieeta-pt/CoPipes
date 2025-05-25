@@ -1,26 +1,36 @@
 "use client";
 
-import {
-  DndContext,
-  closestCenter,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragOverlay,
-  DragStartEvent,
-  DragEndEvent,
-} from "@dnd-kit/core";
-import {
-  arrayMove,
-  SortableContext,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
-import { useState } from "react";
+import { useCallback, useMemo, useEffect, useRef } from "react";
+import ReactFlow, {
+  Node,
+  Controls,
+  Background,
+  useNodesState,
+  useEdgesState,
+  addEdge,
+  Connection,
+  OnNodesDelete,
+  NodeChange,
+  EdgeChange,
+  applyNodeChanges,
+  applyEdgeChanges,
+} from "reactflow";
+import "reactflow/dist/style.css";
 
-import { SortableItem } from "@/components/workflow/SortableItem";
 import { WorkflowComponent } from "@/components/airflow-tasks/types";
 import { Settings } from "lucide-react";
+import { WorkflowNode } from "@/components/workflow/WorkflowNode";
+
+// Custom node types
+const nodeTypes = {
+  workflowNode: WorkflowNode,
+};
+
+type WorkflowNodeData = {
+  item: WorkflowComponent;
+  onRemove: (id: string) => void;
+  onUpdate: (config: WorkflowComponent["config"]) => void;
+};
 
 export function WorkflowCanvas({
   workflowItems,
@@ -28,89 +38,121 @@ export function WorkflowCanvas({
   onCompile,
 }: {
   workflowItems: WorkflowComponent[];
-  setWorkflowItems: (items: WorkflowComponent[]) => void;
+  setWorkflowItems: (items: WorkflowComponent[] | ((prev: WorkflowComponent[]) => WorkflowComponent[])) => void;
   onCompile: () => void;
 }) {
-  const [activeItem, setActiveItem] = useState<WorkflowComponent | null>(null);
+  // Keep track of existing nodes to maintain their positions
+  const existingNodesRef = useRef<Map<string, Node>>(new Map());
+  
+  // Memoize the node creation to prevent unnecessary recalculations
+  const initialNodes = useMemo(() => 
+    workflowItems.map((item) => {
+      // If node already exists, use its position
+      const existingNode = existingNodesRef.current.get(item.id);
+      const position = existingNode?.position || { x: 250, y: Math.random() * 500 }; // Random y position for new nodes
+      
+      const node: Node = {
+        id: item.id,
+        type: "workflowNode",
+        position,
+        data: {
+          item,
+          onRemove: (id: string) => {
+            setWorkflowItems((currentItems: WorkflowComponent[]) => 
+              currentItems.filter((i: WorkflowComponent) => i.id !== id)
+            );
+          },
+          onUpdate: (newConfig: WorkflowComponent["config"]) => {
+            setWorkflowItems((currentItems: WorkflowComponent[]) => {
+              const updated = [...currentItems];
+              const index = updated.findIndex((i) => i.id === item.id);
+              if (index !== -1) {
+                updated[index].config = newConfig;
+              }
+              return updated;
+            });
+          },
+        },
+      };
+      
+      // Store the node for future reference
+      existingNodesRef.current.set(item.id, node);
+      return node;
+    }), [workflowItems, setWorkflowItems]);
 
-  const sensors = useSensors(useSensor(PointerSensor));
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
-  const handleDragStart = (event: DragStartEvent) => {
-    const item = workflowItems.find((i) => i.id === event.active.id);
-    if (item) setActiveItem(item);
-  };
+  // Update nodes when workflowItems change, preserving positions
+  useEffect(() => {
+    setNodes(initialNodes);
+  }, [initialNodes, setNodes]);
 
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (active.id !== over?.id) {
-      const oldIndex = workflowItems.findIndex((i) => i.id === active.id);
-      const newIndex = workflowItems.findIndex((i) => i.id === over?.id);
-      setWorkflowItems(arrayMove(workflowItems, oldIndex, newIndex));
-    }
-    setActiveItem(null);
-  };
+  // Handle node changes (including position updates)
+  const onNodesChangeHandler = useCallback(
+    (changes: NodeChange[]) => {
+      setNodes((nds) => {
+        const updatedNodes = applyNodeChanges(changes, nds);
+        // Update our reference with new positions
+        updatedNodes.forEach((node) => {
+          existingNodesRef.current.set(node.id, node);
+        });
+        return updatedNodes;
+      });
+    },
+    [setNodes]
+  );
+
+  // Handle edge changes (including deletions)
+  const onEdgesChangeHandler = useCallback(
+    (changes: EdgeChange[]) => {
+      setEdges((eds) => applyEdgeChanges(changes, eds));
+    },
+    [setEdges]
+  );
+
+  const onConnect = useCallback(
+    (params: Connection) => setEdges((eds) => addEdge(params, eds)),
+    [setEdges]
+  );
+
+  // Handle node deletion
+  const onNodesDelete: OnNodesDelete = useCallback(
+    (deleted) => {
+      deleted.forEach((node) => {
+        existingNodesRef.current.delete(node.id);
+      });
+    },
+    []
+  );
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-      modifiers={[restrictToVerticalAxis]}
-    >
-      <SortableContext
-        items={workflowItems.map((item) => item.id)}
-        strategy={verticalListSortingStrategy}
+    <div className="w-full h-full">
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        onNodesChange={onNodesChangeHandler}
+        onEdgesChange={onEdgesChangeHandler}
+        onConnect={onConnect}
+        onNodesDelete={onNodesDelete}
+        nodeTypes={nodeTypes}
+        deleteKeyCode={['Backspace', 'Delete']}
+        nodesDraggable={true}
+        edgesFocusable={true}
+        elementsSelectable={true}
       >
-        {/* Full height container */}
-        <div className="flex flex-col h-full bg-base-100">
-          {/* Scrollable area */}
-          <div className="flex-1 space-y-4">
-            {workflowItems.length === 0 ? (
-              <div className="flex items-center  rounded-lg border-2 border-dashed border-base-200 justify-center h-full text-gray-500">
-                Select a task from the sidebar to begin.
-              </div>
-            ) : (
-              workflowItems.map((item, index) => (
-                <SortableItem
-                  key={item.id}
-                  item={item}
-                  onRemove={(id) =>
-                    setWorkflowItems(workflowItems.filter((i) => i.id !== id))
-                  }
-                  onUpdate={(newConfig) => {
-                    const updated = [...workflowItems];
-                    updated[index].config = newConfig;
-                    setWorkflowItems(updated);
-                  }}
-                />
-              ))
-            )}
-          </div>
-
-          {/* Button stays pinned to bottom */}
-          <div className="flex justify-center m-4">
-            <button
-              disabled={workflowItems.length === 0}
-              className="btn btn-wide btn-primary"
-              onClick={onCompile}
-            >
-              <Settings className="h-4 w-4 mr-2" /> Compile
-            </button>
-          </div>
-        </div>
-      </SortableContext>
-
-      <DragOverlay>
-        {activeItem && (
-          <SortableItem
-            item={activeItem}
-            isOverlay
-            onRemove={() => {}}
-            onUpdate={() => {}}
-          />
-        )}
-      </DragOverlay>
-    </DndContext>
+        <Background />
+        <Controls />
+      </ReactFlow>
+      {/* <div className="flex justify-center gap-2 mt-4">
+        <button
+          disabled={workflowItems.length === 0}
+          className="btn btn-wide btn-primary"
+          onClick={onCompile}
+        >
+          <Settings className="h-4 w-4 mr-2" /> Compile
+        </button>
+      </div> */}
+    </div>
   );
 }

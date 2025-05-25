@@ -12,6 +12,7 @@ import {
   updateWorkflow,
 } from "@/api/workflow/test";
 import { useRouter } from "next/navigation";
+import { Settings } from "lucide-react";
 
 const createIdBuilder =
   (prefix = "id") =>
@@ -163,7 +164,7 @@ export default function WorkflowEditor({
       <div className="flex flex-1 gap-4">
         {/* Left: Input + Canvas */}
         <div className="flex flex-col flex-1 gap-4">
-          <div>
+          <div className="flex justify-between">
             <input
               id="workflowName"
               name="workflowName"
@@ -191,6 +192,14 @@ export default function WorkflowEditor({
               }}
               readOnly={isEditing}
             />
+
+            <button
+              disabled={workflowItems.length === 0}
+              className="btn btn-wide btn-primary"
+              onClick={compileWorkflow}
+            >
+              <Settings className="h-4 w-4 mr-2" /> Compile
+            </button>
           </div>
 
           <section className="flex-1">
@@ -203,7 +212,7 @@ export default function WorkflowEditor({
         </div>
 
         {/* Right: Logs */}
-        <LogsPanel output={output} />
+        {/* <LogsPanel output={output} /> */}
       </div>
     </div>
   );
