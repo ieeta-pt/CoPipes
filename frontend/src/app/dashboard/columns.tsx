@@ -1,7 +1,7 @@
 "use client";
 
 import { ColumnDef } from "@tanstack/react-table";
-import { Pencil, Play, Trash } from "lucide-react";
+import { Download, Pencil, Play, Trash } from "lucide-react";
 import { deleteWorkflowAPI, editWorkflowAPI } from "@/api/dashboard/table";
 export type Workflow = {
   id: string;
@@ -39,6 +39,15 @@ const deleteWorkflow = async (name: string) => {
   }
 }
 
+const downloadWorkflow = async (name: string) => {
+  try {
+    name = name.replace(/ /g, "_");
+    window.location.href = `/workflow/download/${name}`;
+  } catch (error) {
+    console.error("Error downloading workflow:", error);
+  }
+}
+
 export const columns: ColumnDef<Workflow>[] = [
   {
     accessorKey: "name",
@@ -61,6 +70,9 @@ export const columns: ColumnDef<Workflow>[] = [
     header: "Last Run",
     cell: ({ row }) => {
       const date = new Date(row.getValue("last_run"));
+      if (date.getTime() === 0) {
+        return "";
+      }
       return date.toLocaleDateString("en-US", {
         year: "numeric",
         month: "short",
@@ -94,10 +106,10 @@ export const columns: ColumnDef<Workflow>[] = [
       );
     },
   },
-  {
-    accessorKey: "people",
-    header: "People",
-  },
+  // {
+  //   accessorKey: "people",
+  //   header: "People",
+  // },
   {
     id: "actions",
     cell: ({ row }) => {
@@ -106,7 +118,7 @@ export const columns: ColumnDef<Workflow>[] = [
       return (
         <div className="flex justify-end gap-2">
           <button
-            className="btn btn-soft btn-secondary btn-xs"
+            className="btn btn-soft btn-accent btn-xs"
             onClick={() => editWorkflow(workflow.name)}
           >
             <Pencil className="h4 w-4" />
@@ -117,6 +129,13 @@ export const columns: ColumnDef<Workflow>[] = [
             onClick={() => runWorkflow(workflow.name)}
           >
             <Play className="h-4 w-4" />
+          </button>
+
+          <button
+            className="btn btn-soft btn-secondary btn-xs"
+            onClick={() => downloadWorkflow(workflow.name)}
+          >
+            <Download className="h-4 w-4" />
           </button>
 
           <button

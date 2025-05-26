@@ -26,5 +26,14 @@ export function WorkflowTableWrapper() {
     );
   }
 
-  return <DataTable columns={columns} data={data} />;
+  return (
+    <div className="flex flex-col">
+      <div className="flex justify-end m-4">
+        <a href="/workflow/editor" className="btn btn-soft btn-primary">
+          Create workflow
+        </a>
+      </div>
+      <DataTable columns={columns} data={data} />
+    </div>
+  );
 }
