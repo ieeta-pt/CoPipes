@@ -12,11 +12,38 @@ import {
   updateWorkflow,
 } from "@/api/workflow/test";
 import { useRouter } from "next/navigation";
+import { Settings } from "lucide-react";
 
 const createIdBuilder =
   (prefix = "id") =>
   () =>
     `${prefix}_${Math.random().toString(36).substring(2, 5)}`;
+
+function showToast(
+  message: string,
+  type: "success" | "error" | "info" | "warning" = "info"
+) {
+  const colors = {
+    success: "alert-success",
+    error: "alert-error",
+    warning: "alert-warning",
+    info: "alert-info",
+  };
+
+  const div = document.createElement("div");
+  div.className = `toast z-[1000] fixed right-4 bottom-4`;
+  div.innerHTML = `
+      <div class="alert ${colors[type]} alert-soft shadow-lg text-lg">
+        <span>${message}</span>
+      </div>
+    `;
+
+  document.body.appendChild(div);
+
+  setTimeout(() => {
+    div.remove();
+  }, 3000);
+}
 
 export default function WorkflowEditor({
   workflowId,
@@ -25,7 +52,6 @@ export default function WorkflowEditor({
 }) {
   const router = useRouter();
   const [workflowItems, setWorkflowItems] = useState<WorkflowComponent[]>([]);
-  const [output, setOutput] = useState("");
   const [workflowName, setWorkflowName] = useState("");
   const [isLoading, setIsLoading] = useState(!!workflowId);
   const [error, setError] = useState<string | null>(null);
@@ -84,7 +110,7 @@ export default function WorkflowEditor({
     window.scrollTo({ top: 0, behavior: "smooth" });
 
     if (!workflowName) {
-      setOutput("⚠️ Workflow name is required. ⚠️");
+      showToast("Workflow name is required.", "warning"); 
       document.getElementById("workflowName")?.classList.add("input-error");
       return;
     }
@@ -107,20 +133,20 @@ export default function WorkflowEditor({
 
     const payload = {
       dag_id: workflowName,
-      tasks: workflowItems,
+      tasks: validatedItems,
     };
 
     try {
-      setOutput("Compiling workflow...");
+      showToast("Compiling workflow...", "info");
       if (isEditing) {
         setResult(await updateWorkflow(payload.dag_id, payload));
       } else {
         setResult(await submitWorkflow(payload));
       }
-      setOutput("✅ Workflow compiled successfully. ✅");
+      showToast("Workflow compiled successfully.", "success");
     } catch (err) {
       console.error(err);
-      setOutput("❌ Failed to compile workflow. ❌");
+      showToast("Failed to compile workflow.", "error");
     }
   };
 
@@ -163,7 +189,7 @@ export default function WorkflowEditor({
       <div className="flex flex-1 gap-4">
         {/* Left: Input + Canvas */}
         <div className="flex flex-col flex-1 gap-4">
-          <div>
+          <div className="flex justify-between">
             <input
               id="workflowName"
               name="workflowName"
@@ -178,8 +204,9 @@ export default function WorkflowEditor({
                     ?.classList.remove("input-error");
                   const regex = /^[a-zA-Z0-9\s]*$/;
                   if (!regex.test(e.target.value)) {
-                    setOutput(
-                      "⚠️ Workflow name can only contain letters, numbers and white spaces. ⚠️"
+                    showToast(
+                      "Workflow name can only contain letters, numbers and white spaces.",
+                      "warning"
                     );
                     document
                       .getElementById("workflowName")
@@ -191,6 +218,13 @@ export default function WorkflowEditor({
               }}
               readOnly={isEditing}
             />
+            <button
+              disabled={workflowItems.length === 0}
+              className="btn btn-wide btn-primary"
+              onClick={compileWorkflow}
+            >
+              <Settings className="h-4 w-4 mr-2" /> Compile
+            </button>
           </div>
 
           <section className="flex-1">
@@ -203,7 +237,7 @@ export default function WorkflowEditor({
         </div>
 
         {/* Right: Logs */}
-        <LogsPanel output={output} />
+        {/* <LogsPanel output={output} /> */}
       </div>
     </div>
   );
