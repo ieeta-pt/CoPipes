@@ -12,7 +12,7 @@ export function ConfigSidebar() {
       </h2>
 
       {/* Execution Mode Selector */}
-      <div className="tabs tabs-boxed mb-4">
+      <div className="flex justify-between gap-2 tabs tabs-box mb-4">
         <a
           className={`tab ${
             executionType === "now" ? "tab-active font-bold" : ""

@@ -103,6 +103,7 @@ export default function WorkflowEditor({
         name: conf.name,
         value: conf.value || "",
         type: conf.type || "string",
+        options: conf.options || [],
       })),
       dependencies: item.dependencies || [],
     }));

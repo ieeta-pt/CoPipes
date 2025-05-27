@@ -1,7 +1,6 @@
 // taskRegistry.ts
-import { CSVTask } from "@/components/airflow-tasks/tasks/CSVTask"
 import { TaskRegistry } from "@/components/airflow-tasks/types"
-import { BaseTask } from "./BaseTask"
+import { BaseTask } from "@/components/airflow-tasks/BaseTask"
 
 export const Registry: TaskRegistry = {
   "CSV": {
@@ -31,11 +30,11 @@ export const Registry: TaskRegistry = {
     type: "Transformation",
     subtype: "Cohorts",
     defaultConfig: [
-      { name: "data", value: "Data to harmonize", type: "string" },
-      { name: "mappings", value: "Data mappings", type: "string" },
+      { name: "data", value: "Data to harmonize (To key value result)", type: "string" },
+      { name: "mappings", value: "Data mappings (CSV extraction result or file)", type: "string" },
       { 
         name: "adhoc harmonization", 
-        value: "false", 
+        value: "False", 
         type: "boolean"
       },
     ],
@@ -45,12 +44,12 @@ export const Registry: TaskRegistry = {
     type: "Transformation",
     subtype: "Cohorts",
     defaultConfig: [
-      { name: "person data", value: "Data for personal information table", type: "string" },
-      { name: "observation data", value: "Data for personal information table", type: "string" },
-      { name: "mappings", value: "Data mappings", type: "string" },
+      { name: "person data", value: "Data for personal information table (CSV extraction result)", type: "string" },
+      { name: "observation data", value: "Data for personal information table (Harmonize result)", type: "string" },
+      { name: "mappings", value: "Data mappings (CSV extraction result or file)", type: "string" },
       { 
         name: "adhoc migration", 
-        value: "false", 
+        value: "False", 
         type: "boolean"
       },
     ],
@@ -60,7 +59,6 @@ export const Registry: TaskRegistry = {
     type: "Loading",
     subtype: "Postgres",
     defaultConfig: [
-      { name: "database name", value: "My database", type: "string" },
     ],
     component: BaseTask,
   },
@@ -68,7 +66,7 @@ export const Registry: TaskRegistry = {
     type: "Loading",
     subtype: "Postgres",
     defaultConfig: [
-      { name: "columns", value: "List of columns", type: "string" },
+      { name: "columns", value: "List of columns (separated by commas)", type: "string" },
       { name: "table name", value: "My table", type: "string" },
     ],
     component: BaseTask,
@@ -77,7 +75,7 @@ export const Registry: TaskRegistry = {
     type: "Loading",
     subtype: "Postgres",
     defaultConfig: [
-      { name: "data", value: "Table contents", type: "string" },
+      { name: "data", value: "Table contents (Migrate result)", type: "string" },
       { name: "table name", value: "My table", type: "string" },
     ],
     component: BaseTask,

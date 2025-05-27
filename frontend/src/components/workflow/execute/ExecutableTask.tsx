@@ -28,7 +28,6 @@ async function handleFileUpload(file: File) {
 export const ExecutableTask: React.FC<ExecutableTaskProps> = ({
   config,
   onUpdate,
-  isReadOnly = false,
 }) => {
   const handleChange = (index: number, value: string) => {
     const updated = [...config];
@@ -37,16 +36,6 @@ export const ExecutableTask: React.FC<ExecutableTaskProps> = ({
   };
 
   const renderField = (field: ConfigField, index: number) => {
-    if (isReadOnly) {
-      return (
-        <span className="text-sm text-gray-900 whitespace-pre-line break-normal">
-          {field.type === "file"
-            ? `📎 ${field.value || "No file uploaded"}`
-            : field.value || "-"}
-        </span>
-      );
-    }
-
     switch (field.type) {
       case "file":
         return (
@@ -61,7 +50,7 @@ export const ExecutableTask: React.FC<ExecutableTaskProps> = ({
                   handleChange(index, result.filename); // store the filename returned from the server
                 } catch (error) {
                   console.error("File upload failed:", error);
-                  showToast("File upload failed.", "error");  
+                  showToast("File upload failed.", "error");
                 }
               }
             }}
@@ -69,19 +58,34 @@ export const ExecutableTask: React.FC<ExecutableTaskProps> = ({
         );
 
       case "boolean":
+        const options = ["True", "False"]
         return (
-          <input
-            type="checkbox"
-            className="checkbox checkbox-primary align-middle"
-            checked={field.value.toLowerCase() === "true"}
-            onChange={(e) => handleChange(index, e.target.checked.toString())}
-          />
+          <div className="flex gap-2">
+            {options.map((option, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => handleChange(index, option)}
+                className={`px-4 py-2 rounded-full border transition-colors
+        ${
+          field.value === option
+            ? "bg-primary text-white border-primary"
+            : "bg-base-200 text-base-content border-base-300 hover:bg-base-300"
+        }`}
+              >
+                {option}
+              </button>
+            ))}
+          </div>
         );
 
       case "radio":
         if (!field.options) {
           console.warn(`No options provided for radio field: ${field.name}`);
-          showToast(`No options provided for radio field: ${field.name}`, "warning");
+          showToast(
+            `No options provided for radio field: ${field.name}`,
+            "warning"
+          );
           return null;
         }
         return (
@@ -104,7 +108,10 @@ export const ExecutableTask: React.FC<ExecutableTaskProps> = ({
       case "select":
         if (!field.options) {
           console.warn(`No options provided for select field: ${field.name}`);
-          showToast(`No options provided for select field: ${field.name}`, "warning");
+          showToast(
+            `No options provided for select field: ${field.name}`,
+            "warning"
+          );
           return null;
         }
         return (

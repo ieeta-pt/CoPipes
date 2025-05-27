@@ -68,6 +68,8 @@ export default function WorkflowExecute({
   async function runWorkflow() {
     if (!workflowId) return;
 
+    
+
     try {
       const payload = {
         dag_id: workflowId.replace(/ /g, "_"),
@@ -138,7 +140,6 @@ export default function WorkflowExecute({
       <div className="flex flex-1 gap-4">
         <div className="flex flex-col gap-4">
           <ConfigSidebar />
-          <button className="btn btn-secondary w-full">Confirm schedule</button>
         </div>
 
         {/* Left: Input + Tasks */}
@@ -153,7 +154,7 @@ export default function WorkflowExecute({
               value={workflowName}
               readOnly={true}
             />
-            <button className="btn btn-primary" onClick={runWorkflow}>
+            <button className="btn btn-primary text-white" onClick={runWorkflow}>
               <Play className="h-4 w-4 mr-2" /> Execute
             </button>
           </div>
