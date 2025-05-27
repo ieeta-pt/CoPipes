@@ -1,5 +1,6 @@
 import React from "react";
 import { TaskConfig, ConfigField } from "@/components/airflow-tasks/types";
+import { showToast } from "@/components/layout/ShowToast";
 
 interface ExecutableTaskProps {
   config: TaskConfig;
@@ -60,7 +61,7 @@ export const ExecutableTask: React.FC<ExecutableTaskProps> = ({
                   handleChange(index, result.filename); // store the filename returned from the server
                 } catch (error) {
                   console.error("File upload failed:", error);
-                  // You might want to show an error message to the user here
+                  showToast("File upload failed.", "error");  
                 }
               }
             }}
@@ -71,7 +72,7 @@ export const ExecutableTask: React.FC<ExecutableTaskProps> = ({
         return (
           <input
             type="checkbox"
-            className="checkbox checkbox-primary"
+            className="checkbox checkbox-primary align-middle"
             checked={field.value.toLowerCase() === "true"}
             onChange={(e) => handleChange(index, e.target.checked.toString())}
           />
@@ -80,6 +81,7 @@ export const ExecutableTask: React.FC<ExecutableTaskProps> = ({
       case "radio":
         if (!field.options) {
           console.warn(`No options provided for radio field: ${field.name}`);
+          showToast(`No options provided for radio field: ${field.name}`, "warning");
           return null;
         }
         return (
@@ -102,6 +104,7 @@ export const ExecutableTask: React.FC<ExecutableTaskProps> = ({
       case "select":
         if (!field.options) {
           console.warn(`No options provided for select field: ${field.name}`);
+          showToast(`No options provided for select field: ${field.name}`, "warning");
           return null;
         }
         return (

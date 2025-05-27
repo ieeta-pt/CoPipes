@@ -8,6 +8,7 @@ import { LogsPanel } from "@/components/workflow/LogsPanel";
 import { ExecutableTask } from "./ExecutableTask";
 import { Play } from "lucide-react";
 import { run } from "node:test";
+import { ConfigSidebar } from "../ConfigSidebar";
 
 function getColorForType(type: string): string {
   const colors: Record<string, string> = {
@@ -19,8 +20,6 @@ function getColorForType(type: string): string {
   };
   return colors[type] || "#6b7280";
 }
-
-
 
 export default function WorkflowExecute({
   workflowId,
@@ -68,7 +67,7 @@ export default function WorkflowExecute({
 
   async function runWorkflow() {
     if (!workflowId) return;
-  
+
     try {
       const payload = {
         dag_id: workflowId.replace(/ /g, "_"),
@@ -83,12 +82,14 @@ export default function WorkflowExecute({
           })),
         })),
       };
-  
+
       const result = await executeWorkflow(workflowId, payload);
       setOutput(result.output);
     } catch (error) {
       console.error("Error executing workflow:", error);
-      setOutput("Failed to execute workflow. Please check the console for details.");
+      setOutput(
+        "Failed to execute workflow. Please check the console for details."
+      );
     }
   }
 
@@ -135,9 +136,14 @@ export default function WorkflowExecute({
     <div className="flex flex-1 h-[calc(100vh-4rem)] p-4 gap-4">
       {/* Main content */}
       <div className="flex flex-1 gap-4">
+        <div className="flex flex-col gap-4">
+          <ConfigSidebar />
+          <button className="btn btn-secondary w-full">Confirm schedule</button>
+        </div>
+
         {/* Left: Input + Tasks */}
         <div className="flex flex-col flex-1 gap-4">
-          <div>
+          <div className="flex justify-between">
             <input
               id="workflowName"
               name="workflowName"
@@ -147,14 +153,14 @@ export default function WorkflowExecute({
               value={workflowName}
               readOnly={true}
             />
-
-            
+            <button className="btn btn-primary" onClick={runWorkflow}>
+              <Play className="h-4 w-4 mr-2" /> Execute
+            </button>
           </div>
-          
 
           <section className="flex-1">
             {/* Full height container */}
-           
+
             <div className="flex flex-col h-full bg-base-100">
               {/* Scrollable area */}
               <div className="flex-1 space-y-4">
@@ -176,15 +182,15 @@ export default function WorkflowExecute({
                           <div className="text-lg font-semibold">
                             {task.content}
                           </div>
-                            <div
-                              className="flex gap-2 badge text-md"
-                              style={{
-                                backgroundColor: getColorForType(task.type),
-                                color: "white",
-                              }}
-                            >
-                              {task.type}
-                            </div>
+                          <div
+                            className="flex gap-2 badge text-md"
+                            style={{
+                              backgroundColor: getColorForType(task.type),
+                              color: "white",
+                            }}
+                          >
+                            {task.type}
+                          </div>
                         </div>
                         <ExecutableTask
                           config={task.config}
@@ -197,20 +203,12 @@ export default function WorkflowExecute({
                   ))
                 )}
               </div>
-              <div className="flex justify-center m-4">
-            <button
-              className="btn btn-wide btn-primary"
-              onClick={runWorkflow}
-            >
-              <Play className="h-4 w-4 mr-2" /> Execute
-            </button>
-          </div>
             </div>
           </section>
         </div>
 
         {/* Right: Logs */}
-        <LogsPanel output={output} />
+        {/* <LogsPanel output={output} /> */}
       </div>
     </div>
   );

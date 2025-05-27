@@ -7,12 +7,12 @@ export const Registry: TaskRegistry = {
   "CSV": {
     type: "Extraction",
     defaultConfig: [
-      { name: "filename", value: "", type: "file" },
+      { name: "filename", value: "File to read", type: "file" },
       { 
         name: "file separation", 
-        value: "comma", 
+        value: "Comma", 
         type: "select",
-        options: ["comma", "semicolon", "tab"]
+        options: ["Comma", "Semicolon", "Tab"]
       }
     ],
     component: BaseTask,
@@ -21,9 +21,9 @@ export const Registry: TaskRegistry = {
     type: "Transformation",
     subtype: "Cohorts",
     defaultConfig: [
-      { name: "data", value: "Data to reorganize", type: "string" },
-      { name: "fixed columns", value: "List of fixed columns names", type: "string" },
-      { name: "measurement columns", value: "List of measurement columns", type: "string" },
+      { name: "data", value: "Data to reorganize (CSV extraction result)", type: "string" },
+      { name: "fixed columns", value: "List of fixed columns names (separated by commas)", type: "string" },
+      { name: "measurement columns", value: "List of measurement columns (separated by commas)", type: "string" },
     ],
     component: BaseTask,
   },
