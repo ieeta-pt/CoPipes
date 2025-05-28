@@ -8,7 +8,7 @@ export type Workflow = {
   name: string;
   last_edit: string;
   last_run: string;
-  last_run_status: "Success" | "Failed" | "Queued" | "Not started";
+  status: "Success" | "Failed" | "Queued" | "Not started";
   people: string[];
 };
 
@@ -19,7 +19,7 @@ const editWorkflow = async (name: string) => {
   } catch (error) {
     console.error("Error editing workflow:", error);
   }
-}
+};
 
 const runWorkflow = async (name: string) => {
   try {
@@ -28,7 +28,7 @@ const runWorkflow = async (name: string) => {
   } catch (error) {
     console.error("Error running workflow:", error);
   }
-}
+};
 
 const deleteWorkflow = async (name: string) => {
   try {
@@ -37,7 +37,7 @@ const deleteWorkflow = async (name: string) => {
   } catch (error) {
     console.error("Error deleting workflow:", error);
   }
-}
+};
 
 const downloadWorkflow = async (name: string) => {
   try {
@@ -46,7 +46,7 @@ const downloadWorkflow = async (name: string) => {
   } catch (error) {
     console.error("Error downloading workflow:", error);
   }
-}
+};
 
 export const columns: ColumnDef<Workflow>[] = [
   {
@@ -81,10 +81,10 @@ export const columns: ColumnDef<Workflow>[] = [
     },
   },
   {
-    accessorKey: "last_run_status",
-    header: "Last Run Status",
+    accessorKey: "status",
+    header: "Status",
     cell: ({ row }) => {
-      const status = row.getValue("last_run_status") as
+      const status = row.getValue("status") as
         | "success"
         | "failed"
         | "queued"
@@ -144,7 +144,6 @@ export const columns: ColumnDef<Workflow>[] = [
           >
             <Trash className="h-4 w-4" />
           </button>
-
         </div>
       );
     },

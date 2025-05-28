@@ -5,7 +5,10 @@ export function ConfigSidebar() {
   const [executionType, setExecutionType] = useState("now");
 
   return (
-    <aside className="w-[18rem] bg-base-100 rounded-box shadow-lg border border-base-200 p-4 flex flex-col justify-between h-full">
+    <aside 
+      className="w-[18rem] bg-base-100 rounded-box shadow-lg border border-base-200 p-4 flex flex-col justify-between h-full"
+      data-schedule-type={executionType}
+    >
       <div>
       <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
         Schedule Workflow
@@ -51,13 +54,6 @@ export function ConfigSidebar() {
               className="input input-bordered"
               defaultValue={new Date().toISOString().split("T")[0]}
             />
-          </label>
-
-          <label className="form-control w-full">
-            <div className="label">
-              <span className="label-text">Execution Hour</span>
-            </div>
-            <input type="time" className="input input-bordered" />
           </label>
         </div>
       )}

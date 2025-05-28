@@ -49,16 +49,20 @@ class SupabaseClient:
             print(f"Failed to insert tasks for workflow {workflow_name} into Supabase: {e}")
             raise
     
-    def update_workflow(self, update_data: WorkflowDB, tasks: list = None):
+    def update_workflow(self, update_data: dict, tasks: list = None):
         """Update a workflow in the database."""
         try:
-            name = update_data.name.replace("_", " ")
-            self.client.table("workflows").update(update_data.dict()).eq("name", name).execute()
+            name = update_data["dag_id"].replace("_", " ")
+
+            data = {
+                "last_edit": datetime.now().isoformat(),
+            }
+            self.client.table("workflows").update(data).eq("name", name).execute()
             if tasks:
-                self.update_tasks(update_data.name, tasks)
-            print(f"Updated workflow {update_data.name} in Supabase")
+                self.update_tasks(name, tasks)
+            print(f"Updated workflow {name} in Supabase")
         except Exception as e:
-            print(f"Failed to update workflow {update_data.name} in Supabase: {e}")
+            print(f"Failed to update workflow {update_data['dag_id']} in Supabase: {e}")
             raise
     
     def update_tasks(self, workflow_name, tasks: list):
@@ -111,7 +115,7 @@ class SupabaseClient:
         """Update the last run time of a workflow in the database."""
         try:
             workflow_name = workflow_name.replace("_", " ")
-            self.client.table("workflows").update({"last_run": datetime.now().isoformat(), "last_run_status": status}).eq("name", workflow_name).execute()
+            self.client.table("workflows").update({"last_run": datetime.now().isoformat(), "status": status}).eq("name", workflow_name).execute()
             print(f"Updated last run for workflow {workflow_name} in Supabase")
         except Exception as e:
             print(f"Failed to update last run for workflow {workflow_name} in Supabase: {e}")

@@ -54,11 +54,7 @@ async def get_workflow(workflow_name: str):
 @router.put("/{workflow_name}")
 async def update_workflow(workflow_name: str, workflow: WorkflowAirflow):
     try:
-        workflow_db = WorkflowDB(
-            name=workflow.dag_id,
-            last_edit=datetime.now().isoformat(),
-        )
-        supabase.update_workflow(workflow_db, workflow.tasks)
+        supabase.update_workflow(workflow.model_dump(), workflow.tasks)
         
         generate_dag(workflow.model_dump())
         

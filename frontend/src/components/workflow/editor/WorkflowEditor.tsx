@@ -94,17 +94,24 @@ export default function WorkflowEditor({
     console.log("Compiling workflow with items:", workflowItems);
 
     const validatedItems = workflowItems.map((item) => ({
-      ...item,
       id: item.id,
       content: item.content,
       type: item.type,
       subtype: item.subtype || "",
-      config: item.config.map((conf) => ({
-        name: conf.name,
-        value: conf.value || "",
-        type: conf.type || "string",
-        options: conf.options || [],
-      })),
+      config: item.config.map((conf) => {
+        const configField: any = {
+          name: conf.name,
+          value: conf.value || "",
+          type: conf.type === "task_reference" ? "string" : (conf.type || "string"),
+        };
+        
+        // Only include options if they exist and are not empty
+        if (conf.options && conf.options.length > 0) {
+          configField.options = conf.options;
+        }
+        
+        return configField;
+      }),
       dependencies: item.dependencies || [],
     }));
 

@@ -1,10 +1,18 @@
-export type ConfigFieldType = "string" | "file" | "boolean" | "radio" | "select"
+export type ConfigFieldType = "string" | "file" | "boolean" | "radio" | "select" | "task_reference"
 
 export interface ConfigField {
   name: string
   value: string
   type: ConfigFieldType
   options?: string[]
+  placeholder?: string
+  required?: boolean
+  validation?: {
+    pattern?: string
+    min?: number
+    max?: number
+    message?: string
+  }
 }
 
 export type TaskConfig = ConfigField[]
@@ -33,7 +41,7 @@ export interface WorkflowComponent {
 
 export interface WorkflowRequest {
   dag_id: string
-  schedule_interval?: string
+  schedule?: string
   start_date?: string
   tasks: WorkflowComponent[]
 }

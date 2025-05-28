@@ -56,17 +56,21 @@ OBSERVATION_ID_SET = []
 logger = LoggingMixin().log
 
 @task
-def migrate(person_data: list[dict], observation_data: list[dict], mappings: dict, adhoc_migration: bool = False) -> dict:
+def migrate(person_data: list[dict] | dict, observation_data: list[dict], mappings: dict, adhoc_migration: bool = False) -> dict:
     mappings_df = pd.DataFrame.from_dict(mappings["data"])
 
     df_person = None
     f_person = None
 
-    for d in person_data:
-        if d["filename"].lower().find("patient") != -1:
-            df_person = pd.DataFrame(d["data"])
-            f_person = d["filename"]
-            break
+    if isinstance(person_data, dict):
+        df_person = pd.DataFrame(person_data["data"])
+        f_person = person_data["filename"]
+    elif isinstance(person_data, list) and len(person_data) > 0 and "data" in person_data[0]:
+        for d in person_data:
+            if d["filename"].lower().find("patient") != -1:
+                df_person = pd.DataFrame(d["data"])
+                f_person = d["filename"]
+                break
 
     person_data = migrate_person(df_person, f_person, mappings_df, adhoc_migration)
 

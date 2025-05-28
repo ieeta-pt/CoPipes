@@ -27,7 +27,7 @@ class WorkflowComponent(BaseModel):
     dependencies: List[str] = []
 
 class WorkflowAirflow(WorkflowBase):
-    schedule_interval: str = None
+    schedule: str = None
     start_date: str = None
     tasks: List[WorkflowComponent]
 
@@ -35,5 +35,5 @@ class WorkflowDB(BaseModel):
     name: str
     last_edit: str
     last_run: str = None
-    last_run_status: str = "Not Started"
+    status: str = "Not Started"
     people: List[str] = None
