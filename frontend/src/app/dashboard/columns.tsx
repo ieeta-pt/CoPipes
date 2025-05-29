@@ -2,7 +2,7 @@
 
 import { ColumnDef } from "@tanstack/react-table";
 import { Download, Pencil, Play, Trash } from "lucide-react";
-import { deleteWorkflowAPI, editWorkflowAPI } from "@/api/dashboard/table";
+import { deleteWorkflowAPI, editWorkflowAPI, downloadWorkflowAPI } from "@/api/dashboard/table";
 export type Workflow = {
   id: string;
   name: string;
@@ -41,8 +41,24 @@ const deleteWorkflow = async (name: string) => {
 
 const downloadWorkflow = async (name: string) => {
   try {
-    name = name.replace(/ /g, "_");
-    window.location.href = `/workflow/download/${name}`;
+    const workflow = await downloadWorkflowAPI(name);
+    
+    // Create a blob with the JSON data
+    const blob = new Blob([JSON.stringify(workflow, null, 2)], {
+      type: "application/json",
+    });
+    
+    // Create a temporary download link
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${name.replace(/ /g, "_")}.json`;
+    document.body.appendChild(link);
+    link.click();
+    
+    // Clean up
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   } catch (error) {
     console.error("Error downloading workflow:", error);
   }

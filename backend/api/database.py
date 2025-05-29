@@ -29,7 +29,8 @@ class SupabaseClient:
             existing_workflow = self.client.table("workflows").select("*").eq("name", workflow.name).execute()
             if existing_workflow.data:
                 print(f"Workflow {workflow.name} already exists. Updating instead.")
-                self.update_workflow(workflow.name, workflow, tasks)
+                update_data = {"dag_id": workflow.name.replace(" ", "_")}
+                self.update_workflow(update_data, tasks)
                 return
             self.client.table("workflows").insert(workflow.model_dump()).execute()
             if tasks: 

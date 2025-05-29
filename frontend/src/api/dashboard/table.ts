@@ -53,3 +53,36 @@ export async function deleteWorkflowAPI(name: string): Promise<void> {
 
   console.log("Response from API:", res);
 }
+
+export async function downloadWorkflowAPI(name: string): Promise<any> {
+  name = name.replace(/ /g, "_");
+  console.log("downloadWorkflowAPI", name);
+  const res = await fetch(`/api/workflows/${name}`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!res.ok) {
+    throw new Error("Failed to fetch workflow");
+  }
+
+  return res.json();
+}
+
+export async function uploadWorkflowAPI(file: File): Promise<any> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const res = await fetch("/api/workflows/upload", {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!res.ok) {
+    throw new Error("Failed to upload workflow");
+  }
+
+  return res.json();
+}

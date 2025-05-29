@@ -1,6 +1,7 @@
-from fastapi import APIRouter, HTTPException, BackgroundTasks
+from fastapi import APIRouter, HTTPException, BackgroundTasks, UploadFile, File
 from datetime import datetime
 import traceback
+import json
 
 from utils.dag_factory import generate_dag, remove_dag
 from utils.airflow_api import trigger_dag_run
@@ -21,7 +22,7 @@ async def receive_workflow(workflow: WorkflowAirflow):
         generate_dag(workflow.model_dump())
         
         workflow_db = WorkflowDB(
-            name=workflow.dag_id,
+            name=workflow.dag_id.replace("_", " "),
             last_edit=datetime.now().isoformat(),
         )
         supabase.add_workflow(workflow_db, workflow.tasks)
@@ -87,3 +88,46 @@ async def trigger_workflow(workflow: WorkflowAirflow, background_tasks: Backgrou
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/upload")
+async def upload_workflow(file: UploadFile = File(...)):
+    try:
+        # Validate file type
+        if not file.filename.endswith('.json'):
+            raise HTTPException(status_code=400, detail="Only JSON files are allowed")
+        
+        # Read and parse the JSON content
+        content = await file.read()
+        try:
+            workflow_data = json.loads(content.decode('utf-8'))
+        except json.JSONDecodeError:
+            raise HTTPException(status_code=400, detail="Invalid JSON format")
+        
+        # Validate required fields
+        if 'dag_id' not in workflow_data or 'tasks' not in workflow_data:
+            raise HTTPException(status_code=400, detail="Missing required fields: dag_id or tasks")
+        
+        # Create WorkflowAirflow object from uploaded data
+        workflow = WorkflowAirflow(**workflow_data)
+        
+        # Generate DAG file
+        generate_dag(workflow.model_dump())
+        
+        # Save to database
+        workflow_db = WorkflowDB(
+            name=workflow.dag_id.replace("_", " "),
+            last_edit=datetime.now().isoformat(),
+        )
+        supabase.add_workflow(workflow_db, workflow.tasks)
+        
+        return {
+            "status": "success", 
+            "message": "Workflow uploaded successfully", 
+            "dag_id": workflow.dag_id
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to upload workflow: {str(e)}")
