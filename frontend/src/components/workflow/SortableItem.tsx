@@ -2,7 +2,6 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { X, GripVertical } from "lucide-react";
 import { WorkflowComponent } from "@/components/airflow-tasks/types";
-import { Registry } from "@/components/airflow-tasks/Registry";
 
 type Props = {
   item: WorkflowComponent;
@@ -28,13 +27,12 @@ export const SortableItem: React.FC<Props> = ({
     zIndex: isOverlay ? 999 : "auto",
   };
 
-  const TaskComponent = Registry[item.content]?.component;
 
   return (
     <div ref={setNodeRef} style={style} className="card bg-base-100 shadow-md mb-2">
       <div className="card-body p-4">
         <div className="flex justify-between items-start mb-2">
-          <div className="font-medium">{item.content}</div>
+          <div className="text-lg font-semibold">{item.content}</div>
           {!isOverlay && (
             <div className="flex gap-2">
               <button
@@ -53,9 +51,21 @@ export const SortableItem: React.FC<Props> = ({
             </div>
           )}
         </div>
-        {TaskComponent && (
-          <TaskComponent config={item.config} onUpdate={onUpdate} />
-        )}
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 p-4 bg-base-100 rounded-lg min-w-0">
+          {item.config.map((field) => (
+            <div
+              key={field.name}
+              className="flex flex-col p-3 bg-white rounded border border-gray-200 shadow-sm"
+            >
+              <span className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">
+                {field.name}
+              </span>
+              <span className="text-sm text-gray-900 whitespace-pre-line break-normal">
+                {field.placeholder || `Enter ${field.name.toLowerCase()}`}
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

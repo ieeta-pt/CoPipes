@@ -12,11 +12,14 @@ import {
   updateWorkflow,
 } from "@/api/workflow/test";
 import { useRouter } from "next/navigation";
+import { Settings } from "lucide-react";
+import { showToast } from "@/components/layout/ShowToast";
 
 const createIdBuilder =
   (prefix = "id") =>
   () =>
     `${prefix}_${Math.random().toString(36).substring(2, 5)}`;
+
 
 export default function WorkflowEditor({
   workflowId,
@@ -25,13 +28,11 @@ export default function WorkflowEditor({
 }) {
   const router = useRouter();
   const [workflowItems, setWorkflowItems] = useState<WorkflowComponent[]>([]);
-  const [output, setOutput] = useState("");
   const [workflowName, setWorkflowName] = useState("");
   const [isLoading, setIsLoading] = useState(!!workflowId);
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [result, setResult] = useState<string | null>(null);
-
 
   useEffect(() => {
     async function fetchWorkflow() {
@@ -81,44 +82,55 @@ export default function WorkflowEditor({
   };
 
   const compileWorkflow = async () => {
+    // Scroll to top of the page
+    window.scrollTo({ top: 0, behavior: "smooth" });
+
     if (!workflowName) {
-      setOutput("❌ Workflow name is required");
+      showToast("Workflow name is required.", "warning"); 
       document.getElementById("workflowName")?.classList.add("input-error");
       return;
     }
 
     console.log("Compiling workflow with items:", workflowItems);
 
-    const validatedItems = workflowItems.map(item => ({
-      ...item,
+    const validatedItems = workflowItems.map((item) => ({
       id: item.id,
       content: item.content,
       type: item.type,
       subtype: item.subtype || "",
-      config: item.config.map(conf => ({
-        name: conf.name,
-        value: conf.value || "",
-        type: conf.type || "string"
-      })),
-      dependencies: item.dependencies || []
+      config: item.config.map((conf) => {
+        const configField: any = {
+          name: conf.name,
+          value: conf.value || "",
+          type: conf.type === "task_reference" ? "string" : (conf.type || "string"),
+        };
+        
+        // Only include options if they exist and are not empty
+        if (conf.options && conf.options.length > 0) {
+          configField.options = conf.options;
+        }
+        
+        return configField;
+      }),
+      dependencies: item.dependencies || [],
     }));
 
     const payload = {
       dag_id: workflowName,
-      tasks: workflowItems,
+      tasks: validatedItems,
     };
 
     try {
-      setOutput("Compiling workflow...");
+      showToast("Compiling workflow...", "info");
       if (isEditing) {
         setResult(await updateWorkflow(payload.dag_id, payload));
       } else {
         setResult(await submitWorkflow(payload));
       }
-      setOutput(JSON.stringify(result, null, 2));
+      showToast("Workflow compiled successfully.", "success");
     } catch (err) {
       console.error(err);
-      setOutput("❌ Failed to compile workflow");
+      showToast("Failed to compile workflow.", "error");
     }
   };
 
@@ -161,7 +173,7 @@ export default function WorkflowEditor({
       <div className="flex flex-1 gap-4">
         {/* Left: Input + Canvas */}
         <div className="flex flex-col flex-1 gap-4">
-          <div>
+          <div className="flex justify-between">
             <input
               id="workflowName"
               name="workflowName"
@@ -176,8 +188,9 @@ export default function WorkflowEditor({
                     ?.classList.remove("input-error");
                   const regex = /^[a-zA-Z0-9\s]*$/;
                   if (!regex.test(e.target.value)) {
-                    setOutput(
-                      "❌ Workflow name can only contain letters, numbers and white spaces."
+                    showToast(
+                      "Workflow name can only contain letters, numbers and white spaces.",
+                      "warning"
                     );
                     document
                       .getElementById("workflowName")
@@ -189,6 +202,13 @@ export default function WorkflowEditor({
               }}
               readOnly={isEditing}
             />
+            <button
+              disabled={workflowItems.length === 0}
+              className="btn btn-wide btn-primary"
+              onClick={compileWorkflow}
+            >
+              <Settings className="h-4 w-4 mr-2" /> Compile
+            </button>
           </div>
 
           <section className="flex-1">
@@ -201,7 +221,7 @@ export default function WorkflowEditor({
         </div>
 
         {/* Right: Logs */}
-        <LogsPanel output={output} />
+        {/* <LogsPanel output={output} /> */}
       </div>
     </div>
   );

@@ -14,7 +14,8 @@ from datetime import datetime
 
 with DAG (
     dag_id="{dag_id}",
-    schedule_interval={schedule_interval},
+    schedule={schedule},
+    start_date={start_date},
     catchup=False,
     is_paused_upon_creation=False
 ) as dag:
@@ -34,10 +35,11 @@ def generate_dag(config):
     print("Generating DAG from config...")
     ## Worflow parameters ##
     dag_id = config["dag_id"].replace(" ", "_")
-    schedule_interval = f'"{config["schedule_interval"]}"' if config["schedule_interval"] else None 
-    start_date = ", ".join(map(str, datetime.fromisoformat(config["start_date"]).timetuple()[:3])) if config["start_date"] else None
+    schedule = f'"{config["schedule"]}"' if config["schedule"] else None
+    print(f"\nSTART DATE: {config['start_date']}\n")
+    start_date = f'datetime({config["start_date"]["year"]}, {config["start_date"]["month"]}, {config["start_date"]["day"]})' if config["start_date"] else None
 
-    print(f"dag_id: {dag_id} \nstart_date: {start_date} \nschedule_interval: {schedule_interval}")
+    print(f"dag_id: {dag_id} \nstart_date: {start_date} \nschedule: {schedule}")
 
     tasks_definitions = []
     dependencies = []
@@ -57,14 +59,14 @@ def generate_dag(config):
         resolved_params = []
         for param in params:
             name = param["name"].replace(" ", "_").lower()
-            resolved_params.append(f"{name}={repr(param['value'])}")
-
-        # for key, value in params.items():
-        #     if isinstance(value, str) and value.startswith("$ref:"):
-        #         referenced_task = value.split(":")[1]  
-        #         resolved_params.append(f"{key}={referenced_task}")
-        #     else:
-        #         resolved_params.append(f"{key}={repr(value)}")
+            value = param["value"]
+            
+            # Handle task references
+            if isinstance(value, str) and value.startswith("$ref:"):
+                referenced_task = value.split(":")[1].lower().replace(" ", "_")
+                resolved_params.append(f"{name}={referenced_task}")
+            else:
+                resolved_params.append(f"{name}={repr(value)}")
 
         params_str = ", ".join(resolved_params)
 
@@ -73,14 +75,14 @@ def generate_dag(config):
         if task["dependencies"]:
             for dep in task["dependencies"]:
                 dependencies.append(DEPENDENCY_TEMPLATE.format(upstream=dep, downstream=task_id))
-        else: 
+        else:
             dependencies = None
 
         print(f"Task: {task_id} \nModule: {module_path} \nFunction: {function_name} \nParams: {params_str} \nDependencies: {dependencies}")
 
     dag_code = DAG_TEMPLATE.format(
         dag_id=dag_id,
-        schedule_interval=schedule_interval,
+        schedule=schedule,
         start_date=start_date,
         dynamic_imports="\n".join(dynamic_imports),
         tasks_definitions="\n".join(tasks_definitions),
@@ -95,7 +97,7 @@ def generate_dag(config):
     with open(dag_file, "w") as f:
         f.write(dag_code)
         print(f"DAG file created at {dag_file}")
-    
+
     return
 
 

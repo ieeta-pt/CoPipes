@@ -8,7 +8,7 @@ export default function WorkflowEditorPage() {
 
   return (
     <main className="min-h-screen">
-      <WorkflowEditor workflowId={workflowId} />
+        <h1>Downloading workflow {workflowId}</h1>
     </main>
   );
 }

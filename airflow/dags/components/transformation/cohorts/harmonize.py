@@ -2,10 +2,14 @@ import pandas as pd
 from typing import Dict
 from airflow.decorators import task
 import components.utils.cohorts.ad_hoc as ad_hoc
+from components.extraction.csv import csv
 
 @task
-def harmonize(data: dict, mappings: dict, adhoc_harmonization: bool = False) -> Dict[dict, str]:
+def harmonize(data: dict, mappings: dict | str, adhoc_harmonization: bool = False) -> Dict[dict, str]:
     print(f"\nHarmonizing {data['filename']}\n")
+
+    if isinstance(mappings, str):
+        mappings = csv(mappings)
 
     df = pd.DataFrame.from_dict(data["data"])
     data_file = data["filename"]

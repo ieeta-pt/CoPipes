@@ -1,3 +1,4 @@
+from datetime import datetime
 import os
 import traceback
 from supabase import create_client, Client
@@ -28,7 +29,8 @@ class SupabaseClient:
             existing_workflow = self.client.table("workflows").select("*").eq("name", workflow.name).execute()
             if existing_workflow.data:
                 print(f"Workflow {workflow.name} already exists. Updating instead.")
-                self.update_workflow(workflow.name, workflow, tasks)
+                update_data = {"dag_id": workflow.name.replace(" ", "_")}
+                self.update_workflow(update_data, tasks)
                 return
             self.client.table("workflows").insert(workflow.model_dump()).execute()
             if tasks: 
@@ -48,16 +50,16 @@ class SupabaseClient:
             print(f"Failed to insert tasks for workflow {workflow_name} into Supabase: {e}")
             raise
     
-    def update_workflow(self, update_data: WorkflowDB, tasks: list = None):
+    def update_workflow(self, update_data: dict, tasks: list = None):
         """Update a workflow in the database."""
         try:
             name = update_data.name.replace("_", " ")
-            self.client.table("workflows").update(update_data.model_dump()).eq("name", name).execute()
+            self.client.table("workflows").update(update_data.dict()).eq("name", name).execute()
             if tasks:
-                self.update_tasks(update_data.name, tasks)
-            print(f"Updated workflow {update_data.name} in Supabase")
+                self.update_tasks(name, tasks)
+            print(f"Updated workflow {name} in Supabase")
         except Exception as e:
-            print(f"Failed to update workflow {update_data.name} in Supabase: {e}")
+            print(f"Failed to update workflow {update_data['dag_id']} in Supabase: {e}")
             raise
     
     def update_tasks(self, workflow_name, tasks: list):
@@ -105,73 +107,3 @@ class SupabaseClient:
         except Exception as e:
             print(f"Failed to delete workflow {workflow_name} from Supabase: {e}")
             raise
-
-
-########### AUTHENTICATION ###########
-
-    def sign_up(self, user_data: UserRegister):
-        """Register a new user with email and password."""
-        try:
-            response = self.client.auth.sign_up({
-                "email": user_data.email,
-                "password": user_data.password
-            })
-            print(f"User signed up successfully: {response.session}")
-
-            user = (UserProfile(id=response.user.id, email=response.user.email, full_name=user_data.full_name))
-            if user:
-                self.client.table("profiles").insert(user.model_dump()).execute()
-                print(f"User signed up successfully: {user}")
-                return user
-            else:
-                print(f"Failed to sign up user: {user_data}")
-                return None
-        except Exception as e:
-            traceback.print_exc()
-            print(f"Failed to sign up user: {user_data}")
-            raise
-
-    def sign_in(self, user_data: UserLogin):
-        """Sign in a user with email and password."""
-        try:
-            response = self.client.auth.sign_in_with_password({
-                "email": user_data.email,
-                "password": user_data.password
-            })
-            
-            user = self.client.table("profiles").select("*").eq("id", response.user.id).execute()
-            print(f"User signed in successfully: {user}")
-            return UserProfile(**user.data[0])
-        except Exception as e:
-            print(f"Failed to sign in user: {user_data}")
-            raise
-
-    def sign_out(self):
-        """Sign out a user."""
-        try:
-            self.client.auth.sign_out()
-            print("User signed out successfully")
-        except Exception as e:
-            print(f"Failed to sign out user: {e}")
-            raise
-
-    def reset_password(self, email: str):
-        """Reset a user's password."""
-        try:
-            self.client.auth.reset_password_for_email(email)
-            print("Password reset email sent successfully")
-        except Exception as e:
-            print(f"Failed to reset password for user: {email}")
-
-    def update_profile(self, user_data: UserUpdate):
-        """Update a user's profile."""
-        try:
-            response = self.client.auth.update_user(user_data.model_dump())
-
-            if response.user:
-                self.client.table("profiles").update(user_data.model_dump()).eq("id", user_data.id).execute()
-                print(f"Updated profile for user: {user_data}")
-            else:
-                print(f"Failed to update profile for user: {user_data}")
-        except Exception as e:
-            print(f"Failed to update profile for user: {user_data}")

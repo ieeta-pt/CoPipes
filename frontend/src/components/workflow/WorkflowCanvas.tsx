@@ -89,15 +89,15 @@ export function WorkflowCanvas({
           </div>
 
           {/* Button stays pinned to bottom */}
-          <div className="flex justify-center mt-4 mb-1">
+          {/* <div className="flex justify-center m-4">
             <button
               disabled={workflowItems.length === 0}
-              className="btn btn-primary"
+              className="btn btn-wide btn-primary"
               onClick={onCompile}
             >
               <Settings className="h-4 w-4 mr-2" /> Compile
             </button>
-          </div>
+          </div> */}
         </div>
       </SortableContext>
 

@@ -18,7 +18,7 @@ def get_files():
 
 with DAG (
     'cohort_harmonization_dag',
-    schedule_interval=None,
+    schedule=None,
     start_date=datetime(2025, 2, 3),
     catchup=False
 ) as dag:

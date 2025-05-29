@@ -3,8 +3,8 @@ import numpy as np
 from typing import Dict
 from airflow.decorators import task
 
-HEADERS_FILE = "/opt/airflow/data/input_data/4_Content_Organized/headers.txt"
-MEASURES_FILE = "/opt/airflow/data/input_data/4_Content_Organized/measures.txt"
+HEADERS_FILE = "/opt/airflow/data/headers.txt"
+MEASURES_FILE = "/opt/airflow/data/measures.txt"
 
 @task
 def to_key_value(data: dict,
