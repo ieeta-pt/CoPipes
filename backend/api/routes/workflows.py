@@ -3,7 +3,7 @@ from datetime import datetime
 import traceback
 import json
 
-from utils.dag_factory import generate_dag, remove_dag, fix_dag_permissions
+from utils.dag_factory import generate_dag, remove_dag
 from utils.airflow_api import trigger_dag_run, get_dag_runs, get_dag_run_details, get_task_instances, get_task_logs, get_task_xcom_entries
 from utils.auth import get_current_user
 
@@ -100,19 +100,6 @@ async def delete_workflow(workflow_name: str, current_user: dict = Depends(get_c
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
-
-@router.post("/admin/fix-permissions")
-async def fix_permissions(_current_user: dict = Depends(get_current_user)):
-    """Admin endpoint to fix DAG file permissions."""
-    try:
-        success = fix_dag_permissions()
-        if success:
-            return {"status": "success", "message": "DAG permissions fixed successfully"}
-        else:
-            return {"status": "warning", "message": "Permission fix completed with some warnings"}
-    except Exception as e:
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"Failed to fix permissions: {str(e)}")
     
 @router.post("/execute/{workflow_name}")
 async def trigger_workflow(workflow: WorkflowAirflow, _background_tasks: BackgroundTasks, current_user: dict = Depends(get_current_user)):

@@ -20,12 +20,4 @@ airflow users list | grep -q "$AIRFLOW_ADMIN_USERNAME" || airflow users create \
   --role Admin \
   --email "$AIRFLOW_ADMIN_EMAIL"
 
-# Fix permissions for DAGs directory and subdirectories
-echo "🔧 Setting proper permissions for DAGs directory..."
-find /opt/airflow/dags -type d -exec chmod 755 {} \;
-find /opt/airflow/dags -type f -exec chmod 644 {} \;
-
-# Ensure the airflow user can write to the dags directory
-chown -R airflow:airflow /opt/airflow/dags || true
-
 echo "✅ Initialization complete."

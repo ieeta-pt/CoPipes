@@ -5,33 +5,6 @@ import re
 DAG_OUTPUT_DIR = "/opt/airflow/dags"
 os.makedirs(DAG_OUTPUT_DIR, exist_ok=True)
 
-def fix_dag_permissions():
-    """Fix permissions for the DAG directory and all subdirectories."""
-    try:
-        print("🔧 Fixing DAG directory permissions...")
-        
-        # Fix permissions for all directories
-        for root, _, files in os.walk(DAG_OUTPUT_DIR):
-            # Set directory permissions
-            try:
-                os.chmod(root, 0o755)
-            except Exception as e:
-                print(f"Could not set permissions for directory {root}: {e}")
-            
-            # Set file permissions
-            for file in files:
-                file_path = os.path.join(root, file)
-                try:
-                    os.chmod(file_path, 0o644)
-                except Exception as e:
-                    print(f"Could not set permissions for file {file_path}: {e}")
-        
-        print("✅ DAG permission fix complete!")
-        return True
-    except Exception as e:
-        print(f"Error fixing DAG permissions: {e}")
-        return False
-
 DAG_TEMPLATE = """from airflow import DAG
 from datetime import datetime
 import sys
@@ -152,30 +125,13 @@ def generate_dag(config, user_id: str = None):
     else:
         output_path = Path(DAG_OUTPUT_DIR)
     
-    output_path.mkdir(parents=True, exist_ok=True)
-    
-    # Set proper permissions for the directory (readable/writable by all)
-    try:
-        os.chmod(output_path, 0o755)
-        if user_id:
-            # Also set permissions for parent users directory
-            users_dir = Path(DAG_OUTPUT_DIR) / "users"
-            if users_dir.exists():
-                os.chmod(users_dir, 0o755)
-    except Exception as e:
-        print(f"Warning: Could not set directory permissions: {e}")
+    os.makedirs(output_path, exist_ok=True)
     
     file_path = re.sub(r"[^\w]", "_", dag_id).lower()
     dag_file = output_path / f"{file_path}.py"
 
     with open(dag_file, "w") as f:
         f.write(dag_code)
-    
-    # Set proper permissions for the DAG file (readable/writable by all)
-    try:
-        os.chmod(dag_file, 0o644)
-    except Exception as e:
-        print(f"Warning: Could not set file permissions: {e}")
         
     print(f"DAG file created at {dag_file}")
 
@@ -207,44 +163,23 @@ def remove_dag(dag_id, user_id: str = None):
         
         if user_dag_file.exists():
             try:
-                # Try to change permissions before deletion
-                os.chmod(user_dag_file, 0o666)
                 user_dag_file.unlink()
-                print(f"DAG file {dag_id} removed from user directory.")
-                
                 # Try to remove user directory if it's empty
                 try:
                     if user_dir.exists() and not any(user_dir.iterdir()):
-                        os.chmod(user_dir, 0o755)
-                        user_dir.rmdir()
+                        os.rmdir(user_dir)
                         print(f"Empty user directory removed: {user_dir}")
-                        
-                        # Try to remove users directory if it's empty
-                        users_dir = user_dir.parent
-                        if users_dir.exists() and not any(users_dir.iterdir()):
-                            os.chmod(users_dir, 0o755)
-                            users_dir.rmdir()
-                            print(f"Empty users directory removed: {users_dir}")
                 except OSError as e:
                     print(f"Could not remove empty directories: {e}")
                 
                 return
             except OSError as e:
                 print(f"Error removing DAG file {dag_id}: {e}")
-                # If we can't delete the file, try to make it empty so Airflow won't load it
-                try:
-                    with open(user_dag_file, 'w') as f:
-                        f.write("# DAG file marked for deletion\n")
-                    print(f"DAG file {dag_id} cleared (could not delete due to permissions)")
-                    return
-                except Exception as clear_error:
-                    print(f"Could not clear DAG file either: {clear_error}")
     
     # Try root dags directory (for backwards compatibility)
     dag_file = Path(DAG_OUTPUT_DIR) / f"{clean_dag_id}.py"
     if dag_file.exists():
         try:
-            os.chmod(dag_file, 0o666)
             dag_file.unlink()
             print(f"DAG file {dag_id} removed from root directory.")
         except OSError as e:
