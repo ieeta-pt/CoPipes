@@ -34,6 +34,7 @@ class WorkflowAirflow(WorkflowBase):
 class WorkflowDB(BaseModel):
     name: str
     last_edit: str
+    user_id: str
     last_run: str = None
     status: str = "Not Started"
-    people: List[str] = None
+    collaborators: List[str] = None

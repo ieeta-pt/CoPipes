@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { WorkflowComponent } from "@/components/airflow-tasks/types";
 import { Registry } from "@/components/airflow-tasks/Registry";
 import { Sidebar } from "@/components/workflow/Sidebar";
-import { LogsPanel } from "@/components/workflow/LogsPanel";
 import { WorkflowCanvas } from "@/components/workflow/WorkflowCanvas";
 import {
   submitWorkflow,
@@ -204,7 +203,7 @@ export default function WorkflowEditor({
             />
             <button
               disabled={workflowItems.length === 0}
-              className="btn btn-wide btn-primary"
+              className="btn btn-primary text-white"
               onClick={compileWorkflow}
             >
               <Settings className="h-4 w-4 mr-2" /> Compile
@@ -219,9 +218,6 @@ export default function WorkflowEditor({
             />
           </section>
         </div>
-
-        {/* Right: Logs */}
-        {/* <LogsPanel output={output} /> */}
       </div>
     </div>
   );

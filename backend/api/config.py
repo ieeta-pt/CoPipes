@@ -1,0 +1,19 @@
+import os
+
+# Supabase Configuration
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", SUPABASE_KEY)
+
+# JWT Configuration
+JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+JWT_ALGORITHM = "HS256"
+JWT_ACCESS_TOKEN_EXPIRE_HOURS = 24
+
+# Frontend URL for redirects
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
+
+# Airflow Configuration
+AIRFLOW_API_URL = os.getenv("AIRFLOW_API_URL")
+AIRFLOW_USERNAME = os.getenv("AIRFLOW_ADMIN_USERNAME")
+AIRFLOW_PASSWORD = os.getenv("AIRFLOW_ADMIN_PASSWORD")

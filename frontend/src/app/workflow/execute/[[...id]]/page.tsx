@@ -1,8 +1,9 @@
 "use client";
 import WorkflowExecute from "@/components/workflow/execute/WorkflowExecute";
 import { useParams } from "next/navigation";
+import { withAuth } from "@/contexts/AuthContext";
 
-export default function WorkflowExecutePage() {
+function WorkflowExecutePage() {
   const params = useParams() as { id?: string[] };
   const workflowId = params.id?.[0];
 
@@ -12,3 +13,5 @@ export default function WorkflowExecutePage() {
     </main>
   );
 }
+
+export default withAuth(WorkflowExecutePage);

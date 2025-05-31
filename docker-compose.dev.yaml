@@ -21,6 +21,7 @@ services:
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./airflow/data:/opt/airflow/data
+      - ./airflow/airflow.cfg:/opt/airflow/airflow.cfg
       - shared-data:/shared_data
       - ./airflow/init.sh:/opt/airflow/init.sh
 
@@ -42,6 +43,7 @@ services:
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./airflow/data:/opt/airflow/data
+      - ./airflow/airflow.cfg:/opt/airflow/airflow.cfg
       - shared-data:/shared_data
 
   airflow-scheduler:
@@ -59,6 +61,7 @@ services:
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./airflow/data:/opt/airflow/data
+      - ./airflow/airflow.cfg:/opt/airflow/airflow.cfg
       - shared-data:/shared_data
     
   fastapi:

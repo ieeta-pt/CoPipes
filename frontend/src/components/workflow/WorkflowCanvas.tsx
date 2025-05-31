@@ -20,12 +20,10 @@ import { useState } from "react";
 
 import { SortableItem } from "@/components/workflow/SortableItem";
 import { WorkflowComponent } from "@/components/airflow-tasks/types";
-import { Settings } from "lucide-react";
 
 export function WorkflowCanvas({
   workflowItems,
   setWorkflowItems,
-  onCompile,
 }: {
   workflowItems: WorkflowComponent[];
   setWorkflowItems: (items: WorkflowComponent[]) => void;
@@ -63,9 +61,8 @@ export function WorkflowCanvas({
         strategy={verticalListSortingStrategy}
       >
         {/* Full height container */}
-        <div className="flex flex-col h-full bg-base-100">
           {/* Scrollable area */}
-          <div className="flex-1 space-y-4">
+          <div className="flex flex-col h-full bg-base-100 flex-1 space-y-4">
             {workflowItems.length === 0 ? (
               <div className="flex items-center  rounded-lg border-2 border-dashed border-base-200 justify-center h-full text-gray-500">
                 Select a task from the sidebar to begin.
@@ -87,18 +84,6 @@ export function WorkflowCanvas({
               ))
             )}
           </div>
-
-          {/* Button stays pinned to bottom */}
-          {/* <div className="flex justify-center m-4">
-            <button
-              disabled={workflowItems.length === 0}
-              className="btn btn-wide btn-primary"
-              onClick={onCompile}
-            >
-              <Settings className="h-4 w-4 mr-2" /> Compile
-            </button>
-          </div> */}
-        </div>
       </SortableContext>
 
       <DragOverlay>
