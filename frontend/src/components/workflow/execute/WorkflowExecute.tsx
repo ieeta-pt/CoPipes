@@ -2,15 +2,13 @@
 
 import { useEffect, useState, useRef } from "react";
 import { WorkflowComponent } from "@/components/airflow-tasks/types";
-import { executeWorkflow, getWorkflow } from "@/api/workflow/test";
+import { executeWorkflow, getWorkflow, getWorkflowRunDetails } from "@/api/workflow/test";
 import { Registry } from "@/components/airflow-tasks/Registry";
-import { LogsPanel } from "@/components/workflow/LogsPanel";
 import { ExecutableTask } from "./ExecutableTask";
-import { Play } from "lucide-react";
-import { run } from "node:test";
+import { Play, CheckCircle, XCircle, Download, FileText } from "lucide-react";
 import { ConfigSidebar } from "../ConfigSidebar";
-import { be } from "zod/v4/locales";
-import { set } from "zod/v4";
+import { ResultsSidebar } from "../ResultsSidebar";
+import { showToast } from "@/components/layout/ShowToast";
 
 function getColorForType(type: string): string {
   const colors: Record<string, string> = {
@@ -33,13 +31,21 @@ export default function WorkflowExecute({
   const [error, setError] = useState<string | null>(null);
   const [workflowName, setWorkflowName] = useState("");
   const [output, setOutput] = useState("");
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [scheduleInfo, setScheduleInfo] = useState<{
     type: string;
     schedule_text: string;
     payload: any;
   } | null>(null);
   const modalRef = useRef<HTMLDialogElement>(null);
+  
+  // Execution state management
+  const [isExecuting, setIsExecuting] = useState(false);
+  const [executionStatus, setExecutionStatus] = useState<'idle' | 'running' | 'success' | 'failed'>('idle');
+  const [executionResult, setExecutionResult] = useState<any>(null);
+  const [showResults, setShowResults] = useState(false);
+  const [dagRunDetails, setDagRunDetails] = useState<any>(null);
+  const [isLoadingResults, setIsLoadingResults] = useState(false);
+  const moreInfoModalRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
     async function fetchWorkflow() {
@@ -47,6 +53,8 @@ export default function WorkflowExecute({
         try {
           setIsLoading(true);
           setError(null);
+          showToast("Loading workflow...", "info");
+          
           const workflow = await getWorkflow(workflowId);
           setWorkflowName(workflow.dag_id.replace(/_/g, " "));
           console.log("Fetched workflow:", workflow.dag_id);
@@ -77,10 +85,11 @@ export default function WorkflowExecute({
               };
             })
           );
+          showToast("Workflow loaded successfully!", "success");
         } catch (error) {
-          setError(
-            "Failed to fetch workflow. It might have been deleted or you don't have permission to view it."
-          );
+          const errorMessage = "Failed to fetch workflow. It might have been deleted or you don't have permission to view it.";
+          setError(errorMessage);
+          showToast(errorMessage, "error");
           console.error(error);
         } finally {
           setIsLoading(false);
@@ -103,16 +112,13 @@ export default function WorkflowExecute({
     switch (type) {
       case "now":
         schedule_text = "Execute immediately";
-        // no payload because we want start_date and schedulee to be set to None in the DAG
+        // no payload because we want start_date and schedule to be set to None in the DAG
         break;
       case "later":
         const dateInput = document.querySelector(
           'input[type="date"]'
         ) as HTMLInputElement;
-        const timeInput = document.querySelector(
-          'input[type="time"]'
-        ) as HTMLInputElement;
-        const date = dateInput?.value || new Date().toISOString().split("T")[0];
+        const date = dateInput?.value || new Date().toISOString();
         schedule_text = `Execute on ${date}`;
         payload = {
           schedule: "@once",
@@ -137,6 +143,7 @@ export default function WorkflowExecute({
         schedule_text = `Execute: ${cronExpression}`;
         payload = {
           schedule: cronExpression,
+          start_date: new Date().toISOString().split("T")[0] 
         };
         break;
       default:
@@ -151,13 +158,11 @@ export default function WorkflowExecute({
     const scheduleData = getScheduleFromSidebar();
     if (scheduleData) {
       setScheduleInfo(scheduleData);
-      setShowConfirmModal(true);
       modalRef.current?.showModal();
     }
   }
 
   function handleConfirmExecution() {
-    setShowConfirmModal(false);
     modalRef.current?.close();
     if (scheduleInfo) {
       runWorkflow(scheduleInfo.payload);
@@ -165,7 +170,6 @@ export default function WorkflowExecute({
   }
 
   function handleCancelExecution() {
-    setShowConfirmModal(false);
     modalRef.current?.close();
     setScheduleInfo(null);
   }
@@ -202,11 +206,20 @@ export default function WorkflowExecute({
 
     const validation = validateWorkflow();
     if (!validation.isValid) {
-      setOutput(`Validation errors:\n${validation.errors.join("\n")}`);
+      const errorMessage = `Validation errors:\n${validation.errors.join("\n")}`;
+      setOutput(errorMessage);
+      showToast("Workflow validation failed. Please check the configuration.", "error");
       return;
     }
 
     try {
+      setIsExecuting(true);
+      setExecutionStatus('running');
+      setExecutionResult(null);
+      setShowResults(false);
+      
+      showToast("Starting workflow execution...", "info");
+      
       console.log("SCHEDULE PAYLOAD: ", schedulePayload);
       const payload = {
         dag_id: workflowId.replace(/ /g, "_"),
@@ -236,12 +249,62 @@ export default function WorkflowExecute({
 
       console.log("Executing workflow with payload:", payload);
       const result = await executeWorkflow(workflowId, payload);
-      setOutput(result.output);
+      
+      setExecutionResult(result);
+      setOutput(result.message || "Workflow executed successfully!");
+      
+      // Handle scheduled workflows (no immediate execution)
+      if (result.execution_result?.status === "scheduled") {
+        setExecutionStatus('success');
+        showToast(result.message || "Workflow scheduled successfully!", "success");
+        setShowResults(true);
+        return;
+      }
+      
+      // If we have a dag_run_id from the execution result, fetch detailed results
+      if (result.execution_result?.dag_run_id) {
+        showToast("Fetching execution results...", "info");
+        try {
+          setIsLoadingResults(true);
+          const dagRunDetails = await getWorkflowRunDetails(workflowId, result.execution_result.dag_run_id);
+          setDagRunDetails(dagRunDetails);
+          
+          // Determine final status from DAG run
+          const finalStatus = dagRunDetails.dag_run?.state;
+          if (finalStatus === 'success') {
+            setExecutionStatus('success');
+            showToast("Workflow executed successfully!", "success");
+          } else if (finalStatus === 'failed') {
+            setExecutionStatus('failed');
+            showToast("Workflow execution failed. Check the results for details.", "error");
+          } else {
+            setExecutionStatus('success'); // Default to success if execution completed
+            showToast("Workflow execution completed!", "success");
+          }
+        } catch (detailsError) {
+          console.error("Failed to fetch DAG run details:", detailsError);
+          setExecutionStatus('success'); // Still show success for the execution itself
+          showToast("Workflow executed, but failed to fetch detailed results.", "warning");
+        } finally {
+          setIsLoadingResults(false);
+        }
+      } else {
+        setExecutionStatus('success');
+        showToast("Workflow executed successfully!", "success");
+      }
+      
+      setShowResults(true);
     } catch (error) {
       console.error("Error executing workflow:", error);
-      setOutput(
-        "Failed to execute workflow. Please check the console for details."
-      );
+      const errorMessage = "Failed to execute workflow. Please check the console for details.";
+      
+      setOutput(errorMessage);
+      setExecutionStatus('failed');
+      setExecutionResult({ error: error instanceof Error ? error.message : "Unknown error" });
+      
+      showToast("Workflow execution failed. Please try again.", "error");
+    } finally {
+      setIsExecuting(false);
     }
   }
 
@@ -251,6 +314,38 @@ export default function WorkflowExecute({
         task.id === taskId ? { ...task, config: newConfig } : task
       )
     );
+  };
+
+  const handleViewMoreInfo = () => {
+    if (!dagRunDetails) return;
+    moreInfoModalRef.current?.showModal();
+  };
+
+  const handleDownloadResults = () => {
+    if (!dagRunDetails) return;
+    
+    const dataToDownload = {
+      execution_result: executionResult,
+      dag_run_details: dagRunDetails,
+      workflow_name: workflowName,
+      timestamp: new Date().toISOString()
+    };
+    
+    const blob = new Blob([JSON.stringify(dataToDownload, null, 2)], {
+      type: "application/json",
+    });
+    
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${workflowName.replace(/ /g, "_")}_execution_results_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(link);
+    link.click();
+    
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    showToast("Results downloaded successfully!", "success");
   };
 
   if (isLoading) {
@@ -295,20 +390,55 @@ export default function WorkflowExecute({
         {/* Left: Input + Tasks */}
         <div className="flex flex-col flex-1 gap-4">
           <div className="flex justify-between">
-            <input
-              id="workflowName"
-              name="workflowName"
-              type="text"
-              placeholder="Nameless workflow"
-              className="input w-full max-w-md text-lg"
-              value={workflowName}
-              readOnly={true}
-            />
+            <div className="flex items-center gap-3">
+              <input
+                id="workflowName"
+                name="workflowName"
+                type="text"
+                placeholder="Nameless workflow"
+                className="input w-full max-w-md text-lg"
+                value={workflowName}
+                readOnly={true}
+              />
+              {/* Execution Status Indicator */}
+              {executionStatus !== 'idle' && (
+                <div className="flex items-center gap-2">
+                  {executionStatus === 'running' && (
+                    <>
+                      <div className="loading loading-spinner loading-sm text-warning"></div>
+                      <span className="text-sm text-warning font-medium">Running</span>
+                    </>
+                  )}
+                  {executionStatus === 'success' && (
+                    <>
+                      <CheckCircle className="h-4 w-4 text-success" />
+                      <span className="text-sm text-success font-medium">Completed</span>
+                    </>
+                  )}
+                  {executionStatus === 'failed' && (
+                    <>
+                      <XCircle className="h-4 w-4 text-error" />
+                      <span className="text-sm text-error font-medium">Failed</span>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
             <button
-              className="btn btn-primary text-white"
+              className={`btn ${isExecuting ? 'btn-disabled' : 'btn-primary'} text-white`}
               onClick={handleExecuteClick}
+              disabled={isExecuting}
             >
-              <Play className="h-4 w-4 mr-2" /> Execute
+              {isExecuting ? (
+                <>
+                  <div className="loading loading-spinner loading-sm mr-2"></div>
+                  Executing...
+                </>
+              ) : (
+                <>
+                  <Play className="h-4 w-4 mr-2" /> Execute
+                </>
+              )}
             </button>
           </div>
 
@@ -363,8 +493,25 @@ export default function WorkflowExecute({
           </section>
         </div>
 
-        {/* Right: Logs */}
-        {/* <LogsPanel output={output} /> */}
+        {/* Right: Results Panel */}
+        {showResults && (
+          <ResultsSidebar
+            executionStatus={executionStatus}
+            dagRunDetails={dagRunDetails}
+            executionResult={executionResult}
+            isLoadingResults={isLoadingResults}
+            output={output}
+            onViewMoreInfo={dagRunDetails ? handleViewMoreInfo : undefined}
+            onDownloadResults={handleDownloadResults}
+            onClose={() => setShowResults(false)}
+            onRunAgain={() => {
+              setExecutionStatus('idle');
+              setExecutionResult(null);
+              setDagRunDetails(null);
+              setShowResults(false);
+            }}
+          />
+        )}
       </div>
 
       {/* Confirmation Modal */}
@@ -405,6 +552,87 @@ export default function WorkflowExecute({
         </div>
         <form method="dialog" className="modal-backdrop">
           <button onClick={handleCancelExecution}>close</button>
+        </form>
+      </dialog>
+
+      {/* More Info Modal */}
+      <dialog ref={moreInfoModalRef} className="modal">
+        <div className="modal-box w-11/12 max-w-5xl h-5/6">
+          <h3 className="font-bold text-lg mb-4">
+            <FileText className="h-5 w-5 inline mr-2" />
+            Task Details and Results
+          </h3>
+          
+          {dagRunDetails?.task_instances && (
+            <div className="space-y-4 h-full overflow-auto">
+              {dagRunDetails.task_instances.map((taskInstance: any, index: number) => (
+                <div key={index} className="card bg-base-200 shadow-sm">
+                  <div className="card-body p-4">
+                    <div className="flex justify-between items-center mb-2">
+                      <h4 className="font-semibold">{taskInstance.task_id}</h4>
+                      <span className={`badge ${
+                        taskInstance.state === 'success' ? 'badge-success' :
+                        taskInstance.state === 'failed' ? 'badge-error' :
+                        'badge-warning'
+                      }`}>
+                        {taskInstance.state || 'unknown'}
+                      </span>
+                    </div>
+                    
+                    <div className="text-xs text-base-content/70 mb-2">
+                      <div>Start: {taskInstance.start_date ? new Date(taskInstance.start_date).toLocaleString() : 'N/A'}</div>
+                      <div>End: {taskInstance.end_date ? new Date(taskInstance.end_date).toLocaleString() : 'N/A'}</div>
+                      <div>Duration: {taskInstance.duration ? `${taskInstance.duration}s` : 'N/A'}</div>
+                    </div>
+                    
+                    {/* XCOM Values - Show all results */}
+                    {taskInstance.xcom_entries?.length > 0 && (
+                      <div className="mb-3">
+                        <h5 className="font-semibold text-sm mb-1">Results (XCOM Values):</h5>
+                        <div className="bg-base-100 p-2 rounded text-xs space-y-1">
+                          {taskInstance.xcom_entries.map((xcom: any, xcomIndex: number) => (
+                            <div key={xcomIndex} className="border-b border-base-200 pb-1 last:border-b-0">
+                              <div className="font-mono text-accent font-semibold">{xcom.key}:</div>
+                              <div className="font-mono text-sm mt-1 break-all">
+                                {xcom.value == null 
+                                  ? 'null'
+                                  : typeof xcom.value === 'string' 
+                                    ? xcom.value
+                                    : JSON.stringify(xcom.value, null, 2)
+                                }
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          
+          <div className="modal-action">
+            <button 
+              className="btn btn-ghost"
+              onClick={() => moreInfoModalRef.current?.close()}
+            >
+              Close
+            </button>
+            <button 
+              className="btn btn-primary"
+              onClick={() => {
+                handleDownloadResults();
+                moreInfoModalRef.current?.close();
+              }}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Download All
+            </button>
+          </div>
+        </div>
+        <form method="dialog" className="modal-backdrop">
+          <button onClick={() => moreInfoModalRef.current?.close()}>close</button>
         </form>
       </dialog>
     </div>

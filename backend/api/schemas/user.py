@@ -1,5 +1,13 @@
 from pydantic import BaseModel, EmailStr
 
+class EmailRequest(BaseModel):
+    email: str
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str
+    user: dict
+
 class BaseUser(BaseModel):
     id: str | None = None
     email: EmailStr

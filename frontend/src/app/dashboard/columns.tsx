@@ -2,14 +2,16 @@
 
 import { ColumnDef } from "@tanstack/react-table";
 import { Download, Pencil, Play, Trash } from "lucide-react";
-import { deleteWorkflowAPI, editWorkflowAPI, downloadWorkflowAPI } from "@/api/dashboard/table";
+import { deleteWorkflowAPI, downloadWorkflowAPI } from "@/api/dashboard/table";
 export type Workflow = {
-  id: string;
+  id: number;
   name: string;
   last_edit: string;
-  last_run: string;
-  status: "Success" | "Failed" | "Queued" | "Not started";
-  people: string[];
+  last_run: string | null;
+  status: "success" | "failed" | "queued" | "draft" | "running";
+  collaborators: string;
+  user_id: string;
+  created_at: string;
 };
 
 const editWorkflow = async (name: string) => {
@@ -85,9 +87,13 @@ export const columns: ColumnDef<Workflow>[] = [
     accessorKey: "last_run",
     header: "Last Run",
     cell: ({ row }) => {
-      const date = new Date(row.getValue("last_run"));
-      if (date.getTime() === 0) {
-        return "";
+      const lastRun = row.getValue("last_run");
+      if (!lastRun) {
+        return "-";
+      }
+      const date = new Date(lastRun as string);
+      if (isNaN(date.getTime())) {
+        return "-";
       }
       return date.toLocaleDateString("en-US", {
         year: "numeric",
@@ -104,15 +110,16 @@ export const columns: ColumnDef<Workflow>[] = [
         | "success"
         | "failed"
         | "queued"
-        | "not started";
+        | "draft"
+        | "running";
       return (
         <span
           className={`badge badge-soft ${
             status === "success"
-              ? " badge-success"
+              ? "badge-success"
               : status === "failed"
               ? "badge-error"
-              : status === "queued"
+              : status === "queued" || status === "running"
               ? "badge-warning"
               : "badge-info"
           }`}
@@ -123,8 +130,12 @@ export const columns: ColumnDef<Workflow>[] = [
     },
   },
   // {
-  //   accessorKey: "people",
-  //   header: "People",
+  //   accessorKey: "owner",
+  //   header: "Owner",
+  // },
+    // {
+  //   accessorKey: "collaborators",
+  //   header: "Collaborators",
   // },
   {
     id: "actions",

@@ -1,15 +1,15 @@
 import os
 
-from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi import FastAPI, UploadFile, File
 
-from routes import workflows
-from utils.airflow_api import get_airflow_dags
+from routes import workflows, auth
 
 from database import SupabaseClient 
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 app.include_router(workflows.router)
+app.include_router(auth.router)
 supabase = SupabaseClient()
 
 AIRFLOW_API_URL = os.getenv("AIRFLOW_API_URL")
@@ -22,15 +22,16 @@ UPLOAD_DIR = "/shared_data/"
 
 origins = [
     "http://localhost:3000",
-    "http://127.0.0.1:3000"
+    "http://127.0.0.1:3000",
 ]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 
@@ -45,13 +46,5 @@ async def upload_file(file: UploadFile = File(...)):
 
     return {"status": "saved", "filename": file.filename}
 
-@app.get("/api/get_dags")
-async def get_dags():
-    try:
-        dags = await get_airflow_dags()
-        print(f"✅ Fetched DAGs: {dags}")
-        return {"status": "success", "dags": dags}
-    except HTTPException as e:
-        raise HTTPException(status_code=e.status_code, detail=e.detail)
 
         

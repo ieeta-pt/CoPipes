@@ -1,5 +1,5 @@
 from supabase import create_client, Client
-from api.config.settings import SUPABASE_URL, SUPABASE_KEY, SUPABASE_SERVICE_ROLE_KEY
+from config import SUPABASE_URL, SUPABASE_KEY, SUPABASE_SERVICE_ROLE_KEY
 
 # Standard client with anon key for regular operations
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)

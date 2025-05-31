@@ -1,14 +1,45 @@
 import os
-from datetime import datetime
 from pathlib import Path
 import re
-
 
 DAG_OUTPUT_DIR = "/opt/airflow/dags"
 os.makedirs(DAG_OUTPUT_DIR, exist_ok=True)
 
+def fix_dag_permissions():
+    """Fix permissions for the DAG directory and all subdirectories."""
+    try:
+        print("🔧 Fixing DAG directory permissions...")
+        
+        # Fix permissions for all directories
+        for root, _, files in os.walk(DAG_OUTPUT_DIR):
+            # Set directory permissions
+            try:
+                os.chmod(root, 0o755)
+            except Exception as e:
+                print(f"Could not set permissions for directory {root}: {e}")
+            
+            # Set file permissions
+            for file in files:
+                file_path = os.path.join(root, file)
+                try:
+                    os.chmod(file_path, 0o644)
+                except Exception as e:
+                    print(f"Could not set permissions for file {file_path}: {e}")
+        
+        print("✅ DAG permission fix complete!")
+        return True
+    except Exception as e:
+        print(f"Error fixing DAG permissions: {e}")
+        return False
+
 DAG_TEMPLATE = """from airflow import DAG
 from datetime import datetime
+import sys
+import os
+
+# Add the DAGs folder to the Python path for subfolder imports
+if '/opt/airflow/dags' not in sys.path:
+    sys.path.insert(0, '/opt/airflow/dags')
 
 {dynamic_imports}
 
@@ -30,14 +61,38 @@ TASK_TEMPLATE = """    {task_id} = {task_function}({params})"""
 DEPENDENCY_TEMPLATE = """    {upstream} >> {downstream}"""
 
 
-def generate_dag(config):
-    """Generates an Airflow DAG file from a JSON config."""
+def generate_dag(config, user_id: str = None):
+    """Generates an Airflow DAG file from a JSON config with user isolation."""
     print("Generating DAG from config...")
-    ## Worflow parameters ##
-    dag_id = config["dag_id"].replace(" ", "_")
+    ## Workflow parameters ##
+    base_dag_id = config["dag_id"].replace(" ", "_")
+    
+    # Add user prefix for isolation if user_id is provided
+    if user_id:
+        # Sanitize user_id to replace hyphens with underscores for consistency
+        sanitized_user_id = user_id.replace("-", "_")
+        dag_id = f"user_{sanitized_user_id}_{base_dag_id}"
+    else:
+        dag_id = base_dag_id
+        
     schedule = f'"{config["schedule"]}"' if config["schedule"] else None
     print(f"\nSTART DATE: {config['start_date']}\n")
-    start_date = f'datetime({config["start_date"]["year"]}, {config["start_date"]["month"]}, {config["start_date"]["day"]})' if config["start_date"] else None
+    
+    # Handle start_date - can be either a string (ISO format) or an object with year/month/day
+    start_date = None
+    if config.get("start_date"):
+        if isinstance(config["start_date"], str):
+            # Parse ISO date string (e.g., "2025-01-15")
+            try:
+                from datetime import datetime as dt
+                parsed_date = dt.fromisoformat(config["start_date"])
+                start_date = f'datetime({parsed_date.year}, {parsed_date.month}, {parsed_date.day})'
+            except ValueError:
+                print(f"Invalid date format: {config['start_date']}")
+                start_date = None
+        elif isinstance(config["start_date"], dict):
+            # Handle object format {year: 2025, month: 1, day: 15}
+            start_date = f'datetime({config["start_date"]["year"]}, {config["start_date"]["month"]}, {config["start_date"]["day"]})'
 
     print(f"dag_id: {dag_id} \nstart_date: {start_date} \nschedule: {schedule}")
 
@@ -89,25 +144,117 @@ def generate_dag(config):
         dependencies="\n".join(dependencies) if dependencies else "",
     )
 
-    output_path = Path(DAG_OUTPUT_DIR)
+    # Create user-specific directory if user_id is provided
+    if user_id:
+        # Sanitize user_id to replace hyphens with underscores for consistency
+        sanitized_user_id = user_id.replace("-", "_")
+        output_path = Path(DAG_OUTPUT_DIR) / "users" / f"user_{sanitized_user_id}"
+    else:
+        output_path = Path(DAG_OUTPUT_DIR)
+    
     output_path.mkdir(parents=True, exist_ok=True)
+    
+    # Set proper permissions for the directory (readable/writable by all)
+    try:
+        os.chmod(output_path, 0o755)
+        if user_id:
+            # Also set permissions for parent users directory
+            users_dir = Path(DAG_OUTPUT_DIR) / "users"
+            if users_dir.exists():
+                os.chmod(users_dir, 0o755)
+    except Exception as e:
+        print(f"Warning: Could not set directory permissions: {e}")
+    
     file_path = re.sub(r"[^\w]", "_", dag_id).lower()
     dag_file = output_path / f"{file_path}.py"
 
     with open(dag_file, "w") as f:
         f.write(dag_code)
-        print(f"DAG file created at {dag_file}")
+    
+    # Set proper permissions for the DAG file (readable/writable by all)
+    try:
+        os.chmod(dag_file, 0o644)
+    except Exception as e:
+        print(f"Warning: Could not set file permissions: {e}")
+        
+    print(f"DAG file created at {dag_file}")
 
-    return
+    return dag_id  # Return the actual dag_id used
 
 
 
-def remove_dag(dag_id):
-    """Removes an Airflow DAG file."""
-    dag_id = re.sub(r"[^\w]", "_", dag_id).lower()
-    dag_file = Path(DAG_OUTPUT_DIR) / f"{dag_id}.py"
-    if dag_file.exists():
-        dag_file.unlink()
-        print(f"DAG file {dag_id} removed.")
+def remove_dag(dag_id, user_id: str = None):
+    """Removes an Airflow DAG file with proper permission handling."""
+    # Generate the full DAG ID with user prefix (same logic as generate_dag)
+    base_dag_id = dag_id.replace(" ", "_")
+    
+    if user_id:
+        # Sanitize user_id to replace hyphens with underscores for consistency
+        sanitized_user_id = user_id.replace("-", "_")
+        full_dag_id = f"user_{sanitized_user_id}_{base_dag_id}"
     else:
-        print(f"DAG file {dag_id} does not exist.")
+        full_dag_id = base_dag_id
+    
+    # Clean the dag_id for file name
+    clean_dag_id = re.sub(r"[^\w]", "_", full_dag_id).lower()
+    
+    # Try user-specific path first if user_id provided
+    if user_id:
+        # Sanitize user_id to replace hyphens with underscores for consistency
+        sanitized_user_id = user_id.replace("-", "_")
+        user_dag_file = Path(DAG_OUTPUT_DIR) / "users" / f"user_{sanitized_user_id}" / f"{clean_dag_id}.py"
+        user_dir = user_dag_file.parent
+        
+        if user_dag_file.exists():
+            try:
+                # Try to change permissions before deletion
+                os.chmod(user_dag_file, 0o666)
+                user_dag_file.unlink()
+                print(f"DAG file {dag_id} removed from user directory.")
+                
+                # Try to remove user directory if it's empty
+                try:
+                    if user_dir.exists() and not any(user_dir.iterdir()):
+                        os.chmod(user_dir, 0o755)
+                        user_dir.rmdir()
+                        print(f"Empty user directory removed: {user_dir}")
+                        
+                        # Try to remove users directory if it's empty
+                        users_dir = user_dir.parent
+                        if users_dir.exists() and not any(users_dir.iterdir()):
+                            os.chmod(users_dir, 0o755)
+                            users_dir.rmdir()
+                            print(f"Empty users directory removed: {users_dir}")
+                except OSError as e:
+                    print(f"Could not remove empty directories: {e}")
+                
+                return
+            except OSError as e:
+                print(f"Error removing DAG file {dag_id}: {e}")
+                # If we can't delete the file, try to make it empty so Airflow won't load it
+                try:
+                    with open(user_dag_file, 'w') as f:
+                        f.write("# DAG file marked for deletion\n")
+                    print(f"DAG file {dag_id} cleared (could not delete due to permissions)")
+                    return
+                except Exception as clear_error:
+                    print(f"Could not clear DAG file either: {clear_error}")
+    
+    # Try root dags directory (for backwards compatibility)
+    dag_file = Path(DAG_OUTPUT_DIR) / f"{clean_dag_id}.py"
+    if dag_file.exists():
+        try:
+            os.chmod(dag_file, 0o666)
+            dag_file.unlink()
+            print(f"DAG file {dag_id} removed from root directory.")
+        except OSError as e:
+            print(f"Error removing DAG file {dag_id} from root: {e}")
+            # If we can't delete the file, try to make it empty so Airflow won't load it
+            try:
+                with open(dag_file, 'w') as f:
+                    f.write("# DAG file marked for deletion\n")
+                print(f"DAG file {dag_id} cleared (could not delete due to permissions)")
+            except Exception as clear_error:
+                print(f"Could not clear DAG file either: {clear_error}")
+    else:
+        print(f"DAG file {dag_id} does not exist in any location.")
