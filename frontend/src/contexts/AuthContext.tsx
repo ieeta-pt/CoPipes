@@ -68,7 +68,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setToken(storedToken);
         setUser(parsedUser);
         
-        // Verify token is still valid
+        // Configure API client IMMEDIATELY
+        apiClient.setAuth(storedToken, logout);
+        
+        // Verify token is still valid (but don't block)
         verifyToken(storedToken);
       } catch (error) {
         console.error("Error parsing stored user data:", error);
@@ -80,16 +83,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const verifyToken = async (token: string) => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/me`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        // Token is invalid, logout
-        logout();
-      }
+      // Use apiClient to ensure consistent token handling
+      await apiClient.get("/api/auth/me");
     } catch (error) {
       console.error("Token verification failed:", error);
       logout();
@@ -97,14 +92,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const login = (newToken: string, newUser: User) => {
+    
+    // Configure API client FIRST to ensure it's ready for immediate use
+    apiClient.setAuth(newToken, logout);
+    
     if (typeof window !== 'undefined' && sessionId) {
       localStorage.setItem(`access_token_${sessionId}`, newToken);
       localStorage.setItem(`user_${sessionId}`, JSON.stringify(newUser));
     }
     setToken(newToken);
     setUser(newUser);
-    // Configure API client with new token
-    apiClient.setAuth(newToken, logout);
   };
 
   const logout = () => {

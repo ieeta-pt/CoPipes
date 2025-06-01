@@ -44,8 +44,11 @@ async def get_workflows(current_user: dict = Depends(get_current_user)):
         workflows = get_user_workflows(current_user)
         print(f"Returning {len(workflows)} workflows for user {current_user['email']}")
         return workflows
+    except HTTPException as he:
+        print(f"HTTPException getting workflows for user: {he.status_code} - {he.detail}")
+        raise he
     except Exception as e:
-        print(f"Error getting workflows for user {current_user['email']}: {str(e)}")
+        print(f"Error getting workflows: {str(e)}")
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
     
@@ -64,6 +67,9 @@ async def get_workflow(workflow_name: str, current_user: dict = Depends(get_curr
             "permissions": permissions.model_dump(),
             "collaborators": workflow_data.get("collaborators", [])
         }
+    except HTTPException as he:
+        print(f"HTTPException getting workflow '{workflow_name}' for user {current_user['email']}: {he.status_code} - {he.detail}")
+        raise he
     except Exception as e:
         print(f"Error getting workflow '{workflow_name}' for user {current_user['email']}: {str(e)}")
         traceback.print_exc()
