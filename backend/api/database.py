@@ -74,18 +74,29 @@ class SupabaseClient:
             print(f"Failed to fetch workflows from Supabase: {e}")
             raise
 
-    def get_workflow_tasks(self, workflow_name, user_id: str = None):
-        """Get a specific workflow from the database."""
+    def get_workflow_tasks(self, workflow_name, user_id: str = None, user_email: str = None):
+        """Get a specific workflow from the database with collaboration support."""
         try:
             workflow_name = workflow_name.replace("_", " ")
             
-            # First get the workflow to check ownership and get id
-            workflow_query = self.client.table("workflows").select("id").eq("name", workflow_name)
+            # First try to get workflow as owner
+            workflow_result = None
             if user_id:
-                workflow_query = workflow_query.eq("user_id", user_id)
+                workflow_query = self.client.table("workflows").select("*").eq("name", workflow_name).eq("user_id", user_id)
+                workflow_result = workflow_query.execute()
             
-            workflow_result = workflow_query.execute()
-            if not workflow_result.data:
+            # If not found as owner and user_email provided, check collaboration
+            if (not workflow_result or not workflow_result.data) and user_email:
+                all_workflows_query = self.client.table("workflows").select("*").eq("name", workflow_name)
+                all_workflows_result = all_workflows_query.execute()
+                
+                for workflow in all_workflows_result.data:
+                    collaborators = workflow.get("collaborators", []) or []
+                    if user_email in collaborators:
+                        workflow_result = type('obj', (object,), {'data': [workflow]})()
+                        break
+            
+            if not workflow_result or not workflow_result.data:
                 print(f"Workflow {workflow_name} not found or access denied for user {user_id}")
                 return None
             
@@ -134,3 +145,91 @@ class SupabaseClient:
         except Exception as e:
             print(f"Failed to update last run for workflow {workflow_name} in Supabase: {e}")
             raise
+
+    def add_collaborator(self, workflow_id: int, collaborator_email: str):
+        """Add a collaborator to a workflow."""
+        try:
+            # Get current workflow data
+            workflow_result = self.client.table("workflows").select("collaborators").eq("id", workflow_id).execute()
+            if not workflow_result.data:
+                raise Exception(f"Workflow with id {workflow_id} not found")
+            
+            current_collaborators = workflow_result.data[0].get("collaborators", []) or []
+            
+            # Ensure it's a list (PostgreSQL text[] should always return a list)
+            if not isinstance(current_collaborators, list):
+                current_collaborators = []
+            
+            # Add new collaborator if not already present
+            if collaborator_email not in current_collaborators:
+                current_collaborators.append(collaborator_email)
+                self.client.table("workflows").update({"collaborators": current_collaborators}).eq("id", workflow_id).execute()
+                print(f"Added collaborator {collaborator_email} to workflow {workflow_id}")
+            else:
+                print(f"Collaborator {collaborator_email} already exists for workflow {workflow_id}")
+        except Exception as e:
+            print(f"Failed to add collaborator to workflow {workflow_id}: {e}")
+            raise
+
+    def remove_collaborator(self, workflow_id: int, collaborator_email: str):
+        """Remove a collaborator from a workflow."""
+        try:
+            # Get current workflow data
+            workflow_result = self.client.table("workflows").select("collaborators").eq("id", workflow_id).execute()
+            if not workflow_result.data:
+                raise Exception(f"Workflow with id {workflow_id} not found")
+            
+            current_collaborators = workflow_result.data[0].get("collaborators", []) or []
+            
+            # Ensure it's a list (PostgreSQL text[] should always return a list)
+            if not isinstance(current_collaborators, list):
+                current_collaborators = []
+            
+            # Remove collaborator if present
+            if collaborator_email in current_collaborators:
+                current_collaborators.remove(collaborator_email)
+                self.client.table("workflows").update({"collaborators": current_collaborators}).eq("id", workflow_id).execute()
+                print(f"Removed collaborator {collaborator_email} from workflow {workflow_id}")
+            else:
+                print(f"Collaborator {collaborator_email} not found for workflow {workflow_id}")
+        except Exception as e:
+            print(f"Failed to remove collaborator from workflow {workflow_id}: {e}")
+            raise
+
+    def get_workflow_by_name(self, workflow_name: str, user_id: str = None):
+        """Get workflow data by name."""
+        try:
+            workflow_name = workflow_name.replace("_", " ")
+            query = self.client.table("workflows").select("*").eq("name", workflow_name)
+            if user_id:
+                query = query.eq("user_id", user_id)
+            result = query.execute()
+            return result.data[0] if result.data else None
+        except Exception as e:
+            print(f"Failed to fetch workflow {workflow_name}: {e}")
+            raise
+
+    def check_user_exists_by_email(self, email: str) -> bool:
+        """Check if a user exists in Supabase auth by email."""
+        print(f"INFO: Checking user existence for email: {email}")
+        
+        try:
+            response = self.client.table("profiles").select("email").eq("email", email).execute()
+
+            if response.data:
+                print(f"INFO: User found with email: {email}")
+                return True
+            else:
+                print("DEBUG: No users found or response doesn't have users attribute")
+            
+            print(f"INFO: User not found with email: {email}")
+            return False
+            
+        except Exception as e:
+            print(f"ERROR: Failed to check user existence: {e}")
+            print(f"ERROR: Exception type: {type(e)}")
+            import traceback
+            traceback.print_exc()
+            # If there's an error, we'll be conservative and return True
+            # This prevents blocking legitimate collaborators due to API issues
+            return True

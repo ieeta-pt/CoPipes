@@ -11,7 +11,6 @@ interface User {
 }
 
 export default function ProfilePage() {
-  const [user, setUser] = useState<User | null>(null);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
@@ -21,22 +20,19 @@ export default function ProfilePage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const router = useRouter();
-  const { logout } = useAuth();
+  const { user, token, logout, isAuthenticated } = useAuth();
 
   useEffect(() => {
-    const token = localStorage.getItem("access_token");
-    const userData = localStorage.getItem("user");
-    
-    if (!token || !userData) {
+    if (!isAuthenticated) {
       router.push("/auth/login");
       return;
     }
 
-    const parsedUser = JSON.parse(userData);
-    setUser(parsedUser);
-    setFullName(parsedUser.full_name || "");
-    setEmail(parsedUser.email || "");
-  }, [router]);
+    if (user) {
+      setFullName(user.full_name || "");
+      setEmail(user.email || "");
+    }
+  }, [user, isAuthenticated, router]);
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,7 +55,6 @@ export default function ProfilePage() {
     }
 
     try {
-      const token = localStorage.getItem("access_token");
       const updateData: any = {};
       
       if (fullName !== user?.full_name) {
@@ -88,13 +83,8 @@ export default function ProfilePage() {
       if (response.ok) {
         setSuccess(data.message);
         
-        // Update local user data
-        if (data.user) {
-          localStorage.setItem("user", JSON.stringify(data.user));
-          setUser(data.user);
-        }
-        
-        // Clear password fields
+        // Note: In a session-based auth system, we'd need to update the AuthContext
+        // For now, just clear password fields
         setCurrentPassword("");
         setNewPassword("");
         setConfirmPassword("");

@@ -1,18 +1,23 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { WorkflowComponent } from "@/components/airflow-tasks/types";
 import { Registry } from "@/components/airflow-tasks/Registry";
 import { Sidebar } from "@/components/workflow/Sidebar";
 import { WorkflowCanvas } from "@/components/workflow/WorkflowCanvas";
+import CollaboratorManager from "@/components/workflow/CollaboratorManager";
+import PresenceIndicator, { ActivityFeed } from "@/components/workflow/PresenceIndicator";
+import { useRealtimeCollaboration } from "@/hooks/useRealtimeCollaboration";
+import RealtimeCursor from "@/components/workflow/RealtimeCursor";
 import {
   submitWorkflow,
   getWorkflow,
   updateWorkflow,
 } from "@/api/workflow/test";
 import { useRouter } from "next/navigation";
-import { Settings } from "lucide-react";
+import { Settings, Users, Activity } from "lucide-react";
 import { showToast } from "@/components/layout/ShowToast";
+import { useAuth } from "@/contexts/AuthContext";
 
 const createIdBuilder =
   (prefix = "id") =>
@@ -25,6 +30,7 @@ export default function WorkflowEditor({
 }: {
   workflowId?: string;
 }) {
+  const { isAuthenticated, loading: authLoading } = useAuth();
   const router = useRouter();
   const [workflowItems, setWorkflowItems] = useState<WorkflowComponent[]>([]);
   const [workflowName, setWorkflowName] = useState("");
@@ -32,13 +38,36 @@ export default function WorkflowEditor({
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [result, setResult] = useState<string | null>(null);
+  const [collaborators, setCollaborators] = useState<string[]>([]);
+  const [permissions, setPermissions] = useState<any>(null);
+  const [showCollaborators, setShowCollaborators] = useState(false);
+  const [showActivity, setShowActivity] = useState(false);
+  const fetchingRef = useRef(false);
+
+  // Realtime collaboration
+  const { otherUsers, updateCursor, updateSection } = useRealtimeCollaboration({
+    workflowId: workflowId,
+    enabled: !!workflowId
+  });
 
   useEffect(() => {
     async function fetchWorkflow() {
+      // Prevent duplicate calls
+      if (fetchingRef.current) {
+        return;
+      }
+
+      // Don't fetch if still loading auth or not authenticated
+      if (authLoading || !isAuthenticated) {
+        return;
+      }
+
       if (workflowId) {
+        fetchingRef.current = true;
         try {
           setIsLoading(true);
           setError(null);
+          console.log("Fetching workflow:", workflowId);
           const workflow = await getWorkflow(workflowId);
           setWorkflowName(workflow.dag_id.replace(/_/g, " "));
           console.log("Fetched workflow:", workflow.dag_id);
@@ -53,6 +82,10 @@ export default function WorkflowEditor({
               })),
             }))
           );
+          
+          // Set collaboration data - ensure collaborators is always an array
+          setCollaborators(Array.isArray(workflow.collaborators) ? workflow.collaborators : []);
+          setPermissions(workflow.permissions || null);
         } catch (error) {
           setError(
             "Failed to fetch workflow. It might have been deleted or you don't have permission to view it."
@@ -61,12 +94,13 @@ export default function WorkflowEditor({
         } finally {
           setIsLoading(false);
           setIsEditing(true);
+          fetchingRef.current = false;
         }
       }
     }
 
     fetchWorkflow();
-  }, [workflowId]);
+  }, [workflowId, authLoading, isAuthenticated]);
 
   const addComponent = (content: string) => {
     const taskDef = Registry[content];
@@ -133,10 +167,13 @@ export default function WorkflowEditor({
     }
   };
 
-  if (isLoading) {
+  if (authLoading || isLoading) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
         <div className="loading loading-spinner loading-lg"></div>
+        <span className="ml-3 text-sm text-base-content/70">
+          {authLoading ? "Authenticating..." : "Loading workflow..."}
+        </span>
       </div>
     );
   }
@@ -201,24 +238,93 @@ export default function WorkflowEditor({
               }}
               readOnly={isEditing}
             />
-            <button
-              disabled={workflowItems.length === 0}
-              className="btn btn-primary text-white"
-              onClick={compileWorkflow}
-            >
-              <Settings className="h-4 w-4 mr-2" /> Compile
-            </button>
+            <div className="flex items-center gap-2">
+              {/* Realtime presence indicator */}
+              {workflowId && (
+                <PresenceIndicator 
+                  workflowId={workflowId} 
+                  className="mr-2"
+                />
+              )}
+              
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowCollaborators(true)}
+              >
+                <Users className="h-4 w-4 mr-2" />
+                Collaborators ({collaborators.length})
+              </button>
+              
+              {workflowId && (
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => setShowActivity(!showActivity)}
+                  title="Show live activity"
+                >
+                  <Activity className="h-4 w-4" />
+                </button>
+              )}
+              
+              <button
+                disabled={workflowItems.length === 0 || (permissions && !permissions.can_edit)}
+                className="btn btn-primary text-white"
+                onClick={compileWorkflow}
+              >
+                <Settings className="h-4 w-4 mr-2" /> Compile
+              </button>
+            </div>
           </div>
 
-          <section className="flex-1">
+          <section className="flex-1 relative">
             <WorkflowCanvas
               workflowItems={workflowItems}
               setWorkflowItems={setWorkflowItems}
               onCompile={compileWorkflow}
             />
+            
+            {/* Realtime cursors */}
+            {otherUsers.map((user) => 
+              user.cursor && (
+                <RealtimeCursor
+                  key={user.user_id}
+                  user={user}
+                  position={user.cursor}
+                />
+              )
+            )}
           </section>
         </div>
+        
+        {/* Activity feed sidebar */}
+        {showActivity && workflowId && (
+          <div className="w-80 p-4">
+            <ActivityFeed workflowId={workflowId} />
+          </div>
+        )}
       </div>
+
+      {/* Collaborator Management Modal */}
+      {showCollaborators && (
+        <div className="modal modal-open">
+          <div className="modal-box max-w-2xl">
+            <h3 className="font-bold text-lg mb-4">Manage Collaborators</h3>
+            <CollaboratorManager
+              workflowName={workflowName}
+              collaborators={collaborators}
+              canManageCollaborators={permissions?.can_manage_collaborators !== false} // Allow for new workflows
+              onCollaboratorsChange={setCollaborators}
+            />
+            <div className="modal-action">
+              <button
+                className="btn"
+                onClick={() => setShowCollaborators(false)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

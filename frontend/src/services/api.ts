@@ -1,22 +1,30 @@
 class ApiClient {
   private baseURL: string;
+  private token: string | null = null;
+  private onAuthError?: () => void;
 
   constructor() {
     this.baseURL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
   }
 
+  setAuth(token: string | null, onAuthError?: () => void) {
+    this.token = token;
+    this.onAuthError = onAuthError;
+  }
+
   private getAuthHeader(): Record<string, string> {
-    const token = localStorage.getItem("access_token");
-    return token ? { Authorization: `Bearer ${token}` } : {};
+    return this.token ? { Authorization: `Bearer ${this.token}` } : {};
   }
 
   private async handleResponse(response: Response) {
     if (!response.ok) {
       if (response.status === 401) {
-        // Token is invalid, clear auth and redirect to login
-        localStorage.removeItem("access_token");
-        localStorage.removeItem("user");
-        window.location.href = "/auth/login";
+        // Token is invalid, trigger auth error handler
+        if (this.onAuthError) {
+          this.onAuthError();
+        } else {
+          window.location.href = "/auth/login";
+        }
         throw new Error("Authentication failed");
       }
       

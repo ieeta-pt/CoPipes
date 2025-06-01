@@ -6,9 +6,10 @@ import json
 from utils.dag_factory import generate_dag, remove_dag
 from utils.airflow_api import trigger_dag_run, get_dag_runs, get_dag_run_details, get_task_instances, get_task_logs, get_task_xcom_entries
 from utils.auth import get_current_user
+from utils.workflow_permissions import get_user_workflows, check_workflow_access
 
 from database import SupabaseClient
-from schemas.workflow import WorkflowAirflow, WorkflowDB
+from schemas.workflow import WorkflowAirflow, WorkflowDB, WorkflowCollaborator
 
 router = APIRouter(
     prefix="/api/workflows",
@@ -26,7 +27,8 @@ async def receive_workflow(workflow: WorkflowAirflow, current_user: dict = Depen
         workflow_db = WorkflowDB(
             name=workflow.dag_id.replace("_", " "),
             last_edit=datetime.now().isoformat(),
-            user_id=current_user["id"]
+            user_id=current_user["id"],
+            collaborators=[]
         )
         supabase.add_workflow(workflow_db, workflow.tasks)
         
@@ -38,40 +40,46 @@ async def receive_workflow(workflow: WorkflowAirflow, current_user: dict = Depen
 @router.get("/all")
 async def get_workflows(current_user: dict = Depends(get_current_user)):
     try:
-        workflows = supabase.get_workflows(current_user["id"])
+        print(f"GET all workflows requested by user: {current_user['id']} ({current_user['email']})")
+        workflows = get_user_workflows(current_user)
+        print(f"Returning {len(workflows)} workflows for user {current_user['email']}")
         return workflows
     except Exception as e:
+        print(f"Error getting workflows for user {current_user['email']}: {str(e)}")
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
     
 @router.get("/{workflow_name}")
 async def get_workflow(workflow_name: str, current_user: dict = Depends(get_current_user)):
     try:
-        workflow_tasks = supabase.get_workflow_tasks(workflow_name, current_user["id"])
-        if not workflow_tasks:
+        print(f"GET workflow '{workflow_name}' requested by user: {current_user['id']} ({current_user['email']})")
+        workflow_data, permissions = check_workflow_access(workflow_name, current_user, "can_edit")
+        workflow_tasks = supabase.get_workflow_tasks(workflow_name, current_user["id"], current_user["email"])
+        if workflow_tasks is None:
             raise HTTPException(status_code=404, detail="Workflow not found")
-        return {"dag_id": workflow_name, "tasks": workflow_tasks}
+        print(f"Successfully retrieved workflow '{workflow_name}' for user {current_user['email']}")
+        return {
+            "dag_id": workflow_name, 
+            "tasks": workflow_tasks,
+            "permissions": permissions.model_dump(),
+            "collaborators": workflow_data.get("collaborators", [])
+        }
     except Exception as e:
+        print(f"Error getting workflow '{workflow_name}' for user {current_user['email']}: {str(e)}")
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
     
 @router.put("/{workflow_name}")
 async def update_workflow(workflow_name: str, workflow: WorkflowAirflow, current_user: dict = Depends(get_current_user)):
     try:
-        # Get workflow id first
-        workflow_name_clean = workflow_name.replace("_", " ")
-        workflows = supabase.get_workflows(current_user["id"])
-        workflow_record = next((w for w in workflows if w["name"] == workflow_name_clean), None)
+        workflow_data, permissions = check_workflow_access(workflow_name, current_user, "can_edit")
         
-        if not workflow_record:
-            raise HTTPException(status_code=404, detail="Workflow not found")
-        
-        workflow_id = workflow_record["id"]
+        workflow_id = workflow_data["id"]
         update_data = {"last_edit": datetime.now().isoformat()}
         supabase.update_workflow(workflow_id, update_data, workflow.tasks)
         
-        # Generate DAG with user context
-        actual_dag_id = generate_dag(workflow.model_dump(), current_user["id"])
+        # Generate DAG with owner context (DAGs are always generated with owner's ID)
+        actual_dag_id = generate_dag(workflow.model_dump(), workflow_data["user_id"])
         
         return {"status": "success", "message": f"Workflow {actual_dag_id} updated"}
     except Exception as e:
@@ -81,13 +89,15 @@ async def update_workflow(workflow_name: str, workflow: WorkflowAirflow, current
 @router.delete("/{workflow_name}")
 async def delete_workflow(workflow_name: str, current_user: dict = Depends(get_current_user)):
     try:
-        # First delete from database
-        supabase.delete_workflow(workflow_name, current_user["id"])
+        workflow_data, permissions = check_workflow_access(workflow_name, current_user, "can_delete")
+        
+        # First delete from database (use owner's ID for workflow deletion)
+        supabase.delete_workflow(workflow_name, workflow_data["user_id"])
         print(f"Workflow {workflow_name} deleted from database")
         
-        # Then try to remove the DAG file
+        # Then try to remove the DAG file (use owner's ID for DAG deletion)
         try:
-            remove_dag(workflow_name, current_user["id"])
+            remove_dag(workflow_name, workflow_data["user_id"])
             return {"status": "success", "message": f"Workflow {workflow_name} deleted successfully"}
         except Exception as dag_error:
             print(f"Warning: DAG file removal had issues: {dag_error}")
@@ -104,14 +114,11 @@ async def delete_workflow(workflow_name: str, current_user: dict = Depends(get_c
 @router.post("/execute/{workflow_name}")
 async def trigger_workflow(workflow: WorkflowAirflow, _background_tasks: BackgroundTasks, current_user: dict = Depends(get_current_user)):
     try:
-        # Verify user owns this workflow
-        workflow_tasks = supabase.get_workflow_tasks(workflow.dag_id.replace("_", " "), current_user["id"])
-        if not workflow_tasks:
-            raise HTTPException(status_code=404, detail="Workflow not found or access denied")
+        workflow_data_db, permissions = check_workflow_access(workflow.dag_id.replace("_", " "), current_user, "can_execute")
             
-        # Generate DAG with user context
+        # Generate DAG with owner context (DAGs are always generated with owner's ID)
         workflow_data = workflow.model_dump()
-        _actual_dag_id = generate_dag(workflow_data, current_user["id"])
+        _actual_dag_id = generate_dag(workflow_data, workflow_data_db["user_id"])
         
         # Determine schedule type based on the payload
         schedule_type = "now"  # default
@@ -122,10 +129,10 @@ async def trigger_workflow(workflow: WorkflowAirflow, _background_tasks: Backgro
         
         print(f"Schedule type determined: {schedule_type}")
         
-        # Trigger the DAG or just schedule it based on type
-        run_result = await trigger_dag_run(workflow.dag_id, current_user["id"], schedule_type)
-        # Update the last run status with the actual result
-        supabase.update_workflow_last_run(workflow.dag_id, run_result["status"], current_user["id"])
+        # Trigger the DAG or just schedule it based on type (use owner's ID)
+        run_result = await trigger_dag_run(workflow.dag_id, workflow_data_db["user_id"], schedule_type)
+        # Update the last run status with the actual result (use owner's ID)
+        supabase.update_workflow_last_run(workflow.dag_id, run_result["status"], workflow_data_db["user_id"])
 
         # Customize message based on schedule type
         if schedule_type == "now":
@@ -172,7 +179,8 @@ async def upload_workflow(file: UploadFile = File(...), current_user: dict = Dep
         workflow_db = WorkflowDB(
             name=workflow.dag_id.replace("_", " "),
             last_edit=datetime.now().isoformat(),
-            user_id=current_user["id"]
+            user_id=current_user["id"],
+            collaborators=[]
         )
         supabase.add_workflow(workflow_db, workflow.tasks)
         
@@ -267,6 +275,81 @@ async def get_workflow_run_details(
         return {
             "dag_run": dag_run,
             "task_instances": tasks_with_logs
+        }
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/{workflow_name}/collaborators")
+async def add_collaborator(workflow_name: str, collaborator: WorkflowCollaborator, current_user: dict = Depends(get_current_user)):
+    """Add a collaborator to a workflow by email."""
+    try:
+        workflow_data, permissions = check_workflow_access(workflow_name, current_user, "can_manage_collaborators")
+        
+        # Validate email format (basic check)
+        if "@" not in collaborator.email:
+            raise HTTPException(status_code=400, detail="Invalid email format")
+        
+        # Check if collaborator email is the same as owner
+        if collaborator.email.lower() == current_user["email"].lower():
+            raise HTTPException(status_code=400, detail="Cannot add yourself as a collaborator")
+        
+        # Check if user exists in the system
+        user_exists = supabase.check_user_exists_by_email(collaborator.email)
+        print(f"DEBUG: User existence check for {collaborator.email}: {user_exists}")
+        
+        if not user_exists:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"User with email '{collaborator.email}' is not registered. Please ask them to create an account first, then you can add them as a collaborator."
+            )
+        
+        # Check if collaborator is already added
+        current_collaborators = workflow_data.get("collaborators", []) or []
+        if collaborator.email.lower() in [c.lower() for c in current_collaborators]:
+            raise HTTPException(status_code=400, detail=f"{collaborator.email} is already a collaborator on this workflow")
+        
+        supabase.add_collaborator(workflow_data["id"], collaborator.email)
+        
+        return {
+            "status": "success", 
+            "message": f"Added {collaborator.email} as collaborator to {workflow_name}"
+        }
+    except HTTPException:
+        # Re-raise HTTP exceptions as-is
+        raise
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/{workflow_name}/collaborators/{collaborator_email}")
+async def remove_collaborator(workflow_name: str, collaborator_email: str, current_user: dict = Depends(get_current_user)):
+    """Remove a collaborator from a workflow."""
+    try:
+        workflow_data, permissions = check_workflow_access(workflow_name, current_user, "can_manage_collaborators")
+        
+        supabase.remove_collaborator(workflow_data["id"], collaborator_email)
+        
+        return {
+            "status": "success", 
+            "message": f"Removed {collaborator_email} from {workflow_name} collaborators"
+        }
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/{workflow_name}/collaborators")
+async def get_collaborators(workflow_name: str, current_user: dict = Depends(get_current_user)):
+    """Get list of collaborators for a workflow."""
+    try:
+        workflow_data, permissions = check_workflow_access(workflow_name, current_user, "can_edit")
+        
+        collaborators = workflow_data.get("collaborators", []) or []
+        
+        return {
+            "workflow_name": workflow_name,
+            "collaborators": collaborators,
+            "permissions": permissions.model_dump()
         }
     except Exception as e:
         traceback.print_exc()

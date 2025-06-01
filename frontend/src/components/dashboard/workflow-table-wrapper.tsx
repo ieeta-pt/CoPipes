@@ -6,19 +6,27 @@ import { getWorkflows, uploadWorkflowAPI } from "@/api/dashboard/table";
 import { Workflow, columns } from "@/app/dashboard/columns";
 import { DataTable } from "@/components/dashboard/DataTable";
 import { Upload } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 export function WorkflowTableWrapper() {
+  const { isAuthenticated, loading: authLoading } = useAuth();
   const [data, setData] = useState<Workflow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    // Don't fetch if still loading auth or not authenticated
+    if (authLoading || !isAuthenticated) {
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
     getWorkflows()
       .then(setData)
       .catch(console.error)
       .finally(() => setIsLoading(false));
-  }, []);
+  }, [authLoading, isAuthenticated]);
 
   const handleUploadClick = () => {
     fileInputRef.current?.click();

@@ -34,7 +34,18 @@ class WorkflowAirflow(WorkflowBase):
 class WorkflowDB(BaseModel):
     name: str
     last_edit: str
-    user_id: str
+    user_id: str  # owner_id
     last_run: str = None
     status: str = "Not Started"
-    collaborators: List[str] = None
+    collaborators: List[str] = []  # List of user emails with collaboration access
+
+class WorkflowCollaborator(BaseModel):
+    email: str
+
+class WorkflowPermissions(BaseModel):
+    is_owner: bool
+    can_edit: bool
+    can_execute: bool
+    can_download: bool
+    can_delete: bool
+    can_manage_collaborators: bool
