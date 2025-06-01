@@ -25,6 +25,471 @@ export const Registry: TaskRegistry = {
     ],
     component: BaseTask,
   },
+  "JSON": {
+    type: "Extraction",
+    defaultConfig: [
+      { 
+        name: "source", 
+        value: "", 
+        type: "string",
+        placeholder: "JSON file path or API endpoint",
+        required: true,
+        validation: { message: "JSON source is required" }
+      },
+      { 
+        name: "json path", 
+        value: "", 
+        type: "string",
+        placeholder: "JSONPath expression to extract data (e.g., $.data[*])",
+        required: false
+      },
+      { 
+        name: "flatten nested", 
+        value: "True", 
+        type: "boolean",
+        placeholder: "Flatten nested JSON objects",
+        required: false
+      }
+    ],
+    component: BaseTask,
+  },
+  "XML": {
+    type: "Extraction",
+    defaultConfig: [
+      { 
+        name: "source", 
+        value: "", 
+        type: "string",
+        placeholder: "XML file path or URL",
+        required: true,
+        validation: { message: "XML source is required" }
+      },
+      { 
+        name: "xpath", 
+        value: "", 
+        type: "string",
+        placeholder: "XPath expression to extract elements",
+        required: false
+      },
+      { 
+        name: "namespaces", 
+        value: "", 
+        type: "string",
+        placeholder: "XML namespaces (JSON format)",
+        required: false
+      }
+    ],
+    component: BaseTask,
+  },
+  "Database Query": {
+    type: "Extraction",
+    defaultConfig: [
+      { 
+        name: "connection", 
+        value: "", 
+        type: "task_reference",
+        placeholder: "Database connection (Create connection result)",
+        required: true,
+        validation: { message: "Database connection is required" }
+      },
+      { 
+        name: "query", 
+        value: "", 
+        type: "string",
+        placeholder: "SQL query to execute",
+        required: true,
+        validation: { message: "SQL query is required" }
+      },
+      { 
+        name: "parameters", 
+        value: "", 
+        type: "string",
+        placeholder: "Query parameters (JSON format)",
+        required: false
+      }
+    ],
+    component: BaseTask,
+  },
+  "REST API": {
+    type: "Extraction",
+    defaultConfig: [
+      { 
+        name: "endpoint", 
+        value: "", 
+        type: "string",
+        placeholder: "API endpoint URL",
+        required: true,
+        validation: { message: "API endpoint is required" }
+      },
+      { 
+        name: "method", 
+        value: "GET", 
+        type: "select",
+        options: ["GET", "POST", "PUT", "DELETE"],
+        placeholder: "HTTP method",
+        required: false
+      },
+      { 
+        name: "headers", 
+        value: "", 
+        type: "string",
+        placeholder: "HTTP headers (JSON format)",
+        required: false
+      },
+      { 
+        name: "auth token", 
+        value: "", 
+        type: "string",
+        placeholder: "Authorization token",
+        required: false
+      },
+      { 
+        name: "pagination", 
+        value: "False", 
+        type: "boolean",
+        placeholder: "Handle paginated responses",
+        required: false
+      }
+    ],
+    component: BaseTask,
+  },
+  "FTP/SFTP": {
+    type: "Extraction",
+    defaultConfig: [
+      { 
+        name: "host", 
+        value: "", 
+        type: "string",
+        placeholder: "FTP/SFTP server host",
+        required: true,
+        validation: { message: "Host is required" }
+      },
+      { 
+        name: "username", 
+        value: "", 
+        type: "string",
+        placeholder: "Username",
+        required: true,
+        validation: { message: "Username is required" }
+      },
+      { 
+        name: "password", 
+        value: "", 
+        type: "string",
+        placeholder: "Password",
+        required: true,
+        validation: { message: "Password is required" }
+      },
+      { 
+        name: "remote path", 
+        value: "", 
+        type: "string",
+        placeholder: "Remote file/directory path",
+        required: true,
+        validation: { message: "Remote path is required" }
+      },
+      { 
+        name: "protocol", 
+        value: "SFTP", 
+        type: "select",
+        options: ["FTP", "SFTP"],
+        placeholder: "Transfer protocol",
+        required: false
+      },
+      { 
+        name: "port", 
+        value: "22", 
+        type: "string",
+        placeholder: "Port number",
+        required: false,
+        validation: { pattern: "^[0-9]+$", message: "Port must be a number" }
+      }
+    ],
+    component: BaseTask,
+  },
+  "Web Scraping": {
+    type: "Extraction",
+    defaultConfig: [
+      { 
+        name: "url", 
+        value: "", 
+        type: "string",
+        placeholder: "Website URL to scrape",
+        required: true,
+        validation: { message: "URL is required" }
+      },
+      { 
+        name: "css selector", 
+        value: "", 
+        type: "string",
+        placeholder: "CSS selector for target elements",
+        required: false
+      },
+      { 
+        name: "xpath", 
+        value: "", 
+        type: "string",
+        placeholder: "XPath expression for target elements",
+        required: false
+      },
+      { 
+        name: "wait time", 
+        value: "3", 
+        type: "string",
+        placeholder: "Seconds to wait for page load",
+        required: false,
+        validation: { pattern: "^[0-9]+$", message: "Must be a number" }
+      },
+      { 
+        name: "use browser", 
+        value: "False", 
+        type: "boolean",
+        placeholder: "Use headless browser for JavaScript content",
+        required: false
+      }
+    ],
+    component: BaseTask,
+  },
+  "Data Cleaning": {
+    type: "Transformation",
+    defaultConfig: [
+      { 
+        name: "data", 
+        value: "", 
+        type: "task_reference",
+        placeholder: "Data to clean (extraction result)",
+        required: true,
+        validation: { message: "Data input is required" }
+      },
+      { 
+        name: "remove duplicates", 
+        value: "True", 
+        type: "boolean",
+        placeholder: "Remove duplicate records",
+        required: false
+      },
+      { 
+        name: "handle missing values", 
+        value: "drop", 
+        type: "select",
+        options: ["drop", "mean", "median", "mode", "forward_fill", "backward_fill"],
+        placeholder: "Strategy for missing values",
+        required: false
+      },
+      { 
+        name: "outlier detection", 
+        value: "zscore", 
+        type: "select",
+        options: ["none", "zscore", "iqr", "isolation_forest"],
+        placeholder: "Outlier detection method",
+        required: false
+      },
+      { 
+        name: "outlier threshold", 
+        value: "3", 
+        type: "string",
+        placeholder: "Threshold for outlier detection",
+        required: false,
+        validation: { pattern: "^[0-9]+(\\.[0-9]+)?$", message: "Must be a valid number" }
+      }
+    ],
+    component: BaseTask,
+  },
+  "Data Filtering": {
+    type: "Transformation",
+    defaultConfig: [
+      { 
+        name: "data", 
+        value: "", 
+        type: "task_reference",
+        placeholder: "Data to filter (extraction or transformation result)",
+        required: true,
+        validation: { message: "Data input is required" }
+      },
+      { 
+        name: "filter conditions", 
+        value: "", 
+        type: "string",
+        placeholder: "Filter conditions (e.g., age > 18 AND status = 'active')",
+        required: true,
+        validation: { message: "Filter conditions are required" }
+      },
+      { 
+        name: "columns to keep", 
+        value: "", 
+        type: "string",
+        placeholder: "Columns to keep (separated by commas, leave empty for all)",
+        required: false
+      },
+      { 
+        name: "limit rows", 
+        value: "", 
+        type: "string",
+        placeholder: "Maximum number of rows to return",
+        required: false,
+        validation: { pattern: "^[0-9]+$", message: "Must be a positive integer" }
+      }
+    ],
+    component: BaseTask,
+  },
+  "Data Aggregation": {
+    type: "Transformation",
+    defaultConfig: [
+      { 
+        name: "data", 
+        value: "", 
+        type: "task_reference",
+        placeholder: "Data to aggregate (extraction or transformation result)",
+        required: true,
+        validation: { message: "Data input is required" }
+      },
+      { 
+        name: "group by columns", 
+        value: "", 
+        type: "string",
+        placeholder: "Columns to group by (separated by commas)",
+        required: true,
+        validation: { message: "Group by columns are required" }
+      },
+      { 
+        name: "aggregation functions", 
+        value: "", 
+        type: "string",
+        placeholder: "Aggregations (e.g., sum(sales), avg(price), count(*))",
+        required: true,
+        validation: { message: "Aggregation functions are required" }
+      },
+      { 
+        name: "having conditions", 
+        value: "", 
+        type: "string",
+        placeholder: "HAVING clause conditions (optional)",
+        required: false
+      }
+    ],
+    component: BaseTask,
+  },
+  "Data Join": {
+    type: "Transformation",
+    defaultConfig: [
+      { 
+        name: "left data", 
+        value: "", 
+        type: "task_reference",
+        placeholder: "Left dataset (extraction or transformation result)",
+        required: true,
+        validation: { message: "Left data is required" }
+      },
+      { 
+        name: "right data", 
+        value: "", 
+        type: "task_reference",
+        placeholder: "Right dataset (extraction or transformation result)",
+        required: true,
+        validation: { message: "Right data is required" }
+      },
+      { 
+        name: "join type", 
+        value: "inner", 
+        type: "select",
+        options: ["inner", "left", "right", "outer", "cross"],
+        placeholder: "Type of join operation",
+        required: false
+      },
+      { 
+        name: "join keys", 
+        value: "", 
+        type: "string",
+        placeholder: "Join keys (e.g., left.id = right.customer_id)",
+        required: true,
+        validation: { message: "Join keys are required" }
+      }
+    ],
+    component: BaseTask,
+  },
+  "Data Pivot": {
+    type: "Transformation",
+    defaultConfig: [
+      { 
+        name: "data", 
+        value: "", 
+        type: "task_reference",
+        placeholder: "Data to pivot (extraction or transformation result)",
+        required: true,
+        validation: { message: "Data input is required" }
+      },
+      { 
+        name: "index columns", 
+        value: "", 
+        type: "string",
+        placeholder: "Columns to use as row index (separated by commas)",
+        required: true,
+        validation: { message: "Index columns are required" }
+      },
+      { 
+        name: "pivot columns", 
+        value: "", 
+        type: "string",
+        placeholder: "Columns to pivot into new columns",
+        required: true,
+        validation: { message: "Pivot columns are required" }
+      },
+      { 
+        name: "value columns", 
+        value: "", 
+        type: "string",
+        placeholder: "Columns containing values to aggregate",
+        required: true,
+        validation: { message: "Value columns are required" }
+      },
+      { 
+        name: "aggregation function", 
+        value: "sum", 
+        type: "select",
+        options: ["sum", "mean", "count", "min", "max", "std"],
+        placeholder: "Aggregation function for values",
+        required: false
+      }
+    ],
+    component: BaseTask,
+  },
+  "Data Sorting": {
+    type: "Transformation",
+    defaultConfig: [
+      { 
+        name: "data", 
+        value: "", 
+        type: "task_reference",
+        placeholder: "Data to sort (extraction or transformation result)",
+        required: true,
+        validation: { message: "Data input is required" }
+      },
+      { 
+        name: "sort columns", 
+        value: "", 
+        type: "string",
+        placeholder: "Columns to sort by (separated by commas)",
+        required: true,
+        validation: { message: "Sort columns are required" }
+      },
+      { 
+        name: "sort order", 
+        value: "asc", 
+        type: "select",
+        options: ["asc", "desc", "custom"],
+        placeholder: "Sort order",
+        required: false
+      },
+      { 
+        name: "custom order", 
+        value: "", 
+        type: "string",
+        placeholder: "Custom sort order (e.g., asc,desc,asc)",
+        required: false
+      }
+    ],
+    component: BaseTask,
+  },
   "To key value": {
     type: "Transformation",
     subtype: "Cohorts",
@@ -220,6 +685,746 @@ export const Registry: TaskRegistry = {
         value: "my_postgres", 
         type: "string",
         placeholder: "Connection identifier",
+        required: false
+      }
+    ],
+    component: BaseTask,
+  },
+  "Batch Load": {
+    type: "Loading",
+    defaultConfig: [
+      { 
+        name: "data", 
+        value: "", 
+        type: "task_reference",
+        placeholder: "Data to load (transformation result)",
+        required: true,
+        validation: { message: "Data input is required" }
+      },
+      { 
+        name: "destination", 
+        value: "", 
+        type: "string",
+        placeholder: "Destination (database, file path, cloud storage)",
+        required: true,
+        validation: { message: "Destination is required" }
+      },
+      { 
+        name: "load mode", 
+        value: "append", 
+        type: "select",
+        options: ["append", "overwrite", "upsert"],
+        placeholder: "How to handle existing data",
+        required: false
+      },
+      { 
+        name: "batch size", 
+        value: "1000", 
+        type: "string",
+        placeholder: "Number of records per batch",
+        required: false,
+        validation: { pattern: "^[0-9]+$", message: "Must be a positive integer" }
+      },
+      { 
+        name: "parallel workers", 
+        value: "1", 
+        type: "string",
+        placeholder: "Number of parallel load processes",
+        required: false,
+        validation: { pattern: "^[0-9]+$", message: "Must be a positive integer" }
+      }
+    ],
+    component: BaseTask,
+  },
+  "Incremental Load": {
+    type: "Loading",
+    defaultConfig: [
+      { 
+        name: "data", 
+        value: "", 
+        type: "task_reference",
+        placeholder: "Data to load incrementally (transformation result)",
+        required: true,
+        validation: { message: "Data input is required" }
+      },
+      { 
+        name: "destination", 
+        value: "", 
+        type: "string",
+        placeholder: "Destination table or location",
+        required: true,
+        validation: { message: "Destination is required" }
+      },
+      { 
+        name: "key columns", 
+        value: "", 
+        type: "string",
+        placeholder: "Columns to identify unique records (separated by commas)",
+        required: true,
+        validation: { message: "Key columns are required" }
+      },
+      { 
+        name: "timestamp column", 
+        value: "", 
+        type: "string",
+        placeholder: "Column to track record updates",
+        required: false
+      },
+      { 
+        name: "last sync timestamp", 
+        value: "", 
+        type: "string",
+        placeholder: "Last synchronization timestamp",
+        required: false
+      },
+      { 
+        name: "delete detection", 
+        value: "False", 
+        type: "boolean",
+        placeholder: "Detect and handle deleted records",
+        required: false
+      }
+    ],
+    component: BaseTask,
+  },
+  "CDC Load": {
+    type: "Loading",
+    defaultConfig: [
+      { 
+        name: "source", 
+        value: "", 
+        type: "task_reference",
+        placeholder: "Source database or CDC stream",
+        required: true,
+        validation: { message: "Source is required" }
+      },
+      { 
+        name: "destination", 
+        value: "", 
+        type: "string",
+        placeholder: "Destination table or data store",
+        required: true,
+        validation: { message: "Destination is required" }
+      },
+      { 
+        name: "change types", 
+        value: "INSERT,UPDATE,DELETE", 
+        type: "string",
+        placeholder: "Change types to capture (separated by commas)",
+        required: false
+      },
+      { 
+        name: "merge strategy", 
+        value: "upsert", 
+        type: "select",
+        options: ["upsert", "append", "type2_scd"],
+        placeholder: "How to apply changes",
+        required: false
+      },
+      { 
+        name: "conflict resolution", 
+        value: "latest_wins", 
+        type: "select",
+        options: ["latest_wins", "earliest_wins", "manual"],
+        placeholder: "Strategy for handling conflicts",
+        required: false
+      }
+    ],
+    component: BaseTask,
+  },
+  "Stream Load": {
+    type: "Loading",
+    defaultConfig: [
+      { 
+        name: "stream source", 
+        value: "", 
+        type: "task_reference",
+        placeholder: "Streaming data source (Kafka, Kinesis, etc.)",
+        required: true,
+        validation: { message: "Stream source is required" }
+      },
+      { 
+        name: "destination", 
+        value: "", 
+        type: "string",
+        placeholder: "Destination (database, data lake, etc.)",
+        required: true,
+        validation: { message: "Destination is required" }
+      },
+      { 
+        name: "window size", 
+        value: "60", 
+        type: "string",
+        placeholder: "Processing window size in seconds",
+        required: false,
+        validation: { pattern: "^[0-9]+$", message: "Must be a positive integer" }
+      },
+      { 
+        name: "watermark delay", 
+        value: "10", 
+        type: "string",
+        placeholder: "Watermark delay in seconds for late data",
+        required: false,
+        validation: { pattern: "^[0-9]+$", message: "Must be a positive integer" }
+      },
+      { 
+        name: "checkpoint interval", 
+        value: "300", 
+        type: "string",
+        placeholder: "Checkpoint interval in seconds",
+        required: false,
+        validation: { pattern: "^[0-9]+$", message: "Must be a positive integer" }
+      }
+    ],
+    component: BaseTask,
+  },
+  "File Export": {
+    type: "Loading",
+    defaultConfig: [
+      { 
+        name: "data", 
+        value: "", 
+        type: "task_reference",
+        placeholder: "Data to export (transformation result)",
+        required: true,
+        validation: { message: "Data input is required" }
+      },
+      { 
+        name: "file path", 
+        value: "", 
+        type: "string",
+        placeholder: "Output file path",
+        required: true,
+        validation: { message: "File path is required" }
+      },
+      { 
+        name: "file format", 
+        value: "csv", 
+        type: "select",
+        options: ["csv", "json", "parquet", "xlsx", "xml"],
+        placeholder: "Export file format",
+        required: false
+      },
+      { 
+        name: "compression", 
+        value: "none", 
+        type: "select",
+        options: ["none", "gzip", "bzip2", "snappy"],
+        placeholder: "File compression",
+        required: false
+      },
+      { 
+        name: "include header", 
+        value: "True", 
+        type: "boolean",
+        placeholder: "Include column headers",
+        required: false
+      }
+    ],
+    component: BaseTask,
+  },
+  "Data Ingestion": {
+    type: "Analysis",
+    subtype: "Machine Learning",
+    defaultConfig: [
+      { 
+        name: "data source", 
+        value: "", 
+        type: "task_reference",
+        placeholder: "Input data source (CSV extraction result)",
+        required: true,
+        validation: { message: "Data source is required" }
+      },
+      { 
+        name: "target column", 
+        value: "", 
+        type: "string",
+        placeholder: "Name of the target variable column",
+        required: true,
+        validation: { message: "Target column is required" }
+      },
+      { 
+        name: "feature columns", 
+        value: "", 
+        type: "string",
+        placeholder: "List of feature columns (separated by commas)",
+        required: false
+      }
+    ],
+    component: BaseTask,
+  },
+  "Data Preprocessing": {
+    type: "Analysis",
+    subtype: "Machine Learning",
+    defaultConfig: [
+      { 
+        name: "data", 
+        value: "", 
+        type: "task_reference",
+        placeholder: "Data to preprocess (Data Ingestion result)",
+        required: true,
+        validation: { message: "Data input is required" }
+      },
+      { 
+        name: "missing value strategy", 
+        value: "mean", 
+        type: "select",
+        options: ["mean", "median", "mode", "drop", "forward_fill"],
+        placeholder: "Strategy for handling missing values",
+        required: false
+      },
+      { 
+        name: "scaling method", 
+        value: "standard", 
+        type: "select",
+        options: ["standard", "minmax", "robust", "none"],
+        placeholder: "Feature scaling method",
+        required: false
+      },
+      { 
+        name: "encoding method", 
+        value: "onehot", 
+        type: "select",
+        options: ["onehot", "label", "target", "none"],
+        placeholder: "Categorical encoding method",
+        required: false
+      }
+    ],
+    component: BaseTask,
+  },
+  "Model Training": {
+    type: "Analysis",
+    subtype: "Machine Learning",
+    defaultConfig: [
+      { 
+        name: "preprocessed data", 
+        value: "", 
+        type: "task_reference",
+        placeholder: "Preprocessed training data (Data Preprocessing result)",
+        required: true,
+        validation: { message: "Preprocessed data is required" }
+      },
+      { 
+        name: "algorithm", 
+        value: "random_forest", 
+        type: "select",
+        options: ["random_forest", "linear_regression", "svm", "xgboost", "neural_network"],
+        placeholder: "Machine learning algorithm",
+        required: true,
+        validation: { message: "Algorithm selection is required" }
+      },
+      { 
+        name: "test size", 
+        value: "0.2", 
+        type: "string",
+        placeholder: "Proportion of data for testing (0.0-1.0)",
+        required: false,
+        validation: { pattern: "^0\\.[0-9]+$|^1\\.0$", message: "Must be a decimal between 0.0 and 1.0" }
+      },
+      { 
+        name: "random state", 
+        value: "42", 
+        type: "string",
+        placeholder: "Random seed for reproducibility",
+        required: false,
+        validation: { pattern: "^[0-9]+$", message: "Must be a positive integer" }
+      },
+      { 
+        name: "hyperparameters", 
+        value: "", 
+        type: "string",
+        placeholder: "JSON object with algorithm-specific parameters",
+        required: false
+      }
+    ],
+    component: BaseTask,
+  },
+  "Model Evaluation": {
+    type: "Analysis",
+    subtype: "Machine Learning",
+    defaultConfig: [
+      { 
+        name: "trained model", 
+        value: "", 
+        type: "task_reference",
+        placeholder: "Trained model (Model Training result)",
+        required: true,
+        validation: { message: "Trained model is required" }
+      },
+      { 
+        name: "test data", 
+        value: "", 
+        type: "task_reference",
+        placeholder: "Test dataset (Data Preprocessing result)",
+        required: true,
+        validation: { message: "Test data is required" }
+      },
+      { 
+        name: "evaluation metrics", 
+        value: "accuracy,precision,recall,f1", 
+        type: "string",
+        placeholder: "Metrics to calculate (separated by commas)",
+        required: false
+      },
+      { 
+        name: "mae threshold", 
+        value: "150", 
+        type: "string", 
+        placeholder: "Maximum acceptable MAE value",
+        required: false,
+        validation: { pattern: "^[0-9]+(\.[0-9]+)?$", message: "Must be a valid number" }
+      },
+      { 
+        name: "generate report", 
+        value: "True", 
+        type: "boolean",
+        placeholder: "Generate detailed evaluation report",
+        required: false
+      }
+    ],
+    component: BaseTask,
+  },
+  "Model Deployment": {
+    type: "Analysis",
+    subtype: "Machine Learning",
+    defaultConfig: [
+      { 
+        name: "trained model", 
+        value: "", 
+        type: "task_reference",
+        placeholder: "Model to deploy (Model Training result)",
+        required: true,
+        validation: { message: "Trained model is required" }
+      },
+      { 
+        name: "deployment target", 
+        value: "local", 
+        type: "select",
+        options: ["local", "docker", "cloud", "api_endpoint"],
+        placeholder: "Deployment environment",
+        required: true,
+        validation: { message: "Deployment target is required" }
+      },
+      { 
+        name: "model name", 
+        value: "", 
+        type: "string",
+        placeholder: "Name for the deployed model",
+        required: true,
+        validation: { message: "Model name is required" }
+      },
+      { 
+        name: "version", 
+        value: "1.0.0", 
+        type: "string",
+        placeholder: "Model version",
+        required: false,
+        validation: { pattern: "^[0-9]+\.[0-9]+\.[0-9]+$", message: "Must be semantic version (x.y.z)" }
+      },
+      { 
+        name: "metadata", 
+        value: "", 
+        type: "string",
+        placeholder: "Additional deployment metadata (JSON format)",
+        required: false
+      }
+    ],
+    component: BaseTask,
+  },
+  "Descriptive Statistics": {
+    type: "Analysis",
+    subtype: "Statistical",
+    defaultConfig: [
+      { 
+        name: "data", 
+        value: "", 
+        type: "task_reference",
+        placeholder: "Data to analyze (extraction or transformation result)",
+        required: true,
+        validation: { message: "Data input is required" }
+      },
+      { 
+        name: "target columns", 
+        value: "", 
+        type: "string",
+        placeholder: "Columns to analyze (separated by commas, leave empty for all numeric)",
+        required: false
+      },
+      { 
+        name: "include", 
+        value: "all", 
+        type: "select",
+        options: ["all", "number", "object", "datetime"],
+        placeholder: "Data types to include in analysis",
+        required: false
+      },
+      { 
+        name: "percentiles", 
+        value: "0.25,0.5,0.75", 
+        type: "string",
+        placeholder: "Percentiles to calculate (separated by commas)",
+        required: false
+      },
+      { 
+        name: "generate plots", 
+        value: "True", 
+        type: "boolean",
+        placeholder: "Generate distribution plots",
+        required: false
+      }
+    ],
+    component: BaseTask,
+  },
+  "Data Correlation": {
+    type: "Analysis",
+    subtype: "Statistical",
+    defaultConfig: [
+      { 
+        name: "data", 
+        value: "", 
+        type: "task_reference",
+        placeholder: "Data to analyze (extraction or transformation result)",
+        required: true,
+        validation: { message: "Data input is required" }
+      },
+      { 
+        name: "method", 
+        value: "pearson", 
+        type: "select",
+        options: ["pearson", "kendall", "spearman"],
+        placeholder: "Correlation method",
+        required: false
+      },
+      { 
+        name: "target columns", 
+        value: "", 
+        type: "string",
+        placeholder: "Columns to include (separated by commas, leave empty for all numeric)",
+        required: false
+      },
+      { 
+        name: "threshold", 
+        value: "0.5", 
+        type: "string",
+        placeholder: "Correlation threshold for highlighting",
+        required: false,
+        validation: { pattern: "^0\\.[0-9]+$|^1\\.0$", message: "Must be between 0.0 and 1.0" }
+      },
+      { 
+        name: "generate heatmap", 
+        value: "True", 
+        type: "boolean",
+        placeholder: "Generate correlation heatmap",
+        required: false
+      }
+    ],
+    component: BaseTask,
+  },
+  "Data Visualization": {
+    type: "Analysis",
+    subtype: "Visualization",
+    defaultConfig: [
+      { 
+        name: "data", 
+        value: "", 
+        type: "task_reference",
+        placeholder: "Data to visualize (extraction or transformation result)",
+        required: true,
+        validation: { message: "Data input is required" }
+      },
+      { 
+        name: "chart type", 
+        value: "scatter", 
+        type: "select",
+        options: ["scatter", "line", "bar", "histogram", "box", "heatmap", "pie"],
+        placeholder: "Type of visualization",
+        required: true,
+        validation: { message: "Chart type is required" }
+      },
+      { 
+        name: "x column", 
+        value: "", 
+        type: "string",
+        placeholder: "Column for X-axis",
+        required: false
+      },
+      { 
+        name: "y column", 
+        value: "", 
+        type: "string",
+        placeholder: "Column for Y-axis",
+        required: false
+      },
+      { 
+        name: "color column", 
+        value: "", 
+        type: "string",
+        placeholder: "Column for color grouping",
+        required: false
+      },
+      { 
+        name: "title", 
+        value: "", 
+        type: "string",
+        placeholder: "Chart title",
+        required: false
+      },
+      { 
+        name: "save format", 
+        value: "png", 
+        type: "select",
+        options: ["png", "jpg", "svg", "pdf", "html"],
+        placeholder: "Output format for chart",
+        required: false
+      }
+    ],
+    component: BaseTask,
+  },
+  "Generate Report": {
+    type: "Analysis",
+    subtype: "Reporting",
+    defaultConfig: [
+      { 
+        name: "data sources", 
+        value: "", 
+        type: "string",
+        placeholder: "Data sources to include (task references separated by commas)",
+        required: true,
+        validation: { message: "Data sources are required" }
+      },
+      { 
+        name: "report type", 
+        value: "summary", 
+        type: "select",
+        options: ["summary", "detailed", "executive", "technical"],
+        placeholder: "Type of report to generate",
+        required: false
+      },
+      { 
+        name: "template", 
+        value: "default", 
+        type: "string",
+        placeholder: "Report template to use",
+        required: false
+      },
+      { 
+        name: "include charts", 
+        value: "True", 
+        type: "boolean",
+        placeholder: "Include data visualizations",
+        required: false
+      },
+      { 
+        name: "output format", 
+        value: "pdf", 
+        type: "select",
+        options: ["pdf", "html", "docx", "xlsx"],
+        placeholder: "Report output format",
+        required: false
+      },
+      { 
+        name: "schedule", 
+        value: "", 
+        type: "string",
+        placeholder: "Automated report schedule (cron format)",
+        required: false
+      }
+    ],
+    component: BaseTask,
+  },
+  "Time Series Analysis": {
+    type: "Analysis",
+    subtype: "Statistical",
+    defaultConfig: [
+      { 
+        name: "data", 
+        value: "", 
+        type: "task_reference",
+        placeholder: "Time series data (extraction or transformation result)",
+        required: true,
+        validation: { message: "Data input is required" }
+      },
+      { 
+        name: "timestamp column", 
+        value: "", 
+        type: "string",
+        placeholder: "Column containing timestamps",
+        required: true,
+        validation: { message: "Timestamp column is required" }
+      },
+      { 
+        name: "value column", 
+        value: "", 
+        type: "string",
+        placeholder: "Column containing values to analyze",
+        required: true,
+        validation: { message: "Value column is required" }
+      },
+      { 
+        name: "frequency", 
+        value: "D", 
+        type: "select",
+        options: ["H", "D", "W", "M", "Q", "Y"],
+        placeholder: "Data frequency (H=hourly, D=daily, etc.)",
+        required: false
+      },
+      { 
+        name: "decompose", 
+        value: "True", 
+        type: "boolean",
+        placeholder: "Perform seasonal decomposition",
+        required: false
+      },
+      { 
+        name: "forecast periods", 
+        value: "30", 
+        type: "string",
+        placeholder: "Number of periods to forecast",
+        required: false,
+        validation: { pattern: "^[0-9]+$", message: "Must be a positive integer" }
+      }
+    ],
+    component: BaseTask,
+  },
+  "Send Notification": {
+    type: "Utils",
+    defaultConfig: [
+      { 
+        name: "recipient", 
+        value: "", 
+        type: "string",
+        placeholder: "Email address or notification target",
+        required: true,
+        validation: { message: "Recipient is required" }
+      },
+      { 
+        name: "subject", 
+        value: "Workflow Notification", 
+        type: "string",
+        placeholder: "Notification subject",
+        required: false
+      },
+      { 
+        name: "message", 
+        value: "", 
+        type: "string",
+        placeholder: "Notification message content",
+        required: true,
+        validation: { message: "Message content is required" }
+      },
+      { 
+        name: "notification type", 
+        value: "email", 
+        type: "select",
+        options: ["email", "slack", "webhook", "sms"],
+        placeholder: "Type of notification to send",
+        required: false
+      },
+      { 
+        name: "attach results", 
+        value: "False", 
+        type: "boolean",
+        placeholder: "Include workflow results in notification",
         required: false
       }
     ],
