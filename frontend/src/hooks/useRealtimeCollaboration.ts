@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Initialize Supabase client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -29,29 +30,26 @@ export interface RealtimeCollaborationOptions {
   enabled?: boolean;
 }
 
-export function useRealtimeCollaboration({
-  workflowId,
-  enabled = true
-}: RealtimeCollaborationOptions = {}) {
+export function useRealtimeCollaboration(
+  workflowId?: string,
+  options: { enabled?: boolean } = {}
+) {
+  const { enabled = true } = options;
   const [presence, setPresence] = useState<Record<string, Presence>>({});
   const [isConnected, setIsConnected] = useState(false);
+  const [workflowUpdates, setWorkflowUpdates] = useState<any[]>([]);
   const channelRef = useRef<any>(null);
-  const [currentUser, setCurrentUser] = useState<any>(null);
-
-  // Get current user
-  useEffect(() => {
-    const getCurrentUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setCurrentUser(user);
-    };
-    getCurrentUser();
-  }, []);
+  const { user: currentUser, isAuthenticated } = useAuth();
 
   // Setup realtime channel
   useEffect(() => {
-    if (!enabled || !workflowId || !currentUser || !supabase) return;
+    if (!enabled || !workflowId || !currentUser || !isAuthenticated || !supabase) {
+      return;
+    }
 
-    const channel = supabase.channel(`workflow-${workflowId}`, {
+
+    const channelName = `workflow:${workflowId}`;
+    const channel = supabase.channel(channelName, {
       config: {
         presence: {
           key: currentUser.id,
@@ -75,23 +73,26 @@ export function useRealtimeCollaboration({
         setPresence(users);
         setIsConnected(true);
       })
-      .on('presence', { event: 'join' }, ({ key, newPresences }) => {
-        console.log('User joined:', key, newPresences);
+      .on('presence', { event: 'join' }, () => {
       })
-      .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
-        console.log('User left:', key, leftPresences);
+      .on('presence', { event: 'leave' }, () => {
       })
-      .subscribe(async (status) => {
+      .on('broadcast', { event: 'workflow_update' }, ({ payload }: { payload: any }) => {
+        if (payload.user_id !== currentUser.id) {
+          setWorkflowUpdates(prev => [...prev, payload]);
+        }
+      })
+      .subscribe(async (status: string) => {
         if (status === 'SUBSCRIBED') {
           // Track current user presence
-          await channel.track({
+          const userPresence = {
             user_id: currentUser.id,
             email: currentUser.email,
-            full_name: currentUser.user_metadata?.full_name,
-            avatar_url: currentUser.user_metadata?.avatar_url,
+            full_name: currentUser.full_name,
             current_section: 'workflow-editor',
             last_seen: new Date().toISOString(),
-          });
+          };
+          await channel.track(userPresence);
         }
       });
 
@@ -99,40 +100,59 @@ export function useRealtimeCollaboration({
 
     return () => {
       if (channelRef.current) {
+        channelRef.current.untrack();
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
       }
       setIsConnected(false);
       setPresence({});
     };
-  }, [workflowId, enabled, currentUser]);
+  }, [workflowId, enabled, currentUser, isAuthenticated]);
 
   // Update cursor position
   const updateCursor = async (x: number, y: number) => {
     if (!channelRef.current || !currentUser || !supabase) return;
 
-    await channelRef.current.track({
+    const updatedPresence = {
       user_id: currentUser.id,
       email: currentUser.email,
-      full_name: currentUser.user_metadata?.full_name,
-      avatar_url: currentUser.user_metadata?.avatar_url,
+      full_name: currentUser.full_name,
       cursor: { x, y },
       current_section: 'workflow-editor',
       last_seen: new Date().toISOString(),
-    });
+    };
+
+    await channelRef.current.track(updatedPresence);
   };
 
   // Update current section
   const updateSection = async (section: string) => {
     if (!channelRef.current || !currentUser || !supabase) return;
 
-    await channelRef.current.track({
+    const updatedPresence = {
       user_id: currentUser.id,
       email: currentUser.email,
-      full_name: currentUser.user_metadata?.full_name,
-      avatar_url: currentUser.user_metadata?.avatar_url,
+      full_name: currentUser.full_name,
       current_section: section,
       last_seen: new Date().toISOString(),
+    };
+
+    await channelRef.current.track(updatedPresence);
+  };
+
+  // Broadcast workflow updates
+  const broadcastWorkflowUpdate = async (update: any) => {
+    if (!channelRef.current || !currentUser) return;
+
+    await channelRef.current.send({
+      type: 'broadcast',
+      event: 'workflow_update',
+      payload: {
+        user_id: currentUser.id,
+        email: currentUser.email,
+        update,
+        timestamp: new Date().toISOString(),
+      }
     });
   };
 
@@ -147,6 +167,8 @@ export function useRealtimeCollaboration({
     isConnected,
     updateCursor,
     updateSection,
+    broadcastWorkflowUpdate,
+    workflowUpdates,
     currentUser,
   };
 }

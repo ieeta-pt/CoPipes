@@ -84,6 +84,47 @@ export const columns: ColumnDef<Workflow>[] = [
     header: "Name",
   },
   {
+    accessorKey: "owner_email",
+    header: "Owner",
+    cell: ({ row }) => {
+      const workflow = row.original;
+      const ownerEmail = workflow.owner_email;
+      const ownerName = workflow.owner_name;
+      const isCurrentUserOwner = workflow.role === "owner";
+      
+      // Display owner information
+      const displayName = ownerName || (ownerEmail ? ownerEmail.split('@')[0] : 'Unknown');
+      const displayText = isCurrentUserOwner ? "You" : displayName;
+      
+      return (
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-full bg-blue-400 flex items-center justify-center text-white text-xs font-medium">
+            {isCurrentUserOwner ? "Y" : displayName.charAt(0).toUpperCase()}
+          </div>
+          <span className={`text-sm ${isCurrentUserOwner ? "font-medium" : ""}`}>
+            {displayText}
+          </span>
+        </div>
+      );
+    },
+  },
+  {
+    accessorKey: "collaborators",
+    header: "Collaborators",
+    cell: ({ row }) => {
+      const collaborators = row.getValue("collaborators") as string[] | null;
+      const collabArray = Array.isArray(collaborators) ? collaborators : [];
+      
+      return (
+        <AvatarStack 
+          collaborators={collabArray} 
+          maxVisible={3} 
+          size="sm" 
+        />
+      );
+    },
+  },
+  {
     accessorKey: "last_edit",
     header: "Last Edit",
     cell: ({ row }) => {
@@ -95,6 +136,7 @@ export const columns: ColumnDef<Workflow>[] = [
       });
     },
   },
+  
   {
     accessorKey: "last_run",
     header: "Last Run",
@@ -141,47 +183,7 @@ export const columns: ColumnDef<Workflow>[] = [
       );
     },
   },
-  {
-    accessorKey: "owner_email",
-    header: "Owner",
-    cell: ({ row }) => {
-      const workflow = row.original;
-      const ownerEmail = workflow.owner_email;
-      const ownerName = workflow.owner_name;
-      const isCurrentUserOwner = workflow.role === "owner";
-      
-      // Display owner information
-      const displayName = ownerName || (ownerEmail ? ownerEmail.split('@')[0] : 'Unknown');
-      const displayText = isCurrentUserOwner ? "You" : displayName;
-      
-      return (
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-xs font-medium">
-            {isCurrentUserOwner ? "Y" : displayName.charAt(0).toUpperCase()}
-          </div>
-          <span className={`text-sm ${isCurrentUserOwner ? "font-medium" : ""}`}>
-            {displayText}
-          </span>
-        </div>
-      );
-    },
-  },
-  {
-    accessorKey: "collaborators",
-    header: "Collaborators",
-    cell: ({ row }) => {
-      const collaborators = row.getValue("collaborators") as string[] | null;
-      const collabArray = Array.isArray(collaborators) ? collaborators : [];
-      
-      return (
-        <AvatarStack 
-          collaborators={collabArray} 
-          maxVisible={3} 
-          size="sm" 
-        />
-      );
-    },
-  },
+  
   {
     id: "actions",
     cell: ({ row }) => {

@@ -4,44 +4,58 @@ import { Presence, getUserColor } from "@/hooks/useRealtimeCollaboration";
 
 interface RealtimeCursorProps {
   user: Presence;
-  position: { x: number; y: number };
 }
 
-export default function RealtimeCursor({ 
-  user, 
-  position 
-}: RealtimeCursorProps) {
+export default function RealtimeCursor({ user }: RealtimeCursorProps) {
+  if (!user.cursor) return null;
+
+  const userColor = getUserColor(user.user_id);
+
   return (
     <div
-      className="absolute pointer-events-none z-50 transition-all duration-100"
+      className="absolute pointer-events-none z-50 transition-all duration-150 ease-out"
       style={{
-        left: position.x,
-        top: position.y,
-        transform: 'translate(-50%, -50%)',
+        left: user.cursor.x,
+        top: user.cursor.y,
+        transform: 'translate(-2px, -2px)',
       }}
     >
       {/* Cursor pointer */}
       <div className="relative">
         <svg
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
+          width="20"
+          height="20"
+          viewBox="0 0 20 20"
           fill="none"
-          className="drop-shadow-md"
+          className="drop-shadow-lg"
         >
           <path
-            d="M5.5 3.5L18.5 12L11 14L9 20.5L5.5 3.5Z"
-            fill={getUserColor(user.user_id)}
+            d="M2 2L14 8L8 10L6 16L2 2Z"
+            fill={userColor}
             stroke="white"
-            strokeWidth="1"
+            strokeWidth="1.5"
           />
         </svg>
         
         {/* User name label */}
-        <div className="absolute top-6 left-0 bg-black/80 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
+        <div 
+          className="absolute top-5 left-2 px-2 py-1 rounded text-white text-xs font-medium whitespace-nowrap drop-shadow-md"
+          style={{ backgroundColor: userColor }}
+        >
           {user.full_name || user.email.split('@')[0]}
         </div>
       </div>
     </div>
+  );
+}
+
+// Cursor overlay component to render all cursors
+export function CursorOverlay({ otherUsers }: { otherUsers: Presence[] }) {
+  return (
+    <>
+      {otherUsers.map((user) => (
+        <RealtimeCursor key={user.user_id} user={user} />
+      ))}
+    </>
   );
 }

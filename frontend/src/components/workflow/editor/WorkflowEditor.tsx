@@ -8,7 +8,7 @@ import { WorkflowCanvas } from "@/components/workflow/WorkflowCanvas";
 import CollaboratorManager from "@/components/workflow/CollaboratorManager";
 import PresenceIndicator, { ActivityFeed } from "@/components/workflow/PresenceIndicator";
 import { useRealtimeCollaboration } from "@/hooks/useRealtimeCollaboration";
-import RealtimeCursor from "@/components/workflow/RealtimeCursor";
+import { CursorOverlay } from "@/components/workflow/RealtimeCursor";
 import {
   submitWorkflow,
   getWorkflow,
@@ -44,11 +44,29 @@ export default function WorkflowEditor({
   const [showActivity, setShowActivity] = useState(false);
   const fetchingRef = useRef(false);
 
-  // Realtime collaboration
-  const { otherUsers, updateCursor, updateSection } = useRealtimeCollaboration({
-    workflowId: workflowId,
-    enabled: !!workflowId
-  });
+  // Realtime collaboration - temporarily using debug version
+
+  const { otherUsers, updateCursor } = useRealtimeCollaboration(workflowId);
+
+  // Track mouse movement for real-time cursors
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      // Always track cursor position so other users can see it
+      if (updateCursor) {
+        updateCursor(e.clientX, e.clientY);
+      }
+    };
+
+    // Only add listener if we have a workflowId
+    if (workflowId) {
+      window.addEventListener('mousemove', handleMouseMove);
+    }
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+    };
+  }, [updateCursor, workflowId]);
+
 
   useEffect(() => {
     async function fetchWorkflow() {
@@ -210,6 +228,7 @@ export default function WorkflowEditor({
         {/* Left: Input + Canvas */}
         <div className="flex flex-col flex-1 gap-4">
           <div className="flex justify-between">
+            <div className="flex items-center gap-2">
             <input
               id="workflowName"
               name="workflowName"
@@ -238,6 +257,15 @@ export default function WorkflowEditor({
               }}
               readOnly={isEditing}
             />
+            <button
+                disabled={workflowItems.length === 0 || (permissions && !permissions.can_edit)}
+                className="btn btn-primary text-white"
+                onClick={compileWorkflow}
+              >
+                <Settings className="h-4 w-4 mr-2" /> Compile
+              </button>
+              </div>
+
             <div className="flex items-center gap-2">
               {/* Realtime presence indicator */}
               {workflowId && (
@@ -257,7 +285,7 @@ export default function WorkflowEditor({
               
               {workflowId && (
                 <button
-                  className="btn btn-ghost btn-sm"
+                  className="btn btn-soft btn-accent"
                   onClick={() => setShowActivity(!showActivity)}
                   title="Show live activity"
                 >
@@ -265,13 +293,7 @@ export default function WorkflowEditor({
                 </button>
               )}
               
-              <button
-                disabled={workflowItems.length === 0 || (permissions && !permissions.can_edit)}
-                className="btn btn-primary text-white"
-                onClick={compileWorkflow}
-              >
-                <Settings className="h-4 w-4 mr-2" /> Compile
-              </button>
+              
             </div>
           </div>
 
@@ -281,17 +303,6 @@ export default function WorkflowEditor({
               setWorkflowItems={setWorkflowItems}
               onCompile={compileWorkflow}
             />
-            
-            {/* Realtime cursors */}
-            {otherUsers.map((user) => 
-              user.cursor && (
-                <RealtimeCursor
-                  key={user.user_id}
-                  user={user}
-                  position={user.cursor}
-                />
-              )
-            )}
           </section>
         </div>
         
@@ -325,6 +336,9 @@ export default function WorkflowEditor({
           </div>
         </div>
       )}
+      
+      {/* Realtime cursors - Debug version - placed at root level for proper positioning */}
+      {workflowId && <CursorOverlay otherUsers={otherUsers} />}
     </div>
   );
 }
