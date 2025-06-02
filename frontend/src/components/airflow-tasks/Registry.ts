@@ -923,17 +923,105 @@ export const Registry: TaskRegistry = {
     ],
     component: BaseTask,
   },
-  "Data Ingestion": {
+  "Data Preprocessing": {
     type: "Analysis",
     subtype: "Machine Learning",
     defaultConfig: [
       { 
-        name: "data source", 
+        name: "data", 
         value: "", 
         type: "task_reference",
-        placeholder: "Input data source (CSV extraction result)",
+        placeholder: "Data to preprocess (extraction or transformation result)",
         required: true,
-        validation: { message: "Data source is required" }
+        validation: { message: "Data input is required" }
+      },
+      { 
+        name: "target column", 
+        value: "", 
+        type: "string",
+        placeholder: "Name of the target variable column",
+        required: false
+      },
+      { 
+        name: "feature columns", 
+        value: "", 
+        type: "string",
+        placeholder: "List of feature column names (separated by commas)",
+        required: false
+      },
+      { 
+        name: "handle missing", 
+        value: "True", 
+        type: "boolean",
+        placeholder: "Handle missing values",
+        required: false
+      },
+      { 
+        name: "missing strategy", 
+        value: "auto", 
+        type: "select",
+        options: ["auto", "mean", "median", "mode", "knn"],
+        placeholder: "Strategy for handling missing values",
+        required: false
+      },
+      { 
+        name: "scale features", 
+        value: "True", 
+        type: "boolean",
+        placeholder: "Apply feature scaling",
+        required: false
+      },
+      { 
+        name: "scaling method", 
+        value: "standard", 
+        type: "select",
+        options: ["standard", "minmax", "robust"],
+        placeholder: "Feature scaling method",
+        required: false
+      },
+      { 
+        name: "encode categorical", 
+        value: "True", 
+        type: "boolean",
+        placeholder: "Encode categorical variables",
+        required: false
+      },
+      { 
+        name: "categorical encoding", 
+        value: "auto", 
+        type: "select",
+        options: ["auto", "onehot", "label", "ordinal"],
+        placeholder: "Categorical encoding method",
+        required: false
+      },
+      { 
+        name: "feature selection", 
+        value: "False", 
+        type: "boolean",
+        placeholder: "Perform feature selection",
+        required: false
+      },
+      { 
+        name: "remove outliers", 
+        value: "False", 
+        type: "boolean",
+        placeholder: "Remove outliers from data",
+        required: false
+      }
+    ],
+    component: BaseTask,
+  },
+  "Model Training": {
+    type: "Analysis",
+    subtype: "Machine Learning",
+    defaultConfig: [
+      { 
+        name: "data", 
+        value: "", 
+        type: "task_reference",
+        placeholder: "Training data (Data Preprocessing result)",
+        required: true,
+        validation: { message: "Training data is required" }
       },
       { 
         name: "target column", 
@@ -947,71 +1035,24 @@ export const Registry: TaskRegistry = {
         name: "feature columns", 
         value: "", 
         type: "string",
-        placeholder: "List of feature columns (separated by commas)",
-        required: false
-      }
-    ],
-    component: BaseTask,
-  },
-  "Data Preprocessing": {
-    type: "Analysis",
-    subtype: "Machine Learning",
-    defaultConfig: [
-      { 
-        name: "data", 
-        value: "", 
-        type: "task_reference",
-        placeholder: "Data to preprocess (Data Ingestion result)",
-        required: true,
-        validation: { message: "Data input is required" }
-      },
-      { 
-        name: "missing value strategy", 
-        value: "mean", 
-        type: "select",
-        options: ["mean", "median", "mode", "drop", "forward_fill"],
-        placeholder: "Strategy for handling missing values",
+        placeholder: "List of feature column names (separated by commas)",
         required: false
       },
       { 
-        name: "scaling method", 
-        value: "standard", 
-        type: "select",
-        options: ["standard", "minmax", "robust", "none"],
-        placeholder: "Feature scaling method",
-        required: false
-      },
-      { 
-        name: "encoding method", 
-        value: "onehot", 
-        type: "select",
-        options: ["onehot", "label", "target", "none"],
-        placeholder: "Categorical encoding method",
-        required: false
-      }
-    ],
-    component: BaseTask,
-  },
-  "Model Training": {
-    type: "Analysis",
-    subtype: "Machine Learning",
-    defaultConfig: [
-      { 
-        name: "preprocessed data", 
-        value: "", 
-        type: "task_reference",
-        placeholder: "Preprocessed training data (Data Preprocessing result)",
-        required: true,
-        validation: { message: "Preprocessed data is required" }
-      },
-      { 
-        name: "algorithm", 
+        name: "model type", 
         value: "random_forest", 
         type: "select",
-        options: ["random_forest", "linear_regression", "svm", "xgboost", "neural_network"],
+        options: ["random_forest", "logistic_regression", "svm", "linear_regression"],
         placeholder: "Machine learning algorithm",
-        required: true,
-        validation: { message: "Algorithm selection is required" }
+        required: false
+      },
+      { 
+        name: "task type", 
+        value: "classification", 
+        type: "select",
+        options: ["classification", "regression"],
+        placeholder: "Type of machine learning task",
+        required: false
       },
       { 
         name: "test size", 
@@ -1030,10 +1071,17 @@ export const Registry: TaskRegistry = {
         validation: { pattern: "^[0-9]+$", message: "Must be a positive integer" }
       },
       { 
-        name: "hyperparameters", 
-        value: "", 
-        type: "string",
-        placeholder: "JSON object with algorithm-specific parameters",
+        name: "hyperparameter tuning", 
+        value: "False", 
+        type: "boolean",
+        placeholder: "Perform hyperparameter tuning",
+        required: false
+      },
+      { 
+        name: "cross validation", 
+        value: "True", 
+        type: "boolean",
+        placeholder: "Perform cross-validation",
         required: false
       }
     ],
@@ -1044,12 +1092,12 @@ export const Registry: TaskRegistry = {
     subtype: "Machine Learning",
     defaultConfig: [
       { 
-        name: "trained model", 
+        name: "model path", 
         value: "", 
-        type: "task_reference",
-        placeholder: "Trained model (Model Training result)",
+        type: "string",
+        placeholder: "Path to the saved model file",
         required: true,
-        validation: { message: "Trained model is required" }
+        validation: { message: "Model path is required" }
       },
       { 
         name: "test data", 
@@ -1060,72 +1108,135 @@ export const Registry: TaskRegistry = {
         validation: { message: "Test data is required" }
       },
       { 
-        name: "evaluation metrics", 
-        value: "accuracy,precision,recall,f1", 
-        type: "string",
-        placeholder: "Metrics to calculate (separated by commas)",
+        name: "generate plots", 
+        value: "True", 
+        type: "boolean",
+        placeholder: "Generate evaluation plots",
         required: false
       },
       { 
-        name: "mae threshold", 
-        value: "150", 
-        type: "string", 
-        placeholder: "Maximum acceptable MAE value",
-        required: false,
-        validation: { pattern: "^[0-9]+(\.[0-9]+)?$", message: "Must be a valid number" }
-      },
-      { 
-        name: "generate report", 
+        name: "save predictions", 
         value: "True", 
         type: "boolean",
-        placeholder: "Generate detailed evaluation report",
+        placeholder: "Save predictions to file",
         required: false
       }
     ],
     component: BaseTask,
   },
-  "Model Deployment": {
+  "Deploy Model": {
     type: "Analysis",
     subtype: "Machine Learning",
     defaultConfig: [
       { 
-        name: "trained model", 
+        name: "model path", 
         value: "", 
-        type: "task_reference",
-        placeholder: "Model to deploy (Model Training result)",
+        type: "string",
+        placeholder: "Path to the trained model file",
         required: true,
-        validation: { message: "Trained model is required" }
+        validation: { message: "Model path is required" }
       },
       { 
-        name: "deployment target", 
-        value: "local", 
-        type: "select",
-        options: ["local", "docker", "cloud", "api_endpoint"],
-        placeholder: "Deployment environment",
+        name: "evaluation results", 
+        value: "", 
+        type: "task_reference",
+        placeholder: "Model evaluation results",
         required: true,
-        validation: { message: "Deployment target is required" }
+        validation: { message: "Evaluation results are required" }
       },
       { 
         name: "model name", 
         value: "", 
         type: "string",
         placeholder: "Name for the deployed model",
+        required: false
+      },
+      { 
+        name: "performance threshold", 
+        value: "", 
+        type: "string",
+        placeholder: "Minimum performance threshold for deployment",
+        required: false,
+        validation: { pattern: "^[0-9]+(\\.[0-9]+)?$", message: "Must be a valid number" }
+      },
+      { 
+        name: "metric name", 
+        value: "accuracy", 
+        type: "select",
+        options: ["accuracy", "precision", "recall", "f1_score", "r2_score"],
+        placeholder: "Metric to check against threshold",
+        required: false
+      },
+      { 
+        name: "backup existing", 
+        value: "True", 
+        type: "boolean",
+        placeholder: "Backup existing production model",
+        required: false
+      }
+    ],
+    component: BaseTask,
+  },
+  "Rollback Model": {
+    type: "Analysis",
+    subtype: "Machine Learning",
+    defaultConfig: [
+      { 
+        name: "model name", 
+        value: "", 
+        type: "string",
+        placeholder: "Name of the model to rollback",
         required: true,
         validation: { message: "Model name is required" }
       },
       { 
-        name: "version", 
-        value: "1.0.0", 
+        name: "deployment directory", 
+        value: "/shared_data/production_models", 
         type: "string",
-        placeholder: "Model version",
-        required: false,
-        validation: { pattern: "^[0-9]+\.[0-9]+\.[0-9]+$", message: "Must be semantic version (x.y.z)" }
-      },
+        placeholder: "Directory containing production models",
+        required: false
+      }
+    ],
+    component: BaseTask,
+  },
+  "List Deployed Models": {
+    type: "Analysis",
+    subtype: "Machine Learning",
+    defaultConfig: [
       { 
-        name: "metadata", 
+        name: "deployment directory", 
+        value: "/shared_data/production_models", 
+        type: "string",
+        placeholder: "Directory containing production models",
+        required: false
+      }
+    ],
+    component: BaseTask,
+  },
+  "Execute Notebook": {
+    type: "Analysis",
+    subtype: "Jupyter",
+    defaultConfig: [
+      { 
+        name: "input notebook path", 
         value: "", 
         type: "string",
-        placeholder: "Additional deployment metadata (JSON format)",
+        placeholder: "Path to input notebook file",
+        required: true,
+        validation: { message: "Input notebook path is required" }
+      },
+      { 
+        name: "output directory", 
+        value: "/shared_data/notebooks/output", 
+        type: "string",
+        placeholder: "Directory to save executed notebook",
+        required: false
+      },
+      { 
+        name: "parameters", 
+        value: "", 
+        type: "string",
+        placeholder: "Parameters to pass to notebook (JSON format)",
         required: false
       }
     ],

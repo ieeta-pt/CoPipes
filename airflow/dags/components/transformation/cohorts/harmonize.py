@@ -1,44 +1,111 @@
 import pandas as pd
-from typing import Dict
+import logging
+from typing import Dict, Optional, Union
 from airflow.decorators import task
 import components.utils.cohorts.ad_hoc as ad_hoc
 from components.extraction.csv import csv
 
-@task
-def harmonize(data: dict, mappings: dict | str, adhoc_harmonization: bool = False) -> Dict[dict, str]:
-    print(f"\nHarmonizing {data['filename']}\n")
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
+@task
+def harmonize(
+    data: Dict, 
+    mappings: Union[Dict, str],
+    adhoc_harmonization: bool = False,
+    source_column: str = "Variable",
+    measure_column: str = "Measure",
+    identifier_columns: Optional[list] = None,
+    **context
+) -> Dict:
+    """
+    Harmonize data using configurable mapping rules.
+    
+    Args:
+        data: Input data dictionary with 'data' key containing records
+        mappings: Mapping dictionary or file path to mapping CSV
+        adhoc_harmonization: Whether to apply domain-specific ad-hoc harmonization
+        source_column: Name of the column containing source variable names
+        measure_column: Name of the column containing measurements
+        identifier_columns: List of columns that identify unique records
+        **context: Airflow context
+    
+    Returns:
+        Dict containing harmonized data
+    """
+    logger.info(f"Harmonizing data from {data.get('filename', 'unknown source')}")
+
+    # Load mappings if provided as file path
     if isinstance(mappings, str):
+        logger.info(f"Loading mappings from file: {mappings}")
         mappings = csv(mappings)
 
+    if not data or 'data' not in data:
+        logger.error("No valid data received for harmonization.")
+        raise ValueError("No valid data received for harmonization.")
+
     df = pd.DataFrame.from_dict(data["data"])
-    data_file = data["filename"]
+    data_file = data.get("filename", "unknown")
+    
+    logger.info(f"Processing {len(df)} records for harmonization")
+
+    if not mappings or 'data' not in mappings:
+        logger.warning("No mappings provided, returning original data")
+        return data
 
     mappings_df = pd.DataFrame.from_dict(mappings["data"])
+    logger.info(f"Using {len(mappings_df)} mapping rules")
 
-    harmonized_data = harmonize_data(df, data_file, mappings_df, adhoc_harmonization)
+    # Auto-detect identifier columns if not provided
+    if identifier_columns is None:
+        # Assume columns other than source and measure are identifiers
+        all_columns = set(df.columns)
+        identifier_columns = list(all_columns - {source_column, measure_column})
+        logger.info(f"Auto-detected identifier columns: {identifier_columns}")
+
+    harmonized_data = harmonize_data(
+        df, data_file, mappings_df, adhoc_harmonization,
+        source_column, measure_column, identifier_columns
+    )
 
     harmonized_data = harmonized_data.to_dict(orient="records")
     harmonized_data = replace_nan_with_none(harmonized_data)
 
-    return {"data": harmonized_data, "filename": data["filename"]}
+    logger.info(f"Harmonization completed: {len(harmonized_data)} records")
+    
+    return {
+        "data": harmonized_data, 
+        "filename": data.get("filename", "unknown"),
+        "mappings_applied": len(mappings_df),
+        "adhoc_harmonization": adhoc_harmonization
+    }
 
 
-def harmonize_data(data: pd.DataFrame, data_file: str, mappings: pd.DataFrame, adhoc_harmonization: bool = False):
-    data = filter_data(data)
-    data = harmonize_variable_concept(data, data_file, mappings)
-    data = harmonize_measure_concept(data, mappings, data_file)
-    data = harmonize_measure_number(data)
-    data = harmonize_measure_string(data)
+def harmonize_data(
+    data: pd.DataFrame, 
+    data_file: str, 
+    mappings: pd.DataFrame, 
+    adhoc_harmonization: bool = False,
+    source_column: str = "Variable",
+    measure_column: str = "Measure",
+    identifier_columns: list = None
+):
+    """Apply harmonization transformations to the data"""
+    data = filter_data(data, measure_column)
+    data = harmonize_variable_concept(data, data_file, mappings, source_column)
+    data = harmonize_measure_concept(data, mappings, data_file, measure_column)
+    data = harmonize_measure_number(data, measure_column)
+    data = harmonize_measure_string(data, measure_column)
     # Ad hoc specific functions
     if adhoc_harmonization:
-        data = harmonize_measure_adhoc(data)
+        data = harmonize_measure_adhoc(data, measure_column)
 
     # data = clean_empty_measure(data)
     return data
 
-def filter_data(data):
-    return data[pd.notnull(data["Measure"])]
+def filter_data(data, measure_column="Measure"):
+    """Filter out rows with null measures"""
+    return data[pd.notnull(data[measure_column])]
 
 
 def harmonize_variable_concept(data: pd.DataFrame, data_file: str, mappings: pd.DataFrame) -> pd.DataFrame:
