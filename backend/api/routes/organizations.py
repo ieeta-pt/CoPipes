@@ -6,6 +6,10 @@ from schemas.organization import (
     InviteUserRequest, OrganizationMember, OrganizationUpdate
 )
 from utils.auth import get_current_user
+from utils.organization_auth import (
+    require_organization_admin, require_organization_owner,
+    require_member_management_permission, require_organization_member
+)
 
 router = APIRouter(
     prefix="/api/organizations",
@@ -42,17 +46,12 @@ async def get_user_organizations(current_user: dict = Depends(get_current_user))
 @router.get("/{org_id}/members", response_model=List[OrganizationMember])
 async def get_organization_members(
     org_id: str,
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(require_member_management_permission)
 ):
-    """Get all members of an organization (admin only)."""
+    """Get all members of an organization (requires member management privileges)."""
     try:
         return organization_service.get_organization_members(org_id, current_user["id"])
     except Exception as e:
-        if "Access denied" in str(e):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=str(e)
-            )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
@@ -62,9 +61,9 @@ async def get_organization_members(
 async def invite_user_to_organization(
     org_id: str,
     invite_data: InviteUserRequest,
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(require_member_management_permission)
 ):
-    """Invite a user to join the organization (admin only)."""
+    """Invite a user to join the organization (requires member management privileges)."""
     try:
         return organization_service.invite_user_to_organization(
             org_id, invite_data, current_user["id"]
@@ -89,9 +88,9 @@ async def invite_user_to_organization(
 async def remove_user_from_organization(
     org_id: str,
     user_id: str,
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(require_member_management_permission)
 ):
-    """Remove a user from the organization (admin only)."""
+    """Remove a user from the organization (requires member management privileges)."""
     try:
         return organization_service.remove_user_from_organization(
             org_id, user_id, current_user["id"]
@@ -112,9 +111,9 @@ async def update_user_role(
     org_id: str,
     user_id: str,
     role_data: dict,
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(require_member_management_permission)
 ):
-    """Update a user's role in the organization (admin only)."""
+    """Update a user's role in the organization (requires member management privileges)."""
     try:
         new_role = OrganizationRole(role_data.get("role"))
         return organization_service.update_user_role(
@@ -161,11 +160,37 @@ async def get_user_role_in_organization(
 @router.delete("/{org_id}")
 async def delete_organization(
     org_id: str,
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(require_organization_owner)
 ):
     """Delete an organization (owner only)."""
     try:
         return organization_service.delete_organization(org_id, current_user["id"])
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+@router.post("/{org_id}/transfer-ownership")
+async def transfer_organization_ownership(
+    org_id: str,
+    transfer_data: dict,
+    current_user: dict = Depends(require_organization_owner)
+):
+    """Transfer organization ownership to another member (owner only)."""
+    try:
+        new_owner_id = transfer_data.get("new_owner_id")
+        if not new_owner_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="new_owner_id is required"
+            )
+        
+        return organization_service.transfer_ownership(
+            org_id, new_owner_id, current_user["id"]
+        )
+    except HTTPException:
+        raise
     except Exception as e:
         if "Access denied" in str(e):
             raise HTTPException(

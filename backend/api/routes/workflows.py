@@ -6,10 +6,16 @@ import json
 from utils.dag_factory import generate_dag, remove_dag
 from utils.airflow_api import trigger_dag_run, get_dag_runs, get_dag_run_details, get_task_instances, get_task_xcom_entries
 from utils.auth import get_current_user
-from utils.workflow_permissions import get_user_workflows, check_workflow_access
+from utils.workflow_permissions import (
+    get_user_workflows, check_workflow_access, get_workflow_collaborators,
+    add_workflow_collaborator, update_workflow_collaborator_role, remove_workflow_collaborator
+)
 
 from database import SupabaseClient
-from schemas.workflow import WorkflowAirflow, WorkflowDB, WorkflowCollaborator
+from schemas.workflow import (
+    WorkflowAirflow, WorkflowDB, WorkflowCollaborator, 
+    AddCollaboratorRequest, UpdateCollaboratorRequest, WorkflowRole
+)
 
 router = APIRouter(
     prefix="/api/workflows",
@@ -346,6 +352,176 @@ async def get_collaborators(workflow_name: str, current_user: dict = Depends(get
             "collaborators": collaborators,
             "permissions": permissions.model_dump()
         }
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Enhanced Collaborator Management Routes
+@router.post("/{workflow_name}/collaborators/enhanced")
+async def add_enhanced_collaborator(
+    workflow_name: str, 
+    request: AddCollaboratorRequest, 
+    current_user: dict = Depends(get_current_user)
+):
+    """Add a collaborator with specific role to a workflow."""
+    try:
+        workflow_data, _ = check_workflow_access(workflow_name, current_user, "can_manage_permissions")
+        
+        # Validate email format
+        if "@" not in request.email:
+            raise HTTPException(status_code=400, detail="Invalid email format")
+        
+        # Check if collaborator email is the same as owner
+        if request.email.lower() == current_user["email"].lower():
+            raise HTTPException(status_code=400, detail="Cannot add yourself as a collaborator")
+        
+        # Check if user exists in the system
+        user_exists = supabase.check_user_exists_by_email(request.email)
+        if not user_exists:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"User with email '{request.email}' is not registered. Please ask them to create an account first."
+            )
+        
+        # Add collaborator using enhanced permissions
+        updated_collaborators = add_workflow_collaborator(workflow_data, request.email, request.role, current_user)
+        
+        # Update database
+        supabase.update_workflow(workflow_data["id"], {"workflow_collaborators": updated_collaborators}, None)
+        
+        return {
+            "status": "success", 
+            "message": f"Added {request.email} as {request.role.value} to {workflow_name}"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.put("/{workflow_name}/collaborators/{collaborator_email}/role")
+async def update_collaborator_role(
+    workflow_name: str, 
+    collaborator_email: str, 
+    request: UpdateCollaboratorRequest, 
+    current_user: dict = Depends(get_current_user)
+):
+    """Update a collaborator's role in a workflow."""
+    try:
+        workflow_data, _ = check_workflow_access(workflow_name, current_user, "can_manage_permissions")
+        
+        # Update collaborator role using enhanced permissions
+        updated_collaborators = update_workflow_collaborator_role(workflow_data, collaborator_email, request.role, current_user)
+        
+        # Update database
+        supabase.update_workflow(workflow_data["id"], {"workflow_collaborators": updated_collaborators}, None)
+        
+        return {
+            "status": "success", 
+            "message": f"Updated {collaborator_email} role to {request.role.value} in {workflow_name}"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/{workflow_name}/collaborators/enhanced/{collaborator_email}")
+async def remove_enhanced_collaborator(
+    workflow_name: str, 
+    collaborator_email: str, 
+    current_user: dict = Depends(get_current_user)
+):
+    """Remove a collaborator from a workflow (enhanced version)."""
+    try:
+        workflow_data, _ = check_workflow_access(workflow_name, current_user, "can_manage_permissions")
+        
+        # Remove collaborator using enhanced permissions
+        updated_collaborators = remove_workflow_collaborator(workflow_data, collaborator_email, current_user)
+        
+        # Update database
+        supabase.update_workflow(workflow_data["id"], {"workflow_collaborators": updated_collaborators}, None)
+        
+        return {
+            "status": "success", 
+            "message": f"Removed {collaborator_email} from {workflow_name} collaborators"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/{workflow_name}/collaborators/enhanced")
+async def get_enhanced_collaborators(workflow_name: str, current_user: dict = Depends(get_current_user)):
+    """Get list of collaborators with their roles for a workflow."""
+    try:
+        workflow_data, permissions = check_workflow_access(workflow_name, current_user, "can_view")
+        
+        # Get collaborators using enhanced permissions
+        collaborators = get_workflow_collaborators(workflow_data, current_user)
+        
+        return {
+            "workflow_name": workflow_name,
+            "collaborators": collaborators,
+            "permissions": permissions.model_dump()
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/{workflow_name}/copy")
+async def copy_workflow(workflow_name: str, current_user: dict = Depends(get_current_user)):
+    """Create a copy/fork of a workflow."""
+    try:
+        workflow_data, _ = check_workflow_access(workflow_name, current_user, "can_copy")
+        
+        # Get original workflow tasks
+        workflow_tasks = supabase.get_workflow_tasks(workflow_name, workflow_data["user_id"], current_user["email"])
+        if workflow_tasks is None:
+            raise HTTPException(status_code=404, detail="Workflow not found")
+        
+        # Create new workflow name
+        original_name = workflow_data["name"]
+        new_name = f"{original_name} (Copy)"
+        counter = 1
+        while supabase.get_workflow_by_name(new_name, current_user["id"]):
+            counter += 1
+            new_name = f"{original_name} (Copy {counter})"
+        
+        # Create new workflow
+        new_dag_id = new_name.replace(" ", "_")
+        new_workflow = WorkflowAirflow(
+            dag_id=new_dag_id,
+            schedule="@once",
+            start_date=None,
+            tasks=workflow_tasks
+        )
+        
+        # Generate DAG for the copy
+        actual_dag_id = generate_dag(new_workflow.model_dump(), current_user["id"])
+        
+        # Save copy to database
+        workflow_db = WorkflowDB(
+            name=new_name,
+            last_edit=datetime.now().isoformat(),
+            user_id=current_user["id"],
+            organization_id=workflow_data.get("organization_id"),
+            collaborators=[],
+            workflow_collaborators=[]
+        )
+        supabase.add_workflow(workflow_db, new_workflow.tasks)
+        
+        return {
+            "status": "success", 
+            "message": f"Created copy of {workflow_name} as {new_name}",
+            "new_workflow_name": new_name,
+            "dag_id": actual_dag_id
+        }
+    except HTTPException:
+        raise
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))

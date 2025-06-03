@@ -27,12 +27,12 @@ class OrganizationService:
                 "created_at": datetime.now().isoformat()
             }).execute()
             
-            # Add owner as admin member
+            # Add owner as owner member
             self.client.table("organization_members").insert({
                 "id": str(uuid4()),
                 "user_id": owner_id,
                 "organization_id": org_id,
-                "role": OrganizationRole.ADMIN,
+                "role": OrganizationRole.OWNER,
                 "invited_at": datetime.now().isoformat(),
                 "invited_by": owner_id
             }).execute()
@@ -82,17 +82,21 @@ class OrganizationService:
             raise
 
     def get_organization_members(self, org_id: str, user_id: str) -> List[OrganizationMember]:
-        """Get all members of an organization (only if user is admin)."""
+        """Get all members of an organization (only if user can manage members)."""
         try:
-            # Check if user is admin of this organization
-            admin_check = self.client.table("organization_members")\
+            # Check if user can manage members of this organization
+            role_check = self.client.table("organization_members")\
                 .select("role")\
                 .eq("organization_id", org_id)\
                 .eq("user_id", user_id)\
                 .execute()
             
-            if not admin_check.data or admin_check.data[0]["role"] != OrganizationRole.ADMIN:
-                raise Exception("Access denied: Only admins can view organization members")
+            if not role_check.data:
+                raise Exception("Access denied: User is not a member of this organization")
+                
+            user_role = OrganizationRole(role_check.data[0]["role"])
+            if not user_role.can_manage_members():
+                raise Exception("Access denied: Insufficient privileges to view organization members")
             
             # Get all members with user info
             result = self.client.table("organization_members")\
@@ -131,15 +135,29 @@ class OrganizationService:
     def invite_user_to_organization(self, org_id: str, invite_data: InviteUserRequest, inviter_id: str) -> dict:
         """Invite a user to join an organization."""
         try:
-            # Check if inviter is admin
-            admin_check = self.client.table("organization_members")\
+            # Check if inviter can manage members
+            role_check = self.client.table("organization_members")\
                 .select("role")\
                 .eq("organization_id", org_id)\
                 .eq("user_id", inviter_id)\
                 .execute()
             
-            if not admin_check.data or admin_check.data[0]["role"] != OrganizationRole.ADMIN:
-                raise Exception("Access denied: Only admins can invite users")
+            if not role_check.data:
+                raise Exception("Access denied: User is not a member of this organization")
+                
+            inviter_role = OrganizationRole(role_check.data[0]["role"])
+            
+            # Check if inviter can manage members
+            if not inviter_role.can_manage_members():
+                raise Exception("Access denied: Insufficient privileges to invite users")
+            
+            # Check if trying to invite someone with higher or equal role to inviter
+            if invite_data.role.get_role_hierarchy_level() >= inviter_role.get_role_hierarchy_level():
+                raise Exception("Access denied: Cannot invite users with equal or higher privileges")
+            
+            # Only owners and admins can invite other admins
+            if invite_data.role == OrganizationRole.ADMIN and not inviter_role.can_manage_admins():
+                raise Exception("Access denied: Only owners and admins can invite other admins")
             
             # Check if user exists in auth system
             user_check = self.client.table("profiles")\
@@ -180,23 +198,39 @@ class OrganizationService:
     def remove_user_from_organization(self, org_id: str, user_to_remove_id: str, remover_id: str) -> dict:
         """Remove a user from an organization."""
         try:
-            # Check if remover is admin
-            admin_check = self.client.table("organization_members")\
+            # Check remover's role
+            remover_role_check = self.client.table("organization_members")\
                 .select("role")\
                 .eq("organization_id", org_id)\
                 .eq("user_id", remover_id)\
                 .execute()
             
-            if not admin_check.data or admin_check.data[0]["role"] != OrganizationRole.ADMIN:
-                raise Exception("Access denied: Only admins can remove users")
+            if not remover_role_check.data:
+                raise Exception("Access denied: User is not a member of this organization")
+                
+            remover_role = OrganizationRole(remover_role_check.data[0]["role"])
             
-            # Get organization info to check if removing owner
-            org_info = self.client.table("organizations")\
-                .select("owner_id")\
-                .eq("id", org_id)\
+            if not remover_role.can_manage_members():
+                raise Exception("Access denied: Insufficient privileges to remove users")
+            
+            # Get target user's role
+            target_role_check = self.client.table("organization_members")\
+                .select("role")\
+                .eq("organization_id", org_id)\
+                .eq("user_id", user_to_remove_id)\
                 .execute()
             
-            if org_info.data and org_info.data[0]["owner_id"] == user_to_remove_id:
+            if not target_role_check.data:
+                raise Exception("User is not a member of this organization")
+                
+            target_role = OrganizationRole(target_role_check.data[0]["role"])
+            
+            # Cannot remove someone with equal or higher privileges
+            if target_role.get_role_hierarchy_level() >= remover_role.get_role_hierarchy_level():
+                raise Exception("Access denied: Cannot remove users with equal or higher privileges")
+            
+            # Cannot remove organization owner
+            if target_role == OrganizationRole.OWNER:
                 raise Exception("Cannot remove organization owner")
             
             # Remove user from organization
@@ -214,24 +248,48 @@ class OrganizationService:
     def update_user_role(self, org_id: str, user_id: str, new_role: OrganizationRole, updater_id: str) -> dict:
         """Update a user's role in an organization."""
         try:
-            # Check if updater is admin
-            admin_check = self.client.table("organization_members")\
+            # Check updater's role
+            updater_role_check = self.client.table("organization_members")\
                 .select("role")\
                 .eq("organization_id", org_id)\
                 .eq("user_id", updater_id)\
                 .execute()
             
-            if not admin_check.data or admin_check.data[0]["role"] != OrganizationRole.ADMIN:
-                raise Exception("Access denied: Only admins can update user roles")
+            if not updater_role_check.data:
+                raise Exception("Access denied: User is not a member of this organization")
+                
+            updater_role = OrganizationRole(updater_role_check.data[0]["role"])
             
-            # Get organization info to check if updating owner
-            org_info = self.client.table("organizations")\
-                .select("owner_id")\
-                .eq("id", org_id)\
+            if not updater_role.can_manage_members():
+                raise Exception("Access denied: Insufficient privileges to update user roles")
+            
+            # Get target user's current role
+            target_role_check = self.client.table("organization_members")\
+                .select("role")\
+                .eq("organization_id", org_id)\
+                .eq("user_id", user_id)\
                 .execute()
             
-            if org_info.data and org_info.data[0]["owner_id"] == user_id:
+            if not target_role_check.data:
+                raise Exception("User is not a member of this organization")
+                
+            current_role = OrganizationRole(target_role_check.data[0]["role"])
+            
+            # Cannot update role of organization owner
+            if current_role == OrganizationRole.OWNER:
                 raise Exception("Cannot change role of organization owner")
+            
+            # Cannot assign role equal or higher than updater's role
+            if new_role.get_role_hierarchy_level() >= updater_role.get_role_hierarchy_level():
+                raise Exception("Access denied: Cannot assign roles equal or higher than your own")
+            
+            # Cannot update someone with equal or higher privileges
+            if current_role.get_role_hierarchy_level() >= updater_role.get_role_hierarchy_level():
+                raise Exception("Access denied: Cannot update users with equal or higher privileges")
+            
+            # Only owners and admins can assign admin role
+            if new_role == OrganizationRole.ADMIN and not updater_role.can_manage_admins():
+                raise Exception("Access denied: Only owners and admins can assign admin role")
             
             # Update user role
             self.client.table("organization_members")\
@@ -264,13 +322,19 @@ class OrganizationService:
     def delete_organization(self, org_id: str, user_id: str) -> dict:
         """Delete an organization (only owner can do this)."""
         try:
-            # Check if user is owner
-            org_check = self.client.table("organizations")\
-                .select("owner_id")\
-                .eq("id", org_id)\
+            # Check if user has permission to delete organization
+            role_check = self.client.table("organization_members")\
+                .select("role")\
+                .eq("organization_id", org_id)\
+                .eq("user_id", user_id)\
                 .execute()
             
-            if not org_check.data or org_check.data[0]["owner_id"] != user_id:
+            if not role_check.data:
+                raise Exception("Access denied: User is not a member of this organization")
+                
+            user_role = OrganizationRole(role_check.data[0]["role"])
+            
+            if not user_role.can_delete_organization():
                 raise Exception("Access denied: Only organization owner can delete the organization")
             
             # Delete all members first
@@ -288,4 +352,56 @@ class OrganizationService:
             return {"message": "Organization successfully deleted"}
         except Exception as e:
             print(f"Failed to delete organization: {e}")
+            raise
+    
+    def transfer_ownership(self, org_id: str, new_owner_id: str, current_owner_id: str) -> dict:
+        """Transfer organization ownership to another member."""
+        try:
+            # Check if current user is owner
+            role_check = self.client.table("organization_members")\
+                .select("role")\
+                .eq("organization_id", org_id)\
+                .eq("user_id", current_owner_id)\
+                .execute()
+            
+            if not role_check.data:
+                raise Exception("Access denied: User is not a member of this organization")
+                
+            current_role = OrganizationRole(role_check.data[0]["role"])
+            
+            if not current_role.can_transfer_ownership():
+                raise Exception("Access denied: Only organization owner can transfer ownership")
+            
+            # Check if new owner is a member
+            new_owner_check = self.client.table("organization_members")\
+                .select("role")\
+                .eq("organization_id", org_id)\
+                .eq("user_id", new_owner_id)\
+                .execute()
+            
+            if not new_owner_check.data:
+                raise Exception("New owner must be a member of the organization")
+            
+            # Update organization owner
+            self.client.table("organizations")\
+                .update({"owner_id": new_owner_id})\
+                .eq("id", org_id)\
+                .execute()
+            
+            # Update roles: new owner becomes OWNER, old owner becomes ADMIN
+            self.client.table("organization_members")\
+                .update({"role": OrganizationRole.OWNER})\
+                .eq("organization_id", org_id)\
+                .eq("user_id", new_owner_id)\
+                .execute()
+            
+            self.client.table("organization_members")\
+                .update({"role": OrganizationRole.ADMIN})\
+                .eq("organization_id", org_id)\
+                .eq("user_id", current_owner_id)\
+                .execute()
+            
+            return {"message": "Organization ownership successfully transferred"}
+        except Exception as e:
+            print(f"Failed to transfer ownership: {e}")
             raise

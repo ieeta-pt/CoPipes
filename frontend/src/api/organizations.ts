@@ -48,6 +48,11 @@ export const organizationApi = {
     return apiClient.delete(`/api/organizations/${orgId}`);
   },
 
+  // Transfer organization ownership (owner only)
+  async transferOwnership(orgId: string, newOwnerId: string): Promise<{ message: string }> {
+    return apiClient.post(`/api/organizations/${orgId}/transfer-ownership`, { new_owner_id: newOwnerId });
+  },
+
   // Get organization workflows
   async getOrganizationWorkflows(orgId: string): Promise<{ workflows: any[], organization_id: string }> {
     return apiClient.get(`/api/workflows/organization/${orgId}`);
