@@ -1,8 +1,15 @@
 import { WorkflowRequest } from "@/components/airflow-tasks/types"
 import { apiClient } from "@/services/api"
 
-export async function submitWorkflow(payload: WorkflowRequest) {
-  console.log("submitWorkflow payload:", payload);
+export async function submitWorkflow(payload: WorkflowRequest, organizationId?: string | null) {
+  console.log("submitWorkflow payload:", payload, "organizationId:", organizationId);
+  
+  // If organizationId is provided, use the organization-specific endpoint
+  if (organizationId) {
+    return apiClient.post(`/api/workflows/organization/${organizationId}/new`, payload);
+  }
+  
+  // Otherwise use the regular personal workflow endpoint
   return apiClient.post("/api/workflows/new", payload);
 }
 

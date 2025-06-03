@@ -35,6 +35,7 @@ class WorkflowDB(BaseModel):
     name: str
     last_edit: str
     user_id: str  # owner_id
+    organization_id: Optional[str] = None  # Organization that owns this workflow
     last_run: str = None
     status: str = "Not Started"
     collaborators: List[str] = []  # List of user emails with collaboration access

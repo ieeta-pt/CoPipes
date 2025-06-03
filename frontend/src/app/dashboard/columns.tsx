@@ -16,6 +16,8 @@ export type Workflow = {
   owner_name?: string;  // Owner's display name
   created_at: string;
   role?: "owner" | "collaborator";
+  organization_id?: string | null; // Organization ID if workflow belongs to org
+  organization_name?: string; // Organization name for display
   permissions?: {
     is_owner: boolean;
     can_edit: boolean;
@@ -104,6 +106,34 @@ export const columns: ColumnDef<Workflow>[] = [
           <span className={`text-sm ${isCurrentUserOwner ? "font-medium" : ""}`}>
             {displayText}
           </span>
+        </div>
+      );
+    },
+  },
+  {
+    accessorKey: "organization_name",
+    header: "Organization",
+    cell: ({ row }) => {
+      const workflow = row.original;
+      const orgName = workflow.organization_name;
+      
+      if (!orgName) {
+        return (
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-full bg-gray-400 flex items-center justify-center text-white text-xs font-medium">
+              P
+            </div>
+            <span className="text-sm text-base-content/70">Personal</span>
+          </div>
+        );
+      }
+      
+      return (
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-full bg-purple-500 flex items-center justify-center text-white text-xs font-medium">
+            {orgName.charAt(0).toUpperCase()}
+          </div>
+          <span className="text-sm font-medium">{orgName}</span>
         </div>
       );
     },

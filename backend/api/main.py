@@ -2,7 +2,7 @@ import os
 
 from fastapi import FastAPI, UploadFile, File
 
-from routes import workflows, auth
+from routes import workflows, auth, organizations
 
 from database import SupabaseClient 
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 app = FastAPI()
 app.include_router(workflows.router)
 app.include_router(auth.router)
+app.include_router(organizations.router)
 supabase = SupabaseClient()
 
 AIRFLOW_API_URL = os.getenv("AIRFLOW_API_URL")

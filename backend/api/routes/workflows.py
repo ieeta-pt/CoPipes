@@ -19,7 +19,7 @@ router = APIRouter(
 supabase = SupabaseClient()
 
 @router.post("/new")
-async def receive_workflow(workflow: WorkflowAirflow, current_user: dict = Depends(get_current_user)):
+async def receive_workflow(workflow: WorkflowAirflow, current_user: dict = Depends(get_current_user), organization_id: str = None):
     try:
         # Generate DAG with user context
         actual_dag_id = generate_dag(workflow.model_dump(), current_user["id"])
@@ -28,6 +28,7 @@ async def receive_workflow(workflow: WorkflowAirflow, current_user: dict = Depen
             name=workflow.dag_id.replace("_", " "),
             last_edit=datetime.now().isoformat(),
             user_id=current_user["id"],
+            organization_id=organization_id,
             collaborators=[]
         )
         supabase.add_workflow(workflow_db, workflow.tasks)
@@ -344,6 +345,61 @@ async def get_collaborators(workflow_name: str, current_user: dict = Depends(get
             "workflow_name": workflow_name,
             "collaborators": collaborators,
             "permissions": permissions.model_dump()
+        }
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Organization-specific workflow routes
+@router.get("/organization/{org_id}")
+async def get_organization_workflows_endpoint(
+    org_id: str, 
+    current_user: dict = Depends(get_current_user)
+):
+    """Get all workflows belonging to an organization."""
+    try:
+        # Use the imported function with correct name to avoid conflict
+        from utils.workflow_permissions import get_organization_workflows as get_org_workflows
+        
+        workflows = get_org_workflows(org_id, current_user)
+        return {"workflows": workflows, "organization_id": org_id}
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/organization/{org_id}/new")
+async def create_organization_workflow(
+    org_id: str,
+    workflow: WorkflowAirflow,
+    current_user: dict = Depends(get_current_user)
+):
+    """Create a new workflow within an organization."""
+    try:
+        # Check if user is a member of the organization
+        from services.organization_service import OrganizationService
+        org_service = OrganizationService()
+        user_role = org_service.get_user_role_in_organization(org_id, current_user["id"])
+        
+        if user_role is None:
+            raise HTTPException(status_code=403, detail="Access denied: Not a member of this organization")
+        
+        # Generate DAG with user context
+        actual_dag_id = generate_dag(workflow.model_dump(), current_user["id"])
+        
+        workflow_db = WorkflowDB(
+            name=workflow.dag_id.replace("_", " "),
+            last_edit=datetime.now().isoformat(),
+            user_id=current_user["id"],
+            organization_id=org_id,
+            collaborators=[]
+        )
+        supabase.add_workflow(workflow_db, workflow.tasks)
+        
+        return {
+            "status": "success", 
+            "message": "Organization workflow created successfully", 
+            "dag_id": actual_dag_id,
+            "organization_id": org_id
         }
     except Exception as e:
         traceback.print_exc()

@@ -3,6 +3,7 @@ from datetime import timedelta
 from services.supabase_client import supabase
 from schemas.user import UserRegister, UserLogin, UserUpdate, EmailRequest, TokenResponse
 from utils.auth import create_access_token, get_current_user, JWT_ACCESS_TOKEN_EXPIRE_HOURS
+from utils.organization_auth import get_user_organization_context
 from config import FRONTEND_URL
 
 router = APIRouter(
@@ -122,8 +123,17 @@ async def reset_password(email_data: EmailRequest):
 
 @router.get("/me")
 async def get_current_user_info(current_user: dict = Depends(get_current_user)):
-    """Get current user information"""
-    return current_user
+    """Get current user information with organization context"""
+    # Get organization context
+    org_context = get_user_organization_context(current_user["id"])
+    
+    # Merge user data with organization context
+    user_info = {
+        **current_user,
+        **org_context
+    }
+    
+    return user_info
 
 @router.put("/update-profile")
 async def update_profile(user_data: UserUpdate, current_user: dict = Depends(get_current_user)):

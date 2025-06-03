@@ -3,11 +3,18 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { Organization } from "@/types/organization";
+import { organizationApi } from "@/api/organizations";
 
 interface User {
   id: string;
   email: string;
   full_name?: string;
+  organizations?: Array<{
+    organization_id: string;
+    organization_name: string;
+    role: string;
+  }>;
 }
 
 export default function ProfilePage() {
@@ -19,6 +26,8 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [orgLoading, setOrgLoading] = useState(true);
   const router = useRouter();
   const { user, token, logout, isAuthenticated } = useAuth();
 
@@ -32,7 +41,22 @@ export default function ProfilePage() {
       setFullName(user.full_name || "");
       setEmail(user.email || "");
     }
+
+    // Load user's organizations
+    loadOrganizations();
   }, [user, isAuthenticated, router]);
+
+  const loadOrganizations = async () => {
+    try {
+      setOrgLoading(true);
+      const userOrgs = await organizationApi.getUserOrganizations();
+      setOrganizations(userOrgs);
+    } catch (err) {
+      console.error("Failed to load organizations:", err);
+    } finally {
+      setOrgLoading(false);
+    }
+  };
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -102,6 +126,14 @@ export default function ProfilePage() {
     logout();
   };
 
+  const handleCreateOrganization = () => {
+    router.push('/organizations');
+  };
+
+  const handleOrganizationClick = (orgId: string) => {
+    router.push(`/organizations/${orgId}`);
+  };
+
   if (!user) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
@@ -111,7 +143,69 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-2xl">
+    <div className="container mx-auto px-4 py-8 max-w-4xl">
+      {/* Organizations Section */}
+      <div className="card bg-base-100 shadow-xl mb-6">
+        <div className="card-body">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="card-title text-2xl font-bold">My Organizations</h2>
+            <button 
+              className="btn btn-primary"
+              onClick={handleCreateOrganization}
+            >
+              Create Organization
+            </button>
+          </div>
+          
+          {orgLoading ? (
+            <div className="flex justify-center py-8">
+              <div className="loading loading-spinner loading-lg"></div>
+            </div>
+          ) : organizations.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {organizations.map((org) => (
+                <div 
+                  key={org.id} 
+                  className="card bg-base-200 shadow-md cursor-pointer hover:shadow-lg transition-shadow"
+                  onClick={() => handleOrganizationClick(org.id)}
+                >
+                  <div className="card-body p-4">
+                    <h3 className="card-title text-lg">{org.name}</h3>
+                    {org.description && (
+                      <p className="text-sm text-base-content/70 line-clamp-2">{org.description}</p>
+                    )}
+                    <div className="flex justify-between items-center mt-2">
+                      <div className="badge badge-outline badge-sm">
+                        {org.member_count} member{org.member_count !== 1 ? 's' : ''}
+                      </div>
+                      <div className="text-xs text-base-content/60">
+                        {new Date(org.created_at).toLocaleDateString()}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <div className="text-base-content/60 mb-4">
+                <svg className="w-16 h-16 mx-auto mb-4 text-base-content/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                You're not part of any organizations yet.
+              </div>
+              <button 
+                className="btn btn-primary"
+                onClick={handleCreateOrganization}
+              >
+                Create Your First Organization
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Profile Settings Section */}
       <div className="card bg-base-100 shadow-xl">
         <div className="card-body">
           <h2 className="card-title text-2xl font-bold mb-6">Profile Settings</h2>

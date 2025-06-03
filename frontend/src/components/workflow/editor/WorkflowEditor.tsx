@@ -20,6 +20,8 @@ import { useRouter } from "next/navigation";
 import { Settings, Users, Activity } from "lucide-react";
 import { showToast } from "@/components/layout/ShowToast";
 import { useAuth } from "@/contexts/AuthContext";
+import { Organization } from "@/types/organization";
+import { organizationApi } from "@/api/organizations";
 
 const createIdBuilder =
   (prefix = "id") =>
@@ -43,11 +45,33 @@ export default function WorkflowEditor({
   const [permissions, setPermissions] = useState<any>(null);
   const [showCollaborators, setShowCollaborators] = useState(false);
   const [showActivity, setShowActivity] = useState(false);
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [selectedOrganization, setSelectedOrganization] = useState<string>("");
+  const [orgLoading, setOrgLoading] = useState(false);
   const fetchingRef = useRef(false);
 
   // Realtime collaboration - temporarily using debug version
 
   const { otherUsers, updateCursor } = useRealtimeCollaboration(workflowId);
+
+  // Load user's organizations for new workflows
+  useEffect(() => {
+    async function loadOrganizations() {
+      if (!isEditing && isAuthenticated && !authLoading) {
+        try {
+          setOrgLoading(true);
+          const userOrgs = await organizationApi.getUserOrganizations();
+          setOrganizations(userOrgs);
+        } catch (error) {
+          console.error("Failed to load organizations:", error);
+        } finally {
+          setOrgLoading(false);
+        }
+      }
+    }
+    
+    loadOrganizations();
+  }, [isEditing, isAuthenticated, authLoading]);
 
   // Track mouse movement for real-time cursors
   useEffect(() => {
@@ -106,6 +130,11 @@ export default function WorkflowEditor({
             Array.isArray(workflow.collaborators) ? workflow.collaborators : []
           );
           setPermissions(workflow.permissions || null);
+          
+          // Set organization context for existing workflows
+          if (workflow.organization_id) {
+            setSelectedOrganization(workflow.organization_id);
+          }
         } catch (error) {
           setError(
             "Failed to fetch workflow. It might have been deleted or you don't have permission to view it."
@@ -179,7 +208,9 @@ export default function WorkflowEditor({
       if (isEditing) {
         setResult(await updateWorkflow(payload.dag_id, payload));
       } else {
-        setResult(await submitWorkflow(payload));
+        // For new workflows, include organization context
+        const organizationId = selectedOrganization || null;
+        setResult(await submitWorkflow(payload, organizationId));
       }
       showToast("Workflow compiled successfully.", "success");
     } catch (err) {
@@ -232,34 +263,75 @@ export default function WorkflowEditor({
         <div className="flex flex-col flex-1 gap-4">
           <div className="flex justify-between">
             <div className="flex items-center gap-2">
-              <input
-                id="workflowName"
-                name="workflowName"
-                type="text"
-                placeholder="Nameless workflow"
-                className="input input-bordered w-full max-w-md text-lg"
-                value={workflowName}
-                onChange={(e) => {
-                  if (!isEditing) {
-                    document
-                      .getElementById("workflowName")
-                      ?.classList.remove("input-error");
-                    const regex = /^[a-zA-Z0-9\s]*$/;
-                    if (!regex.test(e.target.value)) {
-                      showToast(
-                        "Workflow name can only contain letters, numbers and white spaces.",
-                        "warning"
-                      );
+              <div className="flex flex-col gap-2">
+                <input
+                  id="workflowName"
+                  name="workflowName"
+                  type="text"
+                  placeholder="Nameless workflow"
+                  className="input input-bordered w-full max-w-md text-lg"
+                  value={workflowName}
+                  onChange={(e) => {
+                    if (!isEditing) {
                       document
                         .getElementById("workflowName")
-                        ?.classList.add("input-error");
-                    } else {
-                      setWorkflowName(e.target.value);
+                        ?.classList.remove("input-error");
+                      const regex = /^[a-zA-Z0-9\s]*$/;
+                      if (!regex.test(e.target.value)) {
+                        showToast(
+                          "Workflow name can only contain letters, numbers and white spaces.",
+                          "warning"
+                        );
+                        document
+                          .getElementById("workflowName")
+                          ?.classList.add("input-error");
+                      } else {
+                        setWorkflowName(e.target.value);
+                      }
                     }
-                  }
-                }}
-                readOnly={isEditing}
-              />
+                  }}
+                  readOnly={isEditing}
+                />
+                
+                {/* Organization context indicator for existing workflows */}
+                {isEditing && (
+                  <div className="text-sm text-base-content/70 flex items-center gap-2">
+                    <div className={`w-3 h-3 rounded-full ${selectedOrganization ? 'bg-purple-500' : 'bg-gray-400'}`}></div>
+                    <span>
+                      {selectedOrganization ? `Organization workflow` : 'Personal workflow'}
+                    </span>
+                  </div>
+                )}
+                
+                {/* Organization selector for new workflows */}
+                {!isEditing && (
+                  <div className="relative">
+                    <select 
+                      className="select select-bordered w-full max-w-md"
+                      value={selectedOrganization}
+                      onChange={(e) => setSelectedOrganization(e.target.value)}
+                      disabled={orgLoading}
+                    >
+                      <option value="">Personal Workflow</option>
+                      {orgLoading ? (
+                        <option disabled>Loading organizations...</option>
+                      ) : (
+                        organizations.map((org) => (
+                          <option key={org.id} value={org.id}>
+                            {org.name}
+                          </option>
+                        ))
+                      )}
+                    </select>
+                    {orgLoading && (
+                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                        <div className="loading loading-spinner loading-sm"></div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+              
               <button
                 disabled={
                   workflowItems.length === 0 ||
