@@ -17,6 +17,6 @@ with DAG (
     is_paused_upon_creation=False
 ) as dag:
 
-    csv_9no = csv(filename='', file_separation='Comma')
+    csv_9no = csv(filename='infos.csv', file_separation=',')
 
 

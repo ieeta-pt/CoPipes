@@ -6,7 +6,9 @@ import { Registry } from "@/components/airflow-tasks/Registry";
 import { Sidebar } from "@/components/workflow/Sidebar";
 import { WorkflowCanvas } from "@/components/workflow/WorkflowCanvas";
 import CollaboratorManager from "@/components/workflow/CollaboratorManager";
-import PresenceIndicator, { ActivityFeed } from "@/components/workflow/PresenceIndicator";
+import PresenceIndicator, {
+  ActivityFeed,
+} from "@/components/workflow/PresenceIndicator";
 import { useRealtimeCollaboration } from "@/hooks/useRealtimeCollaboration";
 import { CursorOverlay } from "@/components/workflow/RealtimeCursor";
 import {
@@ -23,7 +25,6 @@ const createIdBuilder =
   (prefix = "id") =>
   () =>
     `${prefix}_${Math.random().toString(36).substring(2, 5)}`;
-
 
 export default function WorkflowEditor({
   workflowId,
@@ -59,14 +60,13 @@ export default function WorkflowEditor({
 
     // Only add listener if we have a workflowId
     if (workflowId) {
-      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener("mousemove", handleMouseMove);
     }
 
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener("mousemove", handleMouseMove);
     };
   }, [updateCursor, workflowId]);
-
 
   useEffect(() => {
     async function fetchWorkflow() {
@@ -100,9 +100,11 @@ export default function WorkflowEditor({
               })),
             }))
           );
-          
+
           // Set collaboration data - ensure collaborators is always an array
-          setCollaborators(Array.isArray(workflow.collaborators) ? workflow.collaborators : []);
+          setCollaborators(
+            Array.isArray(workflow.collaborators) ? workflow.collaborators : []
+          );
           setPermissions(workflow.permissions || null);
         } catch (error) {
           setError(
@@ -137,7 +139,7 @@ export default function WorkflowEditor({
     window.scrollTo({ top: 0, behavior: "smooth" });
 
     if (!workflowName) {
-      showToast("Workflow name is required.", "warning"); 
+      showToast("Workflow name is required.", "warning");
       document.getElementById("workflowName")?.classList.add("input-error");
       return;
     }
@@ -153,14 +155,15 @@ export default function WorkflowEditor({
         const configField: any = {
           name: conf.name,
           value: conf.value || "",
-          type: conf.type === "task_reference" ? "string" : (conf.type || "string"),
+          type:
+            conf.type === "task_reference" ? "string" : conf.type || "string",
         };
-        
+
         // Only include options if they exist and are not empty
         if (conf.options && conf.options.length > 0) {
           configField.options = conf.options;
         }
-        
+
         return configField;
       }),
       dependencies: item.dependencies || [],
@@ -229,52 +232,52 @@ export default function WorkflowEditor({
         <div className="flex flex-col flex-1 gap-4">
           <div className="flex justify-between">
             <div className="flex items-center gap-2">
-            <input
-              id="workflowName"
-              name="workflowName"
-              type="text"
-              placeholder="Nameless workflow"
-              className="input input-bordered w-full max-w-md text-lg"
-              value={workflowName}
-              onChange={(e) => {
-                if (!isEditing) {
-                  document
-                    .getElementById("workflowName")
-                    ?.classList.remove("input-error");
-                  const regex = /^[a-zA-Z0-9\s]*$/;
-                  if (!regex.test(e.target.value)) {
-                    showToast(
-                      "Workflow name can only contain letters, numbers and white spaces.",
-                      "warning"
-                    );
+              <input
+                id="workflowName"
+                name="workflowName"
+                type="text"
+                placeholder="Nameless workflow"
+                className="input input-bordered w-full max-w-md text-lg"
+                value={workflowName}
+                onChange={(e) => {
+                  if (!isEditing) {
                     document
                       .getElementById("workflowName")
-                      ?.classList.add("input-error");
-                  } else {
-                    setWorkflowName(e.target.value);
+                      ?.classList.remove("input-error");
+                    const regex = /^[a-zA-Z0-9\s]*$/;
+                    if (!regex.test(e.target.value)) {
+                      showToast(
+                        "Workflow name can only contain letters, numbers and white spaces.",
+                        "warning"
+                      );
+                      document
+                        .getElementById("workflowName")
+                        ?.classList.add("input-error");
+                    } else {
+                      setWorkflowName(e.target.value);
+                    }
                   }
+                }}
+                readOnly={isEditing}
+              />
+              <button
+                disabled={
+                  workflowItems.length === 0 ||
+                  (permissions && !permissions.can_edit)
                 }
-              }}
-              readOnly={isEditing}
-            />
-            <button
-                disabled={workflowItems.length === 0 || (permissions && !permissions.can_edit)}
                 className="btn btn-primary text-white"
                 onClick={compileWorkflow}
               >
                 <Settings className="h-4 w-4 mr-2" /> Compile
               </button>
-              </div>
+            </div>
 
             <div className="flex items-center gap-2">
               {/* Realtime presence indicator */}
               {workflowId && (
-                <PresenceIndicator 
-                  workflowId={workflowId} 
-                  className="mr-2"
-                />
+                <PresenceIndicator workflowId={workflowId} className="mr-2" />
               )}
-              
+
               <button
                 className="btn btn-secondary"
                 onClick={() => setShowCollaborators(true)}
@@ -282,7 +285,7 @@ export default function WorkflowEditor({
                 <Users className="h-4 w-4 mr-2" />
                 Collaborators ({collaborators.length})
               </button>
-              
+
               {workflowId && (
                 <button
                   className="btn btn-soft btn-accent"
@@ -292,8 +295,6 @@ export default function WorkflowEditor({
                   <Activity className="h-4 w-4" />
                 </button>
               )}
-              
-              
             </div>
           </div>
 
@@ -305,7 +306,7 @@ export default function WorkflowEditor({
             />
           </section>
         </div>
-        
+
         {/* Activity feed sidebar */}
         {showActivity && workflowId && (
           <div className="w-80 p-4">
@@ -322,7 +323,9 @@ export default function WorkflowEditor({
             <CollaboratorManager
               workflowName={workflowName}
               collaborators={collaborators}
-              canManageCollaborators={permissions?.can_manage_collaborators !== false} // Allow for new workflows
+              canManageCollaborators={
+                permissions?.can_manage_collaborators !== false
+              } // Allow for new workflows
               onCollaboratorsChange={setCollaborators}
             />
             <div className="modal-action">
@@ -336,7 +339,7 @@ export default function WorkflowEditor({
           </div>
         </div>
       )}
-      
+
       {/* Realtime cursors - Debug version - placed at root level for proper positioning */}
       {workflowId && <CursorOverlay otherUsers={otherUsers} />}
     </div>

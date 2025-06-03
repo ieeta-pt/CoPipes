@@ -154,7 +154,7 @@ export function ResultsSidebar({
             )}
 
             {/* Error Details */}
-            {executionStatus === 'failed' && (
+            {/* {executionStatus === 'failed' && (
               <div>
                 <h4 className="font-semibold mb-2 text-error">Error Details:</h4>
                 <div className="bg-error/10 border border-error/20 p-3 rounded-lg text-sm">
@@ -165,7 +165,7 @@ export function ResultsSidebar({
                   </pre>
                 </div>
               </div>
-            )}
+            )} */}
           </div>
 
           {/* Actions */}

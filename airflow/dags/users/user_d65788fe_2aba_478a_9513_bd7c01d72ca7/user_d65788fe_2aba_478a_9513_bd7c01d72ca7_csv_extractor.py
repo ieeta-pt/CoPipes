@@ -10,13 +10,13 @@ if '/opt/airflow/dags' not in sys.path:
 from components.extraction.csv import csv
 
 with DAG (
-    dag_id="user_d65788fe_2aba_478a_9513_bd7c01d72ca7_roberto_test",
+    dag_id="user_d65788fe_2aba_478a_9513_bd7c01d72ca7_CSV_extractor",
     schedule=None,
     start_date=None,
     catchup=False,
     is_paused_upon_creation=False
 ) as dag:
 
-    csv_18g = csv(filename='', file_separation='Comma')
+    csv_f1z = csv(filename='roles', file_separation=',')
 
 

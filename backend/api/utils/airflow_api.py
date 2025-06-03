@@ -138,21 +138,6 @@ async def get_task_instances(dag_id: str, dag_run_id: str):
         except httpx.RequestError:
             raise HTTPException(status_code=500, detail="Failed to connect to Airflow API")
 
-async def get_task_logs(dag_id: str, dag_run_id: str, task_id: str, task_try_number: int = 1):
-    """Get logs for a specific task instance."""
-    async with httpx.AsyncClient() as client:
-        try:
-            response = await client.get(
-                f"{AIRFLOW_API_URL}/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/logs/{task_try_number}",
-                auth=API_AUTH
-            )
-            response.raise_for_status()
-            return response.json()
-        except httpx.HTTPStatusError as e:
-            raise HTTPException(status_code=e.response.status_code, detail=f"Airflow API error: {e}")
-        except httpx.RequestError:
-            raise HTTPException(status_code=500, detail="Failed to connect to Airflow API")
-
 async def get_task_xcom_entries(dag_id: str, dag_run_id: str, task_id: str):
     """Get XCOM entries for a specific task instance with their values."""
     async with httpx.AsyncClient() as client:

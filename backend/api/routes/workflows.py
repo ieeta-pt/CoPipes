@@ -4,7 +4,7 @@ import traceback
 import json
 
 from utils.dag_factory import generate_dag, remove_dag
-from utils.airflow_api import trigger_dag_run, get_dag_runs, get_dag_run_details, get_task_instances, get_task_logs, get_task_xcom_entries
+from utils.airflow_api import trigger_dag_run, get_dag_runs, get_dag_run_details, get_task_instances, get_task_xcom_entries
 from utils.auth import get_current_user
 from utils.workflow_permissions import get_user_workflows, check_workflow_access
 
@@ -208,10 +208,9 @@ async def get_workflow_runs(workflow_name: str, current_user: dict = Depends(get
     try:
         # Convert workflow name to user-specific DAG ID
         workflow_name_clean = workflow_name.replace("_", " ")
-        workflows = supabase.get_workflows(current_user["id"])
-        workflow_record = next((w for w in workflows if w["name"] == workflow_name_clean), None)
+        workflow = supabase.get_workflow_by_name(workflow_name_clean, current_user["id"])
         
-        if not workflow_record:
+        if not workflow:
             raise HTTPException(status_code=404, detail="Workflow not found")
         
         # Generate the actual DAG ID that would be used in Airflow
@@ -234,10 +233,9 @@ async def get_workflow_run_details(
     try:
         # Convert workflow name to user-specific DAG ID
         workflow_name_clean = workflow_name.replace("_", " ")
-        workflows = supabase.get_workflows(current_user["id"])
-        workflow_record = next((w for w in workflows if w["name"] == workflow_name_clean), None)
+        workflow = supabase.get_workflow_by_name(workflow_name_clean, current_user["id"])
         
-        if not workflow_record:
+        if not workflow:
             raise HTTPException(status_code=404, detail="Workflow not found")
         
         # Generate the actual DAG ID that would be used in Airflow
@@ -250,33 +248,23 @@ async def get_workflow_run_details(
         # Get task instances
         task_instances = await get_task_instances(dag_id, dag_run_id)
         
-        # Get logs and XCOM for each task (limited to avoid overwhelming response)
+        # Get XCOM for each task (limited to avoid overwhelming response)
         tasks_with_logs = []
         for task in task_instances[:10]:  # Limit to first 10 tasks
             try:
-                # Get logs
-                logs = await get_task_logs(dag_id, dag_run_id, task["task_id"], task.get("try_number", 1))
-                
                 # Get XCOM entries
                 xcom_entries = await get_task_xcom_entries(dag_id, dag_run_id, task["task_id"])
                 
                 tasks_with_logs.append({
                     **task,
-                    "logs": logs,
                     "xcom_entries": xcom_entries
                 })
-            except Exception as log_error:
-                # If we can't get logs for a task, include it without logs but try to get XCOM
-                try:
-                    xcom_entries = await get_task_xcom_entries(dag_id, dag_run_id, task["task_id"])
-                except:
-                    xcom_entries = []
-                    
-                tasks_with_logs.append({
-                    **task,
-                    "logs": {"content": f"Failed to retrieve logs: {str(log_error)}"},
-                    "xcom_entries": xcom_entries
-                })
+            except Exception as e:
+                traceback.print_exc()
+                raise HTTPException(
+                    status_code=500, 
+                    detail=f"Failed to get XCOM entries for task {task['task_id']}: {str(e)}"
+                )
         
         return {
             "dag_run": dag_run,
