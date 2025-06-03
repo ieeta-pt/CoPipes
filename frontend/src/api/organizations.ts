@@ -15,12 +15,12 @@ export const organizationApi = {
 
   // Get user's organizations
   async getUserOrganizations(): Promise<Organization[]> {
-    return apiClient.get('/api/organizations/');
+    return apiClient.get('/api/organizations/', true);
   },
 
   // Get organization members (admin only)
   async getOrganizationMembers(orgId: string): Promise<OrganizationMember[]> {
-    return apiClient.get(`/api/organizations/${orgId}/members`);
+    return apiClient.get(`/api/organizations/${orgId}/members`, true);
   },
 
   // Invite user to organization (admin only)
@@ -40,7 +40,7 @@ export const organizationApi = {
 
   // Get user role in organization
   async getUserRole(orgId: string): Promise<{ role: OrganizationRole }> {
-    return apiClient.get(`/api/organizations/${orgId}/role`);
+    return apiClient.get(`/api/organizations/${orgId}/role`, true);
   },
 
   // Delete organization (owner only)

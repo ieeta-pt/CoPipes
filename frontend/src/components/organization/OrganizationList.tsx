@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, memo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Organization } from '@/types/organization';
 import { organizationApi } from '@/api/organizations';
@@ -11,18 +11,14 @@ interface OrganizationListProps {
   onOrganizationCreate?: () => void;
 }
 
-export default function OrganizationList({ onOrganizationCreate }: OrganizationListProps) {
+function OrganizationList({ onOrganizationCreate }: OrganizationListProps) {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const router = useRouter();
 
-  useEffect(() => {
-    loadOrganizations();
-  }, []);
-
-  const loadOrganizations = async () => {
+  const loadOrganizations = useCallback(async () => {
     try {
       const orgs = await organizationApi.getUserOrganizations();
       setOrganizations(orgs);
@@ -31,17 +27,21 @@ export default function OrganizationList({ onOrganizationCreate }: OrganizationL
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const handleCreateSuccess = () => {
+  useEffect(() => {
+    loadOrganizations();
+  }, [loadOrganizations]);
+
+  const handleCreateSuccess = useCallback(() => {
     setShowCreateForm(false);
     loadOrganizations();
     onOrganizationCreate?.();
-  };
+  }, [loadOrganizations, onOrganizationCreate]);
 
-  const handleOrganizationClick = (orgId: string) => {
+  const handleOrganizationClick = useCallback((orgId: string) => {
     router.push(`/organizations/${orgId}`);
-  };
+  }, [router]);
 
   if (loading) {
     return (
@@ -105,3 +105,5 @@ export default function OrganizationList({ onOrganizationCreate }: OrganizationL
     </>
   );
 }
+
+export default memo(OrganizationList);

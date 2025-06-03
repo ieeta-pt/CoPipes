@@ -1,21 +1,17 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, memo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Organization } from '@/types/organization';
 import { organizationApi } from '@/api/organizations';
 import OrganizationCard from '@/components/organization/OrganizationCard';
 
-export default function ProfileOrganizations() {
+function ProfileOrganizations() {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [orgLoading, setOrgLoading] = useState(true);
   const router = useRouter();
 
-  useEffect(() => {
-    loadOrganizations();
-  }, []);
-
-  const loadOrganizations = async () => {
+  const loadOrganizations = useCallback(async () => {
     try {
       setOrgLoading(true);
       const userOrgs = await organizationApi.getUserOrganizations();
@@ -25,15 +21,19 @@ export default function ProfileOrganizations() {
     } finally {
       setOrgLoading(false);
     }
-  };
+  }, []);
 
-  const handleCreateOrganization = () => {
+  useEffect(() => {
+    loadOrganizations();
+  }, [loadOrganizations]);
+
+  const handleCreateOrganization = useCallback(() => {
     router.push('/organizations');
-  };
+  }, [router]);
 
-  const handleOrganizationClick = (orgId: string) => {
+  const handleOrganizationClick = useCallback((orgId: string) => {
     router.push(`/organizations/${orgId}`);
-  };
+  }, [router]);
 
   return (
     <div className="card bg-base-100 shadow-xl mb-6">
@@ -82,3 +82,5 @@ export default function ProfileOrganizations() {
     </div>
   );
 }
+
+export default memo(ProfileOrganizations);

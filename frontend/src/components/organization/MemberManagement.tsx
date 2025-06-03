@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, memo } from 'react';
 import { 
   OrganizationMember, 
   OrganizationRole, 
@@ -18,7 +18,7 @@ interface MemberManagementProps {
   userRole: OrganizationRole;
 }
 
-export default function MemberManagement({ organizationId, ownerId, userRole }: MemberManagementProps) {
+function MemberManagement({ organizationId, ownerId, userRole }: MemberManagementProps) {
   const [members, setMembers] = useState<OrganizationMember[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,13 +32,7 @@ export default function MemberManagement({ organizationId, ownerId, userRole }: 
 
   const permissions = getRolePermissions(userRole);
 
-  useEffect(() => {
-    if (permissions.canManageMembers) {
-      loadMembers();
-    }
-  }, [organizationId, permissions.canManageMembers]);
-
-  const loadMembers = async () => {
+  const loadMembers = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -49,7 +43,13 @@ export default function MemberManagement({ organizationId, ownerId, userRole }: 
     } finally {
       setLoading(false);
     }
-  };
+  }, [organizationId]);
+
+  useEffect(() => {
+    if (permissions.canManageMembers) {
+      loadMembers();
+    }
+  }, [loadMembers, permissions.canManageMembers]);
 
   const handleInviteUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -340,3 +340,5 @@ export default function MemberManagement({ organizationId, ownerId, userRole }: 
     </>
   );
 }
+
+export default memo(MemberManagement);

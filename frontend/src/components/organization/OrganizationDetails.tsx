@@ -29,8 +29,12 @@ export default function OrganizationDetails({ organizationId }: OrganizationDeta
     try {
       setLoading(true);
       
-      // Get user's organizations to find this one
-      const organizations = await organizationApi.getUserOrganizations();
+      // Get user's organizations and role in parallel
+      const [organizations, roleResponse] = await Promise.all([
+        organizationApi.getUserOrganizations(),
+        organizationApi.getUserRole(organizationId)
+      ]);
+      
       const currentOrg = organizations.find(org => org.id === organizationId);
       
       if (!currentOrg) {
@@ -39,9 +43,6 @@ export default function OrganizationDetails({ organizationId }: OrganizationDeta
       }
       
       setOrganization(currentOrg);
-      
-      // Get user's role in this organization
-      const roleResponse = await organizationApi.getUserRole(organizationId);
       setUserRole(roleResponse.role);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load organization');
