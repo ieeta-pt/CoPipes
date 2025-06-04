@@ -104,7 +104,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(newUser);
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      // Call backend signout endpoint if token exists
+      if (token) {
+        await apiClient.post("/api/auth/signout");
+      }
+    } catch (error) {
+      // Ignore signout errors - we still want to clear local state
+      console.warn("Backend signout failed:", error);
+    }
+    
     if (typeof window !== 'undefined' && sessionId) {
       localStorage.removeItem(`access_token_${sessionId}`);
       localStorage.removeItem(`user_${sessionId}`);

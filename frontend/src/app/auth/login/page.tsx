@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
+import { apiClient } from "@/services/api";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -29,30 +30,18 @@ export default function LoginPage() {
     setError("");
     
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/signin`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        // Use AuthContext login function to properly set state
-        login(data.access_token, data.user);
-        
-        // Show success message and redirect
-        setSuccess("Login successful! Redirecting...");
-        setTimeout(() => {
-          router.push("/dashboard");
-        }, 1000);
-      } else {
-        setError(data.detail || "Login failed");
-      }
+      const data = await apiClient.post("/api/auth/signin", { email, password });
+      
+      // Use AuthContext login function to properly set state
+      login(data.access_token, data.user);
+      
+      // Show success message and redirect
+      setSuccess("Login successful! Redirecting...");
+      setTimeout(() => {
+        router.push("/dashboard");
+      }, 1000);
     } catch (error) {
-      setError("Network error. Please try again.");
+      setError(error instanceof Error ? error.message : "Login failed");
     } finally {
       setLoading(false);
     }

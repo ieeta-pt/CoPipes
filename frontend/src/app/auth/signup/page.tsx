@@ -3,6 +3,31 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { apiClient } from "@/services/api";
+
+function validatePassword(password: string): string | null {
+  if (password.length < 12) {
+    return "Password must be at least 12 characters long";
+  }
+  
+  if (!/[A-Z]/.test(password)) {
+    return "Password must contain at least one uppercase letter";
+  }
+  
+  if (!/[a-z]/.test(password)) {
+    return "Password must contain at least one lowercase letter";
+  }
+  
+  if (!/\d/.test(password)) {
+    return "Password must contain at least one number";
+  }
+  
+  if (!/[!@#$%^&*()_+\-=\[\]{};:,.<>?]/.test(password)) {
+    return "Password must contain at least one special character";
+  }
+  
+  return null;
+}
 
 export default function SignupPage() {
   const [email, setEmail] = useState("");
@@ -28,44 +53,33 @@ export default function SignupPage() {
     }
 
     // Validate password strength
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters long");
+    const passwordError = validatePassword(password);
+    if (passwordError) {
+      setError(passwordError);
       setLoading(false);
       return;
     }
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/signup`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email,
-          password,
-          full_name: fullName,
-        }),
+      const data = await apiClient.post("/api/auth/signup", {
+        email,
+        password,
+        full_name: fullName,
       });
 
-      const data = await response.json();
-
-      if (response.ok) {
-        setSuccess(data.message);
-        // Clear form
-        setEmail("");
-        setPassword("");
-        setConfirmPassword("");
-        setFullName("");
-        
-        // Redirect to login after 2 seconds
-        setTimeout(() => {
-          router.push("/auth/login");
-        }, 2000);
-      } else {
-        setError(data.detail || "Registration failed");
-      }
+      setSuccess(data.message);
+      // Clear form
+      setEmail("");
+      setPassword("");
+      setConfirmPassword("");
+      setFullName("");
+      
+      // Redirect to login after 2 seconds
+      setTimeout(() => {
+        router.push("/auth/login");
+      }, 2000);
     } catch (error) {
-      setError("Network error. Please try again.");
+      setError(error instanceof Error ? error.message : "Registration failed");
     } finally {
       setLoading(false);
     }
@@ -137,11 +151,11 @@ export default function SignupPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                minLength={6}
+                minLength={12}
               />
-              <label className="label">
-                <span className="label-text-alt">Minimum 6 characters</span>
-              </label>
+              {/* <label className="label">
+                <span className="label-text-alt text-xs">Must be 12+ characters containing uppercase, lowercase, number, and special character.</span>
+              </label> */}
             </div>
 
             <div className="form-control">

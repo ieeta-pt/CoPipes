@@ -1,8 +1,8 @@
 "use client";
 
 import { ColumnDef } from "@tanstack/react-table";
-import { Download, Pencil, Play, Trash } from "lucide-react";
-import { deleteWorkflowAPI, downloadWorkflowAPI } from "@/api/dashboard/table";
+import { Download, Pencil, Play, Trash, Copy } from "lucide-react";
+import { deleteWorkflowAPI, downloadWorkflowAPI, copyWorkflowAPI } from "@/api/workflows";
 import AvatarStack from "@/components/workflow/AvatarStack";
 export type Workflow = {
   id: number;
@@ -24,6 +24,7 @@ export type Workflow = {
     can_execute: boolean;
     can_download: boolean;
     can_delete: boolean;
+    can_copy: boolean;
     can_manage_collaborators: boolean;
   };
 };
@@ -77,6 +78,34 @@ const downloadWorkflow = async (name: string) => {
     URL.revokeObjectURL(url);
   } catch (error) {
     console.error("Error downloading workflow:", error);
+  }
+};
+
+const copyWorkflow = async (name: string) => {
+  try {
+    const result = await copyWorkflowAPI(name);
+    
+    // Show success message and optionally redirect to the new workflow
+    if (result.new_workflow_name) {
+      const newWorkflowName = result.new_workflow_name.replace(/ /g, "_");
+      
+      // Ask user if they want to edit the copied workflow
+      const shouldEdit = confirm(`Workflow copied successfully as "${result.new_workflow_name}". Would you like to edit the copy now?`);
+      
+      if (shouldEdit) {
+        window.location.href = `/workflow/editor/${newWorkflowName}`;
+      } else {
+        // Just reload the page to show the new workflow in the list
+        window.location.reload();
+      }
+    } else {
+      alert("Workflow copied successfully!");
+      window.location.reload();
+    }
+  } catch (error) {
+    console.error("Error copying workflow:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to copy workflow";
+    alert(`Error copying workflow: ${errorMessage}`);
   }
 };
 
@@ -226,6 +255,7 @@ export const columns: ColumnDef<Workflow>[] = [
             <button
               className="btn btn-soft btn-accent btn-xs"
               onClick={() => editWorkflow(workflow.name)}
+              title="Edit workflow"
             >
               <Pencil className="h4 w-4" />
             </button>
@@ -235,8 +265,19 @@ export const columns: ColumnDef<Workflow>[] = [
             <button
               className="btn btn-soft btn-primary btn-xs"
               onClick={() => runWorkflow(workflow.name)}
+              title="Execute workflow"
             >
               <Play className="h-4 w-4" />
+            </button>
+          )}
+
+          {(!permissions || permissions.can_copy) && (
+            <button
+              className="btn btn-soft btn-info btn-xs"
+              onClick={() => copyWorkflow(workflow.name)}
+              title="Copy workflow"
+            >
+              <Copy className="h-4 w-4" />
             </button>
           )}
 
@@ -244,6 +285,7 @@ export const columns: ColumnDef<Workflow>[] = [
             <button
               className="btn btn-soft btn-secondary btn-xs"
               onClick={() => downloadWorkflow(workflow.name)}
+              title="Download workflow"
             >
               <Download className="h-4 w-4" />
             </button>
@@ -253,6 +295,7 @@ export const columns: ColumnDef<Workflow>[] = [
             <button
               className="btn btn-soft btn-error btn-xs"
               onClick={() => deleteWorkflow(workflow.name)}
+              title="Delete workflow"
             >
               <Trash className="h-4 w-4" />
             </button>

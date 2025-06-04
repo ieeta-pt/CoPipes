@@ -15,13 +15,14 @@ import {
   submitWorkflow,
   getWorkflow,
   updateWorkflow,
-} from "@/api/workflow/test";
-import { useRouter } from "next/navigation";
+} from "@/api/workflows";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Settings, Users, Activity } from "lucide-react";
 import { showToast } from "@/components/layout/ShowToast";
 import { useAuth } from "@/contexts/AuthContext";
 import { Organization } from "@/types/organization";
 import { organizationApi } from "@/api/organizations";
+import { WorkflowCollaborator } from "@/types/workflow";
 
 const createIdBuilder =
   (prefix = "id") =>
@@ -35,13 +36,14 @@ export default function WorkflowEditor({
 }) {
   const { isAuthenticated, loading: authLoading } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [workflowItems, setWorkflowItems] = useState<WorkflowComponent[]>([]);
   const [workflowName, setWorkflowName] = useState("");
   const [isLoading, setIsLoading] = useState(!!workflowId);
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [result, setResult] = useState<string | null>(null);
-  const [collaborators, setCollaborators] = useState<string[]>([]);
+  const [collaborators, setCollaborators] = useState<WorkflowCollaborator[]>([]);
   const [permissions, setPermissions] = useState<any>(null);
   const [showCollaborators, setShowCollaborators] = useState(false);
   const [showActivity, setShowActivity] = useState(false);
@@ -62,6 +64,12 @@ export default function WorkflowEditor({
           setOrgLoading(true);
           const userOrgs = await organizationApi.getUserOrganizations();
           setOrganizations(userOrgs);
+          
+          // Pre-select organization from URL params
+          const orgFromUrl = searchParams?.get('org');
+          if (orgFromUrl && userOrgs.some(org => org.id === orgFromUrl)) {
+            setSelectedOrganization(orgFromUrl);
+          }
         } catch (error) {
           console.error("Failed to load organizations:", error);
         } finally {
@@ -71,7 +79,7 @@ export default function WorkflowEditor({
     }
     
     loadOrganizations();
-  }, [isEditing, isAuthenticated, authLoading]);
+  }, [isEditing, isAuthenticated, authLoading, searchParams]);
 
   // Track mouse movement for real-time cursors
   useEffect(() => {
@@ -332,7 +340,11 @@ export default function WorkflowEditor({
                 )}
               </div>
               
-              <button
+              
+            </div>
+
+            <div className="flex items-center gap-2">
+            <button
                 disabled={
                   workflowItems.length === 0 ||
                   (permissions && !permissions.can_edit)
@@ -342,9 +354,6 @@ export default function WorkflowEditor({
               >
                 <Settings className="h-4 w-4 mr-2" /> Compile
               </button>
-            </div>
-
-            <div className="flex items-center gap-2">
               {/* Realtime presence indicator */}
               {workflowId && (
                 <PresenceIndicator workflowId={workflowId} className="mr-2" />
@@ -395,8 +404,10 @@ export default function WorkflowEditor({
             <CollaboratorManager
               workflowName={workflowName}
               collaborators={collaborators}
-              canManageCollaborators={
-                permissions?.can_manage_collaborators !== false
+              userRole={
+                permissions?.user_role || "VIEWER"}
+              canManagePermissions={
+                permissions?.can_manage_permissions !== false
               } // Allow for new workflows
               onCollaboratorsChange={setCollaborators}
             />

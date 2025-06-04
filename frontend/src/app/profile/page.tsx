@@ -3,7 +3,32 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { apiClient } from "@/services/api";
 import ProfileOrganizations from "@/components/profile/ProfileOrganizations";
+
+function validatePassword(password: string): string | null {
+  if (password.length < 12) {
+    return "Password must be at least 12 characters long";
+  }
+  
+  if (!/[A-Z]/.test(password)) {
+    return "Password must contain at least one uppercase letter";
+  }
+  
+  if (!/[a-z]/.test(password)) {
+    return "Password must contain at least one lowercase letter";
+  }
+  
+  if (!/\d/.test(password)) {
+    return "Password must contain at least one number";
+  }
+  
+  if (!/[!@#$%^&*()_+\-=\[\]{};:,.<>?]/.test(password)) {
+    return "Password must contain at least one special character";
+  }
+  
+  return null;
+}
 
 interface User {
   id: string;
@@ -48,8 +73,9 @@ export default function ProfilePage() {
 
     // Validate password change if attempted
     if (newPassword) {
-      if (newPassword.length < 6) {
-        setError("New password must be at least 6 characters long");
+      const passwordError = validatePassword(newPassword);
+      if (passwordError) {
+        setError(passwordError);
         setLoading(false);
         return;
       }
@@ -75,30 +101,17 @@ export default function ProfilePage() {
         updateData.password = newPassword;
       }
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/update-profile`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
-        body: JSON.stringify(updateData),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setSuccess(data.message);
-        
-        // Note: In a session-based auth system, we'd need to update the AuthContext
-        // For now, just clear password fields
-        setCurrentPassword("");
-        setNewPassword("");
-        setConfirmPassword("");
-      } else {
-        setError(data.detail || "Update failed");
-      }
+      const data = await apiClient.put("/api/auth/update-profile", updateData);
+      
+      setSuccess(data.message);
+      
+      // Note: In a session-based auth system, we'd need to update the AuthContext
+      // For now, just clear password fields
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
     } catch (error) {
-      setError("Network error. Please try again.");
+      setError(error instanceof Error ? error.message : "Update failed");
     } finally {
       setLoading(false);
     }
@@ -186,10 +199,10 @@ export default function ProfilePage() {
                   className="input input-bordered w-full"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  minLength={6}
+                  minLength={12}
                 />
                 <label className="label">
-                  <span className="label-text-alt">Leave blank to keep current password</span>
+                  <span className="label-text-alt">12+ characters with uppercase, lowercase, number, and special character</span>
                 </label>
               </div>
 

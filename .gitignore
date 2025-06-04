@@ -179,3 +179,4 @@ airflow/data
 notes.MD
 CLAUDE.md
 fix_permissions.sh
+docs/

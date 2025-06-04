@@ -233,3 +233,89 @@ class SupabaseClient:
             # If there's an error, we'll be conservative and return True
             # This prevents blocking legitimate collaborators due to API issues
             return True
+
+    def add_workflow_collaborator_to_table(self, workflow_id: int, user_email: str, role: str, invited_by_id: str):
+        """Add a collaborator to the workflow_collaborators table."""
+        try:
+            # Get user_id from email
+            user_result = self.client.table("profiles").select("id").eq("email", user_email).execute()
+            if not user_result.data:
+                raise Exception(f"User with email {user_email} not found")
+            
+            user_id = user_result.data[0]["id"]
+            
+            # Insert into workflow_collaborators table
+            collaborator_data = {
+                "workflow_id": workflow_id,
+                "user_id": user_id,
+                "role": role,
+                "invited_by": invited_by_id
+            }
+            
+            self.client.table("workflow_collaborators").insert(collaborator_data).execute()
+            print(f"Added collaborator {user_email} with role {role} to workflow {workflow_id}")
+            
+        except Exception as e:
+            print(f"Failed to add collaborator to workflow_collaborators table: {e}")
+            raise
+
+    def update_workflow_collaborator_role_in_table(self, workflow_id: int, user_email: str, new_role: str):
+        """Update a collaborator's role in the workflow_collaborators table."""
+        try:
+            # Get user_id from email
+            user_result = self.client.table("profiles").select("id").eq("email", user_email).execute()
+            if not user_result.data:
+                raise Exception(f"User with email {user_email} not found")
+            
+            user_id = user_result.data[0]["id"]
+            
+            # Update role in workflow_collaborators table
+            self.client.table("workflow_collaborators").update({"role": new_role}).eq("workflow_id", workflow_id).eq("user_id", user_id).execute()
+            print(f"Updated collaborator {user_email} role to {new_role} for workflow {workflow_id}")
+            
+        except Exception as e:
+            print(f"Failed to update collaborator role in workflow_collaborators table: {e}")
+            raise
+
+    def remove_workflow_collaborator_from_table(self, workflow_id: int, user_email: str):
+        """Remove a collaborator from the workflow_collaborators table."""
+        try:
+            # Get user_id from email
+            user_result = self.client.table("profiles").select("id").eq("email", user_email).execute()
+            if not user_result.data:
+                raise Exception(f"User with email {user_email} not found")
+            
+            user_id = user_result.data[0]["id"]
+            
+            # Remove from workflow_collaborators table
+            self.client.table("workflow_collaborators").delete().eq("workflow_id", workflow_id).eq("user_id", user_id).execute()
+            print(f"Removed collaborator {user_email} from workflow {workflow_id}")
+            
+        except Exception as e:
+            print(f"Failed to remove collaborator from workflow_collaborators table: {e}")
+            raise
+
+    def get_workflow_collaborators_from_table(self, workflow_id: int):
+        """Get all collaborators for a workflow from the workflow_collaborators table."""
+        try:
+            result = self.client.table("workflow_collaborators").select("""
+                *,
+                user:profiles(email, full_name),
+                invited_by_user:profiles!invited_by(email, full_name)
+            """).eq("workflow_id", workflow_id).execute()
+            
+            collaborators = []
+            for collab in result.data:
+                collaborators.append({
+                    "email": collab["user"]["email"],
+                    "full_name": collab["user"]["full_name"],
+                    "role": collab["role"],
+                    "invited_at": collab["invited_at"],
+                    "invited_by": collab["invited_by_user"]["email"]
+                })
+            
+            return collaborators
+            
+        except Exception as e:
+            print(f"Failed to get collaborators from workflow_collaborators table: {e}")
+            raise

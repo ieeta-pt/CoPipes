@@ -96,14 +96,18 @@ class ApiClient {
     }
   }
 
-  async post(endpoint: string, data?: any) {
+  async post(endpoint: string, data?: any, options?: { headers?: Record<string, string> }) {
+    const isFormData = data instanceof FormData;
+    const headers = {
+      ...(isFormData ? {} : { "Content-Type": "application/json" }),
+      ...this.getAuthHeader(),
+      ...options?.headers,
+    };
+
     const response = await fetch(`${this.baseURL}${endpoint}`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...this.getAuthHeader(),
-      },
-      body: data ? JSON.stringify(data) : undefined,
+      headers,
+      body: isFormData ? data : (data ? JSON.stringify(data) : undefined),
     });
 
     const result = await this.handleResponse(response);

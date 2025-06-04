@@ -1,4 +1,4 @@
-from schemas.workflow import WorkflowPermissions, WorkflowRole, EnhancedWorkflowPermissions, WorkflowCollaborator
+from schemas.workflow import WorkflowPermissions, WorkflowRole, CompleteWorkflowPermissions, WorkflowCollaborator
 from schemas.organization import OrganizationRole
 from typing import Dict, List
 from database import SupabaseClient
@@ -21,13 +21,16 @@ def get_user_workflow_role(workflow_data: dict, current_user: dict) -> WorkflowR
     if workflow_data["user_id"] == user_id:
         return WorkflowRole.OWNER
     
-    # Check enhanced collaborators first
-    workflow_collaborators = workflow_data.get("workflow_collaborators", []) or []
-    for collab in workflow_collaborators:
-        if isinstance(collab, dict) and collab.get("email") == user_email:
-            return WorkflowRole(collab.get("role", WorkflowRole.VIEWER))
-        elif hasattr(collab, "email") and collab.email == user_email:
-            return collab.role
+    # Check collaborators from the workflow_collaborators table
+    supabase = SupabaseClient()
+    try:
+        workflow_collaborators = supabase.get_workflow_collaborators_from_table(workflow_data["id"])
+        for collab in workflow_collaborators:
+            if collab.get("email") == user_email:
+                return WorkflowRole(collab.get("role", WorkflowRole.VIEWER))
+    except Exception as e:
+        print(f"Failed to get workflow collaborators: {e}")
+        # Fall back to legacy collaborators if table doesn't exist or query fails
     
     # Check legacy collaborators (default to VIEWER role)
     legacy_collaborators = workflow_data.get("collaborators", []) or []
@@ -460,10 +463,11 @@ def get_workflow_collaborators(workflow_data: dict, requestor: dict) -> List[Dic
     }
     collaborators.append(owner_info)
     
-    # Add enhanced collaborators
-    workflow_collaborators = workflow_data.get("workflow_collaborators", []) or []
-    for collab in workflow_collaborators:
-        if isinstance(collab, dict):
+    # Add collaborators from the workflow_collaborators table
+    supabase = SupabaseClient()
+    try:
+        workflow_collaborators = supabase.get_workflow_collaborators_from_table(workflow_data["id"])
+        for collab in workflow_collaborators:
             collaborators.append({
                 "email": collab.get("email"),
                 "role": collab.get("role", WorkflowRole.VIEWER.value),
@@ -471,19 +475,14 @@ def get_workflow_collaborators(workflow_data: dict, requestor: dict) -> List[Dic
                 "invited_at": collab.get("invited_at"),
                 "invited_by": collab.get("invited_by")
             })
-        else:
-            collaborators.append({
-                "email": collab.email,
-                "role": collab.role.value if hasattr(collab.role, 'value') else str(collab.role),
-                "is_owner": False,
-                "invited_at": collab.invited_at,
-                "invited_by": collab.invited_by
-            })
+    except Exception as e:
+        print(f"Failed to get workflow collaborators from table: {e}")
+        # Continue to legacy collaborators if table query fails
     
     # Add legacy collaborators (as viewers)
     legacy_collaborators = workflow_data.get("collaborators", []) or []
     for email in legacy_collaborators:
-        # Skip if already in enhanced collaborators
+        # Skip if already in  collaborators
         if not any(c["email"] == email for c in collaborators):
             collaborators.append({
                 "email": email,

@@ -52,6 +52,13 @@ class WorkflowRole(str, Enum):
         }
         return hierarchy.get(self, 0)
 
+class WorkflowStatus(str, Enum):
+    DRAFT = "draft"
+    SUCCESS = "success"
+    FAILED = "failed"
+    RUNNING = "running"
+    QUEUED = "queued"
+
 class ConfigFieldType(str, Enum):
     STRING = "string"
     FILE = "file"
@@ -77,8 +84,8 @@ class WorkflowComponent(BaseModel):
     dependencies: List[str] = []
 
 class WorkflowAirflow(WorkflowBase):
-    schedule: str = None
-    start_date: str = None
+    schedule: Optional[str] = None
+    start_date: Optional[str] = None
     tasks: List[WorkflowComponent]
 
 class WorkflowCollaborator(BaseModel):
@@ -92,10 +99,9 @@ class WorkflowDB(BaseModel):
     last_edit: str
     user_id: str  # owner_id
     organization_id: Optional[str] = None  # Organization that owns this workflow
-    last_run: str = None
-    status: str = "Not Started"
-    collaborators: List[str] = []  # List of user emails with collaboration access (legacy)
-    workflow_collaborators: Optional[List[WorkflowCollaborator]] = []  # Enhanced collaborator info
+    last_run: Optional[str] = None
+    status: WorkflowStatus = WorkflowStatus.DRAFT
+    collaborators: List[str] = []  # Legacy collaborators (emails only)  
 
 class AddCollaboratorRequest(BaseModel):
     email: str
@@ -116,8 +122,40 @@ class WorkflowPermissions(BaseModel):
     can_manage_permissions: bool
     can_view_sensitive_data: bool
 
-class EnhancedWorkflowPermissions(BaseModel):
+class CompleteWorkflowPermissions(BaseModel):
     user_role: WorkflowRole
     permissions: WorkflowPermissions
     is_organization_member: bool = False
     organization_role: Optional[str] = None
+
+class WorkflowResponse(BaseModel):
+    """Complete workflow response with all metadata."""
+    name: str
+    last_edit: str
+    user_id: str
+    organization_id: Optional[str] = None
+    last_run: Optional[str] = None
+    status: WorkflowStatus
+    collaborators: List[WorkflowCollaborator] = []
+    permissions: Optional[WorkflowPermissions] = None
+    dag_id: str
+    schedule: Optional[str] = None
+    start_date: Optional[str] = None
+    tasks: List[WorkflowComponent]
+
+class WorkflowListItem(BaseModel):
+    """Simplified workflow item for list views."""
+    id: int
+    name: str
+    last_edit: str
+    last_run: Optional[str] = None
+    status: WorkflowStatus
+    collaborators: List[str] = []  # Just emails for list view
+    user_id: str
+    owner_email: Optional[str] = None
+    owner_name: Optional[str] = None
+    created_at: str
+    role: Optional[WorkflowRole] = None
+    organization_id: Optional[str] = None
+    organization_name: Optional[str] = None
+    permissions: Optional[WorkflowPermissions] = None

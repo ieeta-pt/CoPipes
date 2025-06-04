@@ -6,7 +6,7 @@ import {
   executeWorkflow,
   getWorkflow,
   getWorkflowRunDetails,
-} from "@/api/workflow/test";
+} from "@/api/workflows";
 import { Registry } from "@/components/airflow-tasks/Registry";
 import { ExecutableTask } from "./ExecutableTask";
 import {

@@ -17,8 +17,11 @@ export const workflowApi = {
     return apiClient.get(`/api/workflows/${workflowName.replace(/ /g, '_')}`);
   },
 
-  // Create new workflow
-  async createWorkflow(workflowData: any): Promise<any> {
+  // Create new workflow (with organization support)
+  async createWorkflow(workflowData: any, organizationId?: string | null): Promise<any> {
+    if (organizationId) {
+      return apiClient.post(`/api/workflows/organization/${organizationId}/new`, workflowData);
+    }
     return apiClient.post('/api/workflows/new', workflowData);
   },
 
@@ -42,35 +45,23 @@ export const workflowApi = {
     return apiClient.post(`/api/workflows/${workflowName.replace(/ /g, '_')}/copy`);
   },
 
-  // Enhanced collaborator management
-  async getEnhancedCollaborators(workflowName: string): Promise<{ workflow_name: string; collaborators: WorkflowCollaborator[]; permissions: any }> {
-    return apiClient.get(`/api/workflows/${workflowName.replace(/ /g, '_')}/collaborators/enhanced`);
+  //  collaborator management
+  async getCollaborators(workflowName: string): Promise<{ workflow_name: string; collaborators: WorkflowCollaborator[]; permissions: any }> {
+    return apiClient.get(`/api/workflows/${workflowName.replace(/ /g, '_')}/collaborators`);
   },
 
-  async addEnhancedCollaborator(workflowName: string, request: AddCollaboratorRequest): Promise<{ message: string }> {
-    return apiClient.post(`/api/workflows/${workflowName.replace(/ /g, '_')}/collaborators/enhanced`, request);
+  async addCollaborator(workflowName: string, request: AddCollaboratorRequest): Promise<{ message: string }> {
+    return apiClient.post(`/api/workflows/${workflowName.replace(/ /g, '_')}/collaborators`, request);
   },
 
   async updateCollaboratorRole(workflowName: string, email: string, request: UpdateCollaboratorRequest): Promise<{ message: string }> {
     return apiClient.put(`/api/workflows/${workflowName.replace(/ /g, '_')}/collaborators/${encodeURIComponent(email)}/role`, request);
   },
 
-  async removeEnhancedCollaborator(workflowName: string, email: string): Promise<{ message: string }> {
-    return apiClient.delete(`/api/workflows/${workflowName.replace(/ /g, '_')}/collaborators/enhanced/${encodeURIComponent(email)}`);
-  },
-
-  // Legacy collaborator management (for backward compatibility)
-  async getCollaborators(workflowName: string): Promise<{ workflow_name: string; collaborators: string[]; permissions: any }> {
-    return apiClient.get(`/api/workflows/${workflowName.replace(/ /g, '_')}/collaborators`);
-  },
-
-  async addCollaborator(workflowName: string, email: string): Promise<{ message: string }> {
-    return apiClient.post(`/api/workflows/${workflowName.replace(/ /g, '_')}/collaborators`, { email });
-  },
-
   async removeCollaborator(workflowName: string, email: string): Promise<{ message: string }> {
     return apiClient.delete(`/api/workflows/${workflowName.replace(/ /g, '_')}/collaborators/${encodeURIComponent(email)}`);
   },
+
 
   // Workflow execution and history
   async getWorkflowRuns(workflowName: string): Promise<{ runs: any[] }> {
@@ -81,24 +72,26 @@ export const workflowApi = {
     return apiClient.get(`/api/workflows/${workflowName.replace(/ /g, '_')}/runs/${runId}`);
   },
 
-  // Organization workflows
-  async getOrganizationWorkflows(orgId: string): Promise<{ workflows: Workflow[]; organization_id: string }> {
-    return apiClient.get(`/api/workflows/organization/${orgId}`);
-  },
-
-  async createOrganizationWorkflow(orgId: string, workflowData: any): Promise<any> {
-    return apiClient.post(`/api/workflows/organization/${orgId}/new`, workflowData);
-  },
-
   // File upload
   async uploadWorkflow(file: File): Promise<any> {
-    const formData = new FormData();
-    formData.append('file', file);
-    
-    return apiClient.post('/api/workflows/upload', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    return apiClient.uploadFile('/api/workflows/upload', file);
+  },
+
+  // General file upload for tasks
+  async uploadFile(file: File): Promise<any> {
+    return apiClient.uploadFile('/api/workflows/file_input', file);
   },
 };
+
+// Legacy function aliases for backward compatibility
+export const getWorkflows = workflowApi.getUserWorkflows;
+export const deleteWorkflowAPI = workflowApi.deleteWorkflow;
+export const downloadWorkflowAPI = workflowApi.getWorkflow;
+export const uploadWorkflowAPI = workflowApi.uploadWorkflow;
+export const copyWorkflowAPI = workflowApi.copyWorkflow;
+export const submitWorkflow = workflowApi.createWorkflow;
+export const getWorkflow = workflowApi.getWorkflow;
+export const updateWorkflow = workflowApi.updateWorkflow;
+export const executeWorkflow = workflowApi.executeWorkflow;
+export const getWorkflowRuns = workflowApi.getWorkflowRuns;
+export const getWorkflowRunDetails = workflowApi.getWorkflowRunDetails;

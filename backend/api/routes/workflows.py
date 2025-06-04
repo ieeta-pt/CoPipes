@@ -1,3 +1,4 @@
+import os
 from fastapi import APIRouter, HTTPException, BackgroundTasks, UploadFile, File, Depends
 from datetime import datetime
 import traceback
@@ -13,9 +14,11 @@ from utils.workflow_permissions import (
 
 from database import SupabaseClient
 from schemas.workflow import (
-    WorkflowAirflow, WorkflowDB, WorkflowCollaborator, 
-    AddCollaboratorRequest, UpdateCollaboratorRequest, WorkflowRole
+    WorkflowAirflow, WorkflowDB,
+    AddCollaboratorRequest, UpdateCollaboratorRequest
 )
+
+UPLOAD_DIR = "/shared_data/"
 
 router = APIRouter(
     prefix="/api/workflows",
@@ -166,6 +169,7 @@ async def trigger_workflow(workflow: WorkflowAirflow, _background_tasks: Backgro
 
 @router.post("/upload")
 async def upload_workflow(file: UploadFile = File(...), current_user: dict = Depends(get_current_user)):
+    """Upload a workflow JSON file and create a new workflow."""
     try:
         # Validate file type
         if not file.filename.endswith('.json'):
@@ -208,6 +212,19 @@ async def upload_workflow(file: UploadFile = File(...), current_user: dict = Dep
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Failed to upload workflow: {str(e)}")
+    
+@router.post("/file_input")
+async def file_input(file: UploadFile = File(...)):
+    """Upload a file to the server."""
+    """This endpoint is for uploading files that can be used as inputs to workflows."""
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+    file_location = os.path.join(UPLOAD_DIR, file.filename)
+
+    with open(file_location, "wb") as f:
+        content = await file.read()
+        f.write(content)
+
+    return {"status": "saved", "filename": file.filename}
 
 @router.get("/{workflow_name}/runs")
 async def get_workflow_runs(workflow_name: str, current_user: dict = Depends(get_current_user)):
@@ -281,84 +298,12 @@ async def get_workflow_run_details(
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
+
+
+
+#  Collaborator Management Routes
 @router.post("/{workflow_name}/collaborators")
-async def add_collaborator(workflow_name: str, collaborator: WorkflowCollaborator, current_user: dict = Depends(get_current_user)):
-    """Add a collaborator to a workflow by email."""
-    try:
-        workflow_data, permissions = check_workflow_access(workflow_name, current_user, "can_manage_collaborators")
-        
-        # Validate email format (basic check)
-        if "@" not in collaborator.email:
-            raise HTTPException(status_code=400, detail="Invalid email format")
-        
-        # Check if collaborator email is the same as owner
-        if collaborator.email.lower() == current_user["email"].lower():
-            raise HTTPException(status_code=400, detail="Cannot add yourself as a collaborator")
-        
-        # Check if user exists in the system
-        user_exists = supabase.check_user_exists_by_email(collaborator.email)
-        print(f"DEBUG: User existence check for {collaborator.email}: {user_exists}")
-        
-        if not user_exists:
-            raise HTTPException(
-                status_code=400, 
-                detail=f"User with email '{collaborator.email}' is not registered. Please ask them to create an account first, then you can add them as a collaborator."
-            )
-        
-        # Check if collaborator is already added
-        current_collaborators = workflow_data.get("collaborators", []) or []
-        if collaborator.email.lower() in [c.lower() for c in current_collaborators]:
-            raise HTTPException(status_code=400, detail=f"{collaborator.email} is already a collaborator on this workflow")
-        
-        supabase.add_collaborator(workflow_data["id"], collaborator.email)
-        
-        return {
-            "status": "success", 
-            "message": f"Added {collaborator.email} as collaborator to {workflow_name}"
-        }
-    except HTTPException:
-        # Re-raise HTTP exceptions as-is
-        raise
-    except Exception as e:
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
-
-@router.delete("/{workflow_name}/collaborators/{collaborator_email}")
-async def remove_collaborator(workflow_name: str, collaborator_email: str, current_user: dict = Depends(get_current_user)):
-    """Remove a collaborator from a workflow."""
-    try:
-        workflow_data, permissions = check_workflow_access(workflow_name, current_user, "can_manage_collaborators")
-        
-        supabase.remove_collaborator(workflow_data["id"], collaborator_email)
-        
-        return {
-            "status": "success", 
-            "message": f"Removed {collaborator_email} from {workflow_name} collaborators"
-        }
-    except Exception as e:
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
-
-@router.get("/{workflow_name}/collaborators")
-async def get_collaborators(workflow_name: str, current_user: dict = Depends(get_current_user)):
-    """Get list of collaborators for a workflow."""
-    try:
-        workflow_data, permissions = check_workflow_access(workflow_name, current_user, "can_edit")
-        
-        collaborators = workflow_data.get("collaborators", []) or []
-        
-        return {
-            "workflow_name": workflow_name,
-            "collaborators": collaborators,
-            "permissions": permissions.model_dump()
-        }
-    except Exception as e:
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
-
-# Enhanced Collaborator Management Routes
-@router.post("/{workflow_name}/collaborators/enhanced")
-async def add_enhanced_collaborator(
+async def add_collaborator(
     workflow_name: str, 
     request: AddCollaboratorRequest, 
     current_user: dict = Depends(get_current_user)
@@ -383,11 +328,13 @@ async def add_enhanced_collaborator(
                 detail=f"User with email '{request.email}' is not registered. Please ask them to create an account first."
             )
         
-        # Add collaborator using enhanced permissions
-        updated_collaborators = add_workflow_collaborator(workflow_data, request.email, request.role, current_user)
-        
-        # Update database
-        supabase.update_workflow(workflow_data["id"], {"workflow_collaborators": updated_collaborators}, None)
+        # Add collaborator to the workflow_collaborators table
+        supabase.add_workflow_collaborator_to_table(
+            workflow_data["id"], 
+            request.email, 
+            request.role.value, 
+            current_user["id"]
+        )
         
         return {
             "status": "success", 
@@ -410,11 +357,12 @@ async def update_collaborator_role(
     try:
         workflow_data, _ = check_workflow_access(workflow_name, current_user, "can_manage_permissions")
         
-        # Update collaborator role using enhanced permissions
-        updated_collaborators = update_workflow_collaborator_role(workflow_data, collaborator_email, request.role, current_user)
-        
-        # Update database
-        supabase.update_workflow(workflow_data["id"], {"workflow_collaborators": updated_collaborators}, None)
+        # Update collaborator role in the workflow_collaborators table
+        supabase.update_workflow_collaborator_role_in_table(
+            workflow_data["id"], 
+            collaborator_email, 
+            request.role.value
+        )
         
         return {
             "status": "success", 
@@ -426,21 +374,21 @@ async def update_collaborator_role(
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.delete("/{workflow_name}/collaborators/enhanced/{collaborator_email}")
-async def remove_enhanced_collaborator(
+@router.delete("/{workflow_name}/collaborators/{collaborator_email}")
+async def remove_collaborator(
     workflow_name: str, 
     collaborator_email: str, 
     current_user: dict = Depends(get_current_user)
 ):
-    """Remove a collaborator from a workflow (enhanced version)."""
+    """Remove a collaborator from a workflow ( version)."""
     try:
         workflow_data, _ = check_workflow_access(workflow_name, current_user, "can_manage_permissions")
         
-        # Remove collaborator using enhanced permissions
-        updated_collaborators = remove_workflow_collaborator(workflow_data, collaborator_email, current_user)
-        
-        # Update database
-        supabase.update_workflow(workflow_data["id"], {"workflow_collaborators": updated_collaborators}, None)
+        # Remove collaborator from the workflow_collaborators table
+        supabase.remove_workflow_collaborator_from_table(
+            workflow_data["id"], 
+            collaborator_email
+        )
         
         return {
             "status": "success", 
@@ -452,13 +400,13 @@ async def remove_enhanced_collaborator(
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/{workflow_name}/collaborators/enhanced")
-async def get_enhanced_collaborators(workflow_name: str, current_user: dict = Depends(get_current_user)):
+@router.get("/{workflow_name}/collaborators")
+async def get_collaborators(workflow_name: str, current_user: dict = Depends(get_current_user)):
     """Get list of collaborators with their roles for a workflow."""
     try:
         workflow_data, permissions = check_workflow_access(workflow_name, current_user, "can_view")
         
-        # Get collaborators using enhanced permissions
+        # Get collaborators using  permissions
         collaborators = get_workflow_collaborators(workflow_data, current_user)
         
         return {

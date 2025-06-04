@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { apiClient } from "@/services/api";
 
 export default function ResetPasswordPage() {
   const [email, setEmail] = useState("");
@@ -16,24 +17,12 @@ export default function ResetPasswordPage() {
     setSuccess("");
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/reset-password`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setSuccess(data.message);
-        setEmail(""); // Clear form
-      } else {
-        setError(data.detail || "Reset request failed");
-      }
+      const data = await apiClient.post("/api/auth/reset-password", { email });
+      
+      setSuccess(data.message);
+      setEmail(""); // Clear form
     } catch (error) {
-      setError("Network error. Please try again.");
+      setError(error instanceof Error ? error.message : "Reset request failed");
     } finally {
       setLoading(false);
     }

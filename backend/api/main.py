@@ -19,11 +19,13 @@ AIRFLOW_PASSWORD = os.getenv("AIRFLOW_PASSWORD")
 
 API_AUTH = auth = (AIRFLOW_USERNAME, AIRFLOW_PASSWORD)
 
-UPLOAD_DIR = "/shared_data/"
+
 
 origins = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
+    "https://localhost:3000",
+    "https://127.0.0.1:3000",
+    "http://localhost:3000",  # Development fallback
+    "http://127.0.0.1:3000",  # Development fallback
 ]
 
 app.add_middleware(
@@ -36,16 +38,7 @@ app.add_middleware(
 )
 
 
-@app.post("/api/upload")
-async def upload_file(file: UploadFile = File(...)):
-    os.makedirs(UPLOAD_DIR, exist_ok=True)
-    file_location = os.path.join(UPLOAD_DIR, file.filename)
 
-    with open(file_location, "wb") as f:
-        content = await file.read()
-        f.write(content)
-
-    return {"status": "saved", "filename": file.filename}
 
 
         

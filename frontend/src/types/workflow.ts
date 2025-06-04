@@ -45,7 +45,7 @@ export interface Workflow {
   last_run?: string | null;
   status: string;
   collaborators: string[]; // Legacy
-  workflow_collaborators?: WorkflowCollaborator[]; // Enhanced
+  workflow_collaborators?: WorkflowCollaborator[];
   permissions: WorkflowPermissions;
   role: string; // User's relationship to workflow
   owner_email: string;

@@ -1,5 +1,6 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_validator
 from typing import Optional, List
+import re
 from schemas.organization import OrganizationRole
 
 class EmailRequest(BaseModel):
@@ -18,6 +19,26 @@ class UserRegister(BaseUser):
     full_name: str
     password: str
     organization_id: Optional[str] = None
+    
+    @field_validator('password')
+    @classmethod
+    def validate_password(cls, v: str) -> str:
+        if len(v) < 12:
+            raise ValueError('Password must be at least 12 characters long')
+        
+        if not re.search(r'[A-Z]', v):
+            raise ValueError('Password must contain at least one uppercase letter')
+        
+        if not re.search(r'[a-z]', v):
+            raise ValueError('Password must contain at least one lowercase letter')
+        
+        if not re.search(r'\d', v):
+            raise ValueError('Password must contain at least one number')
+        
+        if not re.search(r'[!@#$%^&*()_+\-=\[\]{};:,.<>?]', v):
+            raise ValueError('Password must contain at least one special character')
+        
+        return v
 
 class UserLogin(BaseUser):
     password: str
@@ -34,6 +55,29 @@ class UserUpdate(BaseUser):
     password: str | None = None
     email: EmailStr | None = None
     current_organization_id: Optional[str] = None
+    
+    @field_validator('password')
+    @classmethod
+    def validate_password(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        
+        if len(v) < 12:
+            raise ValueError('Password must be at least 12 characters long')
+        
+        if not re.search(r'[A-Z]', v):
+            raise ValueError('Password must contain at least one uppercase letter')
+        
+        if not re.search(r'[a-z]', v):
+            raise ValueError('Password must contain at least one lowercase letter')
+        
+        if not re.search(r'\d', v):
+            raise ValueError('Password must contain at least one number')
+        
+        if not re.search(r'[!@#$%^&*()_+\-=\[\]{};:,.<>?]', v):
+            raise ValueError('Password must contain at least one special character')
+        
+        return v
 
 class UserOrganizationInfo(BaseModel):
     organization_id: str

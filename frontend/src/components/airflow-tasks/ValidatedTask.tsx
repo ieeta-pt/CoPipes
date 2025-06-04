@@ -2,6 +2,7 @@ import React, { useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { workflowApi } from "@/api/workflows";
 import { TaskConfig, ConfigField, WorkflowComponent } from "@/components/airflow-tasks/types";
 
 interface ValidatedTaskProps {
@@ -174,18 +175,8 @@ export const ValidatedTask: React.FC<ValidatedTaskProps> = ({
           const file = (e.target as HTMLInputElement).files?.[0];
           if (file) {
             try {
-              const formData = new FormData();
-              formData.append("file", file);
-              const res = await fetch("/api/upload", {
-                method: "POST",
-                body: formData,
-              });
-              if (res.ok) {
-                const result = await res.json();
-                setValue(field.name, result.filename || file.name);
-              } else {
-                setValue(field.name, file.name);
-              }
+              const result = await workflowApi.uploadFile(file);
+              setValue(field.name, result.filename || file.name);
               trigger(field.name);
             } catch (error) {
               console.error("File upload error:", error);
