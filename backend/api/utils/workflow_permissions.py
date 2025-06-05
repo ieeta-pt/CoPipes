@@ -114,9 +114,23 @@ def get_user_workflows(current_user: dict):
     collaborated_workflows = []
     
     for workflow in all_workflows:
-        collaborators = workflow.get("collaborators", []) or []
-        if user_email in collaborators and workflow["user_id"] != user_id:
-            collaborated_workflows.append(workflow)
+        # Skip if user is the owner
+        if workflow["user_id"] == user_id:
+            continue
+            
+        # Check workflow_collaborators table first
+        try:
+            workflow_collaborators = supabase.get_workflow_collaborators_from_table(workflow["id"])
+            for collab in workflow_collaborators:
+                if collab.get("email") == user_email:
+                    collaborated_workflows.append(workflow)
+                    break
+        except Exception as e:
+            print(f"Failed to check workflow_collaborators table for workflow {workflow['id']}: {e}")
+            # Fall back to legacy collaborators check
+            collaborators = workflow.get("collaborators", []) or []
+            if user_email in collaborators:
+                collaborated_workflows.append(workflow)
     
     # Get owner information for all unique user_ids and organization IDs
     unique_owner_ids = set()

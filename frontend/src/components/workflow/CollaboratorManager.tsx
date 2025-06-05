@@ -67,8 +67,14 @@ export default function CollaboratorManager({
       await fetchCollaborators();
       setNewCollaboratorEmail("");
       setNewCollaboratorRole(WorkflowRole.VIEWER);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to add collaborator");
+    } catch (err: any) {
+      if (err.status === 409) {
+        setError("This user is already a collaborator on this workflow");
+      } else if (err.status === 400 && err.message?.includes("not registered")) {
+        setError("User not found. Please ask them to create an account first.");
+      } else {
+        setError(err instanceof Error ? err.message : "Failed to add collaborator");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -155,11 +161,13 @@ export default function CollaboratorManager({
 
       {error && (
         <div className={`alert mb-4 ${
-          error.includes("not registered") ? "alert-info" : "alert-error"
+          error.includes("not found") || error.includes("not registered") ? "alert-info" : 
+          error.includes("already a collaborator") ? "alert-warning" : "alert-error"
         }`}>
           <div className="flex flex-col">
             <span className="font-medium">
-              {error.includes("not registered") ? "User Not Found" : "Error"}
+              {error.includes("not found") || error.includes("not registered") ? "User Not Found" : 
+               error.includes("already a collaborator") ? "Already Added" : "Error"}
             </span>
             <span className="text-sm mt-1">{error}</span>
           </div>

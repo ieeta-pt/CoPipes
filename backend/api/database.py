@@ -300,8 +300,8 @@ class SupabaseClient:
         try:
             result = self.client.table("workflow_collaborators").select("""
                 *,
-                user:profiles(email, full_name),
-                invited_by_user:profiles!invited_by(email, full_name)
+                user:profiles!workflow_collaborators_user_id_fkey(email, full_name),
+                invited_by_user:profiles!workflow_collaborators_invited_by_fkey(email, full_name)
             """).eq("workflow_id", workflow_id).execute()
             
             collaborators = []

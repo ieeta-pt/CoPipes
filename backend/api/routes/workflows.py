@@ -214,7 +214,7 @@ async def upload_workflow(file: UploadFile = File(...), current_user: dict = Dep
         raise HTTPException(status_code=500, detail=f"Failed to upload workflow: {str(e)}")
     
 @router.post("/file_input")
-async def file_input(file: UploadFile = File(...)):
+async def file_input(file: UploadFile = File(...), current_user: dict = Depends(get_current_user)):
     """Upload a file to the server."""
     """This endpoint is for uploading files that can be used as inputs to workflows."""
     os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -344,6 +344,12 @@ async def add_collaborator(
         raise
     except Exception as e:
         traceback.print_exc()
+        # Handle duplicate collaborator error specifically
+        if hasattr(e, 'code') and e.code == '23505':
+            raise HTTPException(
+                status_code=409, 
+                detail=f"User '{request.email}' is already a collaborator on this workflow"
+            )
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.put("/{workflow_name}/collaborators/{collaborator_email}/role")

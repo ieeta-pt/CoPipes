@@ -188,7 +188,7 @@ function MemberManagement({ organizationId, ownerId, userRole }: MemberManagemen
                   <td>{new Date(member.joined_at).toLocaleDateString()}</td>
                   <td>
                     <div className="flex gap-2">
-                      {canManageUser(userRole, member.role) && member.user_id !== ownerId && (
+                      {canManageUser(userRole, member.role) && member.user_id !== ownerId && member.role !== OrganizationRole.MEMBER && member.role !== OrganizationRole.VIEWER && (
                         <button 
                           className="btn btn-error btn-sm"
                           onClick={() => handleRemoveUser(member.user_id)}
@@ -196,7 +196,7 @@ function MemberManagement({ organizationId, ownerId, userRole }: MemberManagemen
                           Remove
                         </button>
                       )}
-                      {permissions.canTransferOwnership && member.user_id !== ownerId && (
+                      {permissions.canTransferOwnership && member.user_id !== ownerId && member.role == OrganizationRole.ADMIN && (
                         <button 
                           className="btn btn-warning btn-sm"
                           onClick={() => setTransferOwnershipUserId(member.user_id)}
