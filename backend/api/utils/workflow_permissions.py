@@ -467,9 +467,19 @@ def get_workflow_collaborators(workflow_data: dict, requestor: dict) -> List[Dic
     
     collaborators = []
     
+    # Get owner email from profiles table using workflow's user_id
+    supabase = SupabaseClient()
+    owner_email = "Unknown"
+    try:
+        owner_result = supabase.client.table("profiles").select("email").eq("id", workflow_data["user_id"]).execute()
+        if owner_result.data:
+            owner_email = owner_result.data[0]["email"]
+    except Exception as e:
+        print(f"Failed to get owner email: {e}")
+    
     # Add owner
     owner_info = {
-        "email": workflow_data.get("owner_email", "Unknown"),
+        "email": owner_email,
         "role": WorkflowRole.OWNER.value,
         "is_owner": True,
         "invited_at": workflow_data.get("created_at"),
@@ -478,7 +488,6 @@ def get_workflow_collaborators(workflow_data: dict, requestor: dict) -> List[Dic
     collaborators.append(owner_info)
     
     # Add collaborators from the workflow_collaborators table
-    supabase = SupabaseClient()
     try:
         workflow_collaborators = supabase.get_workflow_collaborators_from_table(workflow_data["id"])
         for collab in workflow_collaborators:

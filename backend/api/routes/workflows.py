@@ -67,15 +67,37 @@ async def get_workflow(workflow_name: str, current_user: dict = Depends(get_curr
     try:
         print(f"GET workflow '{workflow_name}' requested by user: {current_user['id']} ({current_user['email']})")
         workflow_data, permissions = check_workflow_access(workflow_name, current_user, "can_edit")
-        workflow_tasks = supabase.get_workflow_tasks(workflow_name, current_user["id"], current_user["email"])
-        if workflow_tasks is None:
-            raise HTTPException(status_code=404, detail="Workflow not found")
+        
+        # Get tasks using workflow_id from the access-checked workflow_data
+        workflow_id = workflow_data["id"]
+        workflow_tasks_result = supabase.client.table("tasks").select("*").eq("workflow_id", workflow_id).execute()
+        if not workflow_tasks_result.data:
+            workflow_tasks = []
+        else:
+            tasks_dict = workflow_tasks_result.data[0]['tasks']
+            workflow_tasks = [task for task in tasks_dict.values()]
+        
+        # Get organization name if workflow belongs to an organization
+        organization_name = None
+        if workflow_data.get("organization_id"):
+            try:
+                org_result = supabase.client.table("organizations").select("name").eq("id", workflow_data["organization_id"]).execute()
+                if org_result.data:
+                    organization_name = org_result.data[0]["name"]
+            except Exception as e:
+                print(f"Warning: Failed to fetch organization name: {e}")
+        
+        # Get collaborators using the proper function
+        workflow_collaborators = get_workflow_collaborators(workflow_data, current_user)
+        
         print(f"Successfully retrieved workflow '{workflow_name}' for user {current_user['email']}")
         return {
             "dag_id": workflow_name, 
             "tasks": workflow_tasks,
             "permissions": permissions.model_dump(),
-            "collaborators": workflow_data.get("collaborators", [])
+            "collaborators": workflow_collaborators,
+            "organization_id": workflow_data.get("organization_id"),
+            "organization_name": organization_name
         }
     except HTTPException as he:
         print(f"HTTPException getting workflow '{workflow_name}' for user {current_user['email']}: {he.status_code} - {he.detail}")
@@ -230,16 +252,12 @@ async def file_input(file: UploadFile = File(...), current_user: dict = Depends(
 async def get_workflow_runs(workflow_name: str, current_user: dict = Depends(get_current_user)):
     """Get recent runs for a workflow."""
     try:
-        # Convert workflow name to user-specific DAG ID
-        workflow_name_clean = workflow_name.replace("_", " ")
-        workflow = supabase.get_workflow_by_name(workflow_name_clean, current_user["id"])
+        # Check workflow access (including collaboration permissions)
+        workflow_data, permissions = check_workflow_access(workflow_name, current_user, "can_view")
         
-        if not workflow:
-            raise HTTPException(status_code=404, detail="Workflow not found")
-        
-        # Generate the actual DAG ID that would be used in Airflow
-        sanitized_user_id = current_user["id"].replace("-", "_")
-        dag_id = f"user_{sanitized_user_id}_{workflow_name}"
+        # Generate the actual DAG ID that would be used in Airflow (using owner's ID)
+        sanitized_owner_id = workflow_data["user_id"].replace("-", "_")
+        dag_id = f"user_{sanitized_owner_id}_{workflow_name}"
         
         runs = await get_dag_runs(dag_id, limit=5)
         return {"runs": runs}
@@ -255,16 +273,12 @@ async def get_workflow_run_details(
 ):
     """Get detailed results for a specific workflow run."""
     try:
-        # Convert workflow name to user-specific DAG ID
-        workflow_name_clean = workflow_name.replace("_", " ")
-        workflow = supabase.get_workflow_by_name(workflow_name_clean, current_user["id"])
+        # Check workflow access (including collaboration permissions)
+        workflow_data, permissions = check_workflow_access(workflow_name, current_user, "can_view")
         
-        if not workflow:
-            raise HTTPException(status_code=404, detail="Workflow not found")
-        
-        # Generate the actual DAG ID that would be used in Airflow
-        sanitized_user_id = current_user["id"].replace("-", "_")
-        dag_id = f"user_{sanitized_user_id}_{workflow_name}"
+        # Generate the actual DAG ID that would be used in Airflow (using owner's ID)
+        sanitized_owner_id = workflow_data["user_id"].replace("-", "_")
+        dag_id = f"user_{sanitized_owner_id}_{workflow_name}"
         
         # Get DAG run details
         dag_run = await get_dag_run_details(dag_id, dag_run_id)
@@ -432,10 +446,14 @@ async def copy_workflow(workflow_name: str, current_user: dict = Depends(get_cur
     try:
         workflow_data, _ = check_workflow_access(workflow_name, current_user, "can_copy")
         
-        # Get original workflow tasks
-        workflow_tasks = supabase.get_workflow_tasks(workflow_name, workflow_data["user_id"], current_user["email"])
-        if workflow_tasks is None:
-            raise HTTPException(status_code=404, detail="Workflow not found")
+        # Get original workflow tasks using workflow_id from the access-checked workflow_data
+        workflow_id = workflow_data["id"]
+        workflow_tasks_result = supabase.client.table("tasks").select("*").eq("workflow_id", workflow_id).execute()
+        if not workflow_tasks_result.data:
+            workflow_tasks = []
+        else:
+            tasks_dict = workflow_tasks_result.data[0]['tasks']
+            workflow_tasks = [task for task in tasks_dict.values()]
         
         # Create new workflow name
         original_name = workflow_data["name"]

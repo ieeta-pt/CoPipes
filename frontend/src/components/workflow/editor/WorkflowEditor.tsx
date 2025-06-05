@@ -49,6 +49,7 @@ export default function WorkflowEditor({
   const [showActivity, setShowActivity] = useState(false);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [selectedOrganization, setSelectedOrganization] = useState<string>("");
+  const [selectedOrganizationName, setSelectedOrganizationName] = useState<string>("");
   const [orgLoading, setOrgLoading] = useState(false);
   const fetchingRef = useRef(false);
 
@@ -86,7 +87,10 @@ export default function WorkflowEditor({
     const handleMouseMove = (e: MouseEvent) => {
       // Always track cursor position so other users can see it
       if (updateCursor) {
+        console.log('Mouse move detected, updating cursor:', e.clientX, e.clientY);
         updateCursor(e.clientX, e.clientY);
+      } else {
+        console.log('updateCursor not available');
       }
     };
 
@@ -142,6 +146,7 @@ export default function WorkflowEditor({
           // Set organization context for existing workflows
           if (workflow.organization_id) {
             setSelectedOrganization(workflow.organization_id);
+            setSelectedOrganizationName(workflow.organization_name || "");
           }
         } catch (error) {
           setError(
@@ -306,7 +311,7 @@ export default function WorkflowEditor({
                   <div className="text-sm text-base-content/70 flex items-center gap-2">
                     <div className={`w-3 h-3 rounded-full ${selectedOrganization ? 'bg-purple-500' : 'bg-gray-400'}`}></div>
                     <span>
-                      {selectedOrganization ? `Organization workflow` : 'Personal workflow'}
+                      {selectedOrganization ? `${selectedOrganizationName || 'Organization'} workflow` : 'Personal workflow'}
                     </span>
                   </div>
                 )}
@@ -405,7 +410,7 @@ export default function WorkflowEditor({
               workflowName={workflowName}
               collaborators={collaborators}
               userRole={
-                permissions?.user_role || "VIEWER"}
+                permissions?.role || "VIEWER"}
               canManagePermissions={
                 permissions?.can_manage_permissions !== false
               } // Allow for new workflows
