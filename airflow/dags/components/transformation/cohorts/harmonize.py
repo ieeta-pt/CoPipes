@@ -92,13 +92,13 @@ def harmonize_data(
 ):
     """Apply harmonization transformations to the data"""
     data = filter_data(data, measure_column)
-    data = harmonize_variable_concept(data, data_file, mappings, source_column)
-    data = harmonize_measure_concept(data, mappings, data_file, measure_column)
-    data = harmonize_measure_number(data, measure_column)
-    data = harmonize_measure_string(data, measure_column)
+    data = harmonize_variable_concept(data, data_file, mappings)
+    data = harmonize_measure_concept(data, mappings, data_file)
+    data = harmonize_measure_number(data)
+    data = harmonize_measure_string(data)
     # Ad hoc specific functions
     if adhoc_harmonization:
-        data = harmonize_measure_adhoc(data, measure_column)
+        data = harmonize_measure_adhoc(data)
 
     # data = clean_empty_measure(data)
     return data

@@ -221,7 +221,10 @@ export default function WorkflowExecute({
   }
 
   async function runWorkflow(schedulePayload?: any) {
-    if (!workflowId) return;
+    if (!workflowId) {
+      showToast("No workflow ID provided", "error");
+      return;
+    }
 
     const validation = validateWorkflow();
     if (!validation.isValid) {
@@ -272,7 +275,7 @@ export default function WorkflowExecute({
       };
 
       console.log("Executing workflow with payload:", payload);
-      const result = await executeWorkflow(workflowId, payload);
+      const result = await executeWorkflow(payload);
 
       setExecutionResult(result);
       setOutput(result.message || "Workflow executed successfully!");

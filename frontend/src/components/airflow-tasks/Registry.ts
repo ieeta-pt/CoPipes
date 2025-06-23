@@ -592,7 +592,7 @@ export const Registry: TaskRegistry = {
     subtype: "Postgres",
     defaultConfig: [
       { 
-        name: "connection id", 
+        name: "conn id", 
         value: "my_postgres", 
         type: "string",
         placeholder: "Connection identifier",
@@ -681,7 +681,7 @@ export const Registry: TaskRegistry = {
         validation: { message: "Table name is required" }
       },
       { 
-        name: "connection id", 
+        name: "conn id", 
         value: "my_postgres", 
         type: "string",
         placeholder: "Connection identifier",
@@ -1124,15 +1124,14 @@ export const Registry: TaskRegistry = {
   },
   "Execute Notebook": {
     type: "Analysis",
-    subtype: "Jupyter",
     defaultConfig: [
       { 
-        name: "input notebook path", 
+        name: "input notebook", 
         value: "", 
-        type: "string",
-        placeholder: "Path to input notebook file",
+        type: "file",
+        placeholder: "Notebook file to execute",
         required: true,
-        validation: { message: "Input notebook path is required" }
+        validation: { message: "Input notebook file is required" }
       },
       { 
         name: "output directory", 
@@ -1144,8 +1143,8 @@ export const Registry: TaskRegistry = {
       { 
         name: "parameters", 
         value: "", 
-        type: "string",
-        placeholder: "Parameters to pass to notebook (JSON format)",
+        type: "task_reference",
+        placeholder: "Parameters from another task (extraction or transformation result)",
         required: false
       }
     ],
@@ -1153,7 +1152,6 @@ export const Registry: TaskRegistry = {
   },
   "Descriptive Statistics": {
     type: "Analysis",
-    subtype: "Statistical",
     defaultConfig: [
       { 
         name: "data", 
@@ -1197,7 +1195,6 @@ export const Registry: TaskRegistry = {
   },
   "Data Correlation": {
     type: "Analysis",
-    subtype: "Statistical",
     defaultConfig: [
       { 
         name: "data", 
@@ -1242,7 +1239,6 @@ export const Registry: TaskRegistry = {
   },
   "Data Visualization": {
     type: "Analysis",
-    subtype: "Visualization",
     defaultConfig: [
       { 
         name: "data", 
@@ -1302,7 +1298,6 @@ export const Registry: TaskRegistry = {
   },
   "Generate Report": {
     type: "Analysis",
-    subtype: "Reporting",
     defaultConfig: [
       { 
         name: "data sources", 

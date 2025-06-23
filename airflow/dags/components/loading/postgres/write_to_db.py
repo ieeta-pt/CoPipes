@@ -3,7 +3,7 @@ from airflow.decorators import task
 from airflow.hooks.postgres_hook import PostgresHook
 
 @task
-def write_to_db(data: dict, table_name: str, connection_id: str = "my_postgres"):
+def write_to_db(data: dict, table_name: str, conn_id: str = "my_postgres"):
     """Writes a DataFrame to a PostgreSQL table."""
 
     # table_name = data["filename"]
@@ -12,7 +12,7 @@ def write_to_db(data: dict, table_name: str, connection_id: str = "my_postgres")
     df = pd.DataFrame(data[table_name])
     df = df.where(pd.notna(df), None)
 
-    pg_hook = PostgresHook(connection_id=connection_id)
+    pg_hook = PostgresHook(postgres_conn_id=conn_id)
     engine = pg_hook.get_sqlalchemy_engine()
     
     try:

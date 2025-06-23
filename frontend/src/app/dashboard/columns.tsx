@@ -1,9 +1,10 @@
 "use client";
 
 import { ColumnDef } from "@tanstack/react-table";
-import { Download, Pencil, Play, Trash, Copy } from "lucide-react";
+import { Download, Pencil, Play, Trash, Copy, Eye } from "lucide-react";
 import { deleteWorkflowAPI, downloadWorkflowAPI, copyWorkflowAPI } from "@/api/workflows";
 import AvatarStack from "@/components/workflow/AvatarStack";
+import { WorkflowRole } from "@/types/workflow";
 export type Workflow = {
   id: number;
   name: string;
@@ -15,7 +16,7 @@ export type Workflow = {
   owner_email?: string; // Owner's email
   owner_name?: string;  // Owner's display name
   created_at: string;
-  role?: "owner" | "collaborator";
+  role?: "owner" | "collaborator" | WorkflowRole;
   organization_id?: string | null; // Organization ID if workflow belongs to org
   organization_name?: string; // Organization name for display
   permissions?: {
@@ -28,6 +29,7 @@ export type Workflow = {
     can_manage_collaborators: boolean;
   };
 };
+
 
 const editWorkflow = async (name: string) => {
   try {
@@ -47,9 +49,18 @@ const runWorkflow = async (name: string) => {
   }
 };
 
+const viewWorkflow = async (name: string) => {
+  try {
+    name = name.replace(/ /g, "_");
+    window.location.href = `/workflow/viewer/${name}`;
+  } catch (error) {
+    console.error("Error viewing workflow:", error);
+  }
+};
+
 const deleteWorkflow = async (name: string) => {
   try {
-    const response = await deleteWorkflowAPI(name);
+    await deleteWorkflowAPI(name);
     window.location.reload();
   } catch (error) {
     console.error("Error deleting workflow:", error);
@@ -59,6 +70,7 @@ const deleteWorkflow = async (name: string) => {
 const downloadWorkflow = async (name: string) => {
   try {
     const workflow = await downloadWorkflowAPI(name);
+
     
     // Create a blob with the JSON data
     const blob = new Blob([JSON.stringify(workflow, null, 2)], {
@@ -122,6 +134,8 @@ export const columns: ColumnDef<Workflow>[] = [
       const ownerEmail = workflow.owner_email;
       const ownerName = workflow.owner_name;
       const isCurrentUserOwner = workflow.role === "owner";
+      console.log("Workflow role:", workflow.role);
+
       
       // Display owner information
       const displayName = ownerName || (ownerEmail ? ownerEmail.split('@')[0] : 'Unknown');
@@ -251,6 +265,17 @@ export const columns: ColumnDef<Workflow>[] = [
 
       return (
         <div className="flex justify-end gap-2">
+          {/* View button - only available for viewers and analysts */}
+          {(workflow.role === WorkflowRole.VIEWER || workflow.role === WorkflowRole.ANALYST) && (
+            <button
+              className="btn btn-soft btn-info btn-xs"
+              onClick={() => viewWorkflow(workflow.name)}
+              title="View workflow"
+            >
+              <Eye className="h-4 w-4" />
+            </button>
+          )}
+
           {(!permissions || permissions.can_edit) && (
             <button
               className="btn btn-soft btn-accent btn-xs"

@@ -3,13 +3,10 @@ from typing import List
 from services.organization_service import OrganizationService
 from schemas.organization import (
     OrganizationCreate, OrganizationResponse, OrganizationRole,
-    InviteUserRequest, OrganizationMember, OrganizationUpdate
+    InviteUserRequest, OrganizationMember
 )
 from utils.auth import get_current_user
-from utils.organization_auth import (
-    require_organization_admin, require_organization_owner,
-    require_member_management_permission, require_organization_member
-)
+from utils.organization_auth import require_organization_owner, require_member_management_permission
 
 router = APIRouter(
     prefix="/api/organizations",

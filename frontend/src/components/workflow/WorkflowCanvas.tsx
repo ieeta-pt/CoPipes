@@ -24,21 +24,25 @@ import { WorkflowComponent } from "@/components/airflow-tasks/types";
 export function WorkflowCanvas({
   workflowItems,
   setWorkflowItems,
+  readOnly = false,
 }: {
   workflowItems: WorkflowComponent[];
   setWorkflowItems: (items: WorkflowComponent[]) => void;
   onCompile: () => void;
+  readOnly?: boolean;
 }) {
   const [activeItem, setActiveItem] = useState<WorkflowComponent | null>(null);
 
   const sensors = useSensors(useSensor(PointerSensor));
 
   const handleDragStart = (event: DragStartEvent) => {
+    if (readOnly) return;
     const item = workflowItems.find((i) => i.id === event.active.id);
     if (item) setActiveItem(item);
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
+    if (readOnly) return;
     const { active, over } = event;
     if (active.id !== over?.id) {
       const oldIndex = workflowItems.findIndex((i) => i.id === active.id);
@@ -72,6 +76,7 @@ export function WorkflowCanvas({
                 <SortableItem
                   key={item.id}
                   item={item}
+                  readOnly={readOnly}
                   onRemove={(id) =>
                     setWorkflowItems(workflowItems.filter((i) => i.id !== id))
                   }

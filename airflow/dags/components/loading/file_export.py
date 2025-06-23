@@ -6,17 +6,18 @@ import json
 import gzip
 import bz2
 
-UPLOAD_DIR = "/shared_data/"
+UPLOAD_DIR = "/tmp/airflow_exports/"
 
 @task
 def file_export(data: Dict[str, Any], file_path: str, file_format: str = "csv",
                 compression: str = "none", include_header: bool = True) -> Dict[str, Any]:
     """
     Export data to file in various formats.
+    Files are stored in a local directory (/tmp/airflow_exports/) regardless of user input.
     
     Args:
         data: Input data from transformation task
-        file_path: Output file path
+        file_path: User-specified file path (filename or path - will be stored locally)
         file_format: Export file format (csv, json, parquet, xlsx, xml)
         compression: File compression (none, gzip, bzip2, snappy)
         include_header: Include column headers (for CSV)
@@ -35,16 +36,20 @@ def file_export(data: Dict[str, Any], file_path: str, file_format: str = "csv",
         total_rows = len(df)
         
         print(f"Starting file export. Rows: {total_rows}, Format: {file_format}")
-        print(f"Output path: {file_path}")
+        print(f"User specified path: {file_path}")
         
-        # Handle full path vs relative path
-        if not file_path.startswith('/'):
-            output_path = os.path.join(UPLOAD_DIR, file_path)
-        else:
-            output_path = file_path
+        # Always store in local directory, abstract user from underlying path
+        # User provides filename or relative path, we store in UPLOAD_DIR
+        if file_path.startswith('/'):
+            # If user provides absolute path, extract just the filename
+            file_path = os.path.basename(file_path)
         
-        # Ensure directory exists
-        os.makedirs(os.path.dirname(output_path) if os.path.dirname(output_path) else UPLOAD_DIR, exist_ok=True)
+        output_path = os.path.join(UPLOAD_DIR, file_path)
+        print(f"Actual storage path: {output_path}")
+        
+        # Ensure directory exists with proper permissions
+        output_dir = os.path.dirname(output_path) if os.path.dirname(output_path) else UPLOAD_DIR
+        os.makedirs(output_dir, exist_ok=True, mode=0o755)
         
         # Export based on format
         exported_file = _export_to_format(df, output_path, file_format, include_header)
@@ -61,6 +66,7 @@ def file_export(data: Dict[str, Any], file_path: str, file_format: str = "csv",
             "data": [{"message": f"Successfully exported {total_rows} rows to {os.path.basename(final_file)}"}],
             "filename": f"export_{os.path.basename(final_file)}",
             "export_path": final_file,
+            "user_specified_path": file_path,
             "rows_exported": total_rows,
             "columns_exported": len(df.columns),
             "file_format": file_format,
@@ -81,27 +87,33 @@ def _export_to_format(df: pd.DataFrame, output_path: str, file_format: str, incl
     if file_format.lower() == "csv":
         file_path = f"{base_path}.csv"
         df.to_csv(file_path, index=False, header=include_header)
+        os.chmod(file_path, 0o644)
         
     elif file_format.lower() == "json":
         file_path = f"{base_path}.json"
         df.to_json(file_path, orient='records', indent=2)
+        os.chmod(file_path, 0o644)
         
     elif file_format.lower() == "parquet":
         file_path = f"{base_path}.parquet"
         df.to_parquet(file_path, index=False)
+        os.chmod(file_path, 0o644)
         
     elif file_format.lower() == "xlsx":
         file_path = f"{base_path}.xlsx"
         df.to_excel(file_path, index=False, header=include_header)
+        os.chmod(file_path, 0o644)
         
     elif file_format.lower() == "xml":
         file_path = f"{base_path}.xml"
         _export_to_xml(df, file_path)
+        os.chmod(file_path, 0o644)
         
     else:
         # Default to CSV
         file_path = f"{base_path}.csv"
         df.to_csv(file_path, index=False, header=include_header)
+        os.chmod(file_path, 0o644)
         print(f"Warning: Unsupported format '{file_format}', defaulting to CSV")
     
     return file_path

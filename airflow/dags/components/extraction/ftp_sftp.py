@@ -4,7 +4,6 @@ from typing import Dict
 from airflow.decorators import task
 import paramiko
 import ftplib
-import tempfile
 
 UPLOAD_DIR = "/shared_data/"
 

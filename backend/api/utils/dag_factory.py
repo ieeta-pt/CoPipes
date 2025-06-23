@@ -103,10 +103,15 @@ def generate_dag(config, user_id: str = None):
         if task["dependencies"]:
             for dep in task["dependencies"]:
                 dependencies.append(DEPENDENCY_TEMPLATE.format(upstream=dep, downstream=task_id))
-        else:
-            dependencies = None
 
         print(f"Task: {task_id} \nModule: {module_path} \nFunction: {function_name} \nParams: {params_str} \nDependencies: {dependencies}")
+
+    # Add sequential dependencies - each task depends on the previous one
+    task_ids = [task["id"].replace(" ", "_").lower() for task in config["tasks"]]
+    for i in range(1, len(task_ids)):
+        upstream_task = task_ids[i-1]
+        downstream_task = task_ids[i]
+        dependencies.append(DEPENDENCY_TEMPLATE.format(upstream=upstream_task, downstream=downstream_task))
 
     dag_code = DAG_TEMPLATE.format(
         dag_id=dag_id,

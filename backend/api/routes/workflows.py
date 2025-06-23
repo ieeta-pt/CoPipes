@@ -7,10 +7,7 @@ import json
 from utils.dag_factory import generate_dag, remove_dag
 from utils.airflow_api import trigger_dag_run, get_dag_runs, get_dag_run_details, get_task_instances, get_task_xcom_entries
 from utils.auth import get_current_user
-from utils.workflow_permissions import (
-    get_user_workflows, check_workflow_access, get_workflow_collaborators,
-    add_workflow_collaborator, update_workflow_collaborator_role, remove_workflow_collaborator
-)
+from utils.workflow_permissions import get_user_workflows, check_workflow_access, get_workflow_collaborators
 
 from database import SupabaseClient
 from schemas.workflow import (

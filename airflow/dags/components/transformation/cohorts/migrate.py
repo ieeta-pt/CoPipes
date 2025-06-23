@@ -77,17 +77,17 @@ def migrate(person_data: list[dict] | dict, observation_data: list[dict], mappin
     person_dict = person_data.to_dict(orient="records")
     person_clean = replace_nan_with_none(person_dict)
 
-    observations = []
-    for d in observation_data:
-        df = pd.DataFrame(d["data"])
-        fname = d["filename"]
-        observations += [migrate_observation(df, fname, mappings_df, adhoc_migration)]
+    # observations = []
+    # for d in observation_data:
+    #     df = pd.DataFrame(d["data"])
+    #     fname = d["filename"]
+    #     observations += [migrate_observation(df, fname, mappings_df, adhoc_migration)]
 
-    observation_result = pd.concat(observations)
-    observation_dict = observation_result.to_dict(orient="records")
-    observation_clean = replace_nan_with_none(observation_dict)
+    # observation_result = pd.concat(observations)
+    # observation_dict = observation_result.to_dict(orient="records")
+    # observation_clean = replace_nan_with_none(observation_dict)
     
-    return {"person": person_clean, "observation": observation_clean}
+    return {"person": person_clean}
 
 
 def migrate_person(df: pd.DataFrame, filename: str, mappings: pd.DataFrame, adhoc_migration: bool = False):

@@ -8,6 +8,7 @@ type Props = {
   onRemove: (id: string) => void;
   onUpdate: (config: WorkflowComponent["config"]) => void;
   isOverlay?: boolean;
+  readOnly?: boolean;
 };
 
 export const SortableItem: React.FC<Props> = ({
@@ -15,6 +16,7 @@ export const SortableItem: React.FC<Props> = ({
   onRemove,
   onUpdate,
   isOverlay = false,
+  readOnly = false,
 }) => {
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id: item.id });
@@ -33,7 +35,7 @@ export const SortableItem: React.FC<Props> = ({
       <div className="card-body p-4">
         <div className="flex justify-between items-start mb-2">
           <div className="text-lg font-semibold">{item.content}</div>
-          {!isOverlay && (
+          {!isOverlay && !readOnly && (
             <div className="flex gap-2">
               <button
                 className="btn btn-xs btn-soft btn-secondary cursor-grab"

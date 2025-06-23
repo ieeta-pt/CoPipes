@@ -29,6 +29,12 @@ def data_aggregation(data: Dict[str, Any], group_by_columns: str, aggregation_fu
         df = pd.DataFrame(input_data)
         original_shape = df.shape
         
+        # Convert numeric columns from strings to proper numeric types
+        for col in df.columns:
+            if df[col].dtype == 'object':
+                # Try to convert to numeric, errors='ignore' keeps non-numeric as is
+                df[col] = pd.to_numeric(df[col], errors='ignore')
+        
         print(f"Starting data aggregation. Original shape: {original_shape}")
         
         # Parse group by columns

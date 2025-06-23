@@ -1,23 +1,21 @@
 import os
-import logging
-from typing import Dict, Any, Optional
+import tempfile
+import json
+from typing import Dict, Any, Optional, Union
 from airflow.decorators import task
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 @task
 def execute_notebook(
-    input_notebook_path: str,
+    input_notebook: Union[str, Dict[str, Any]],
     output_directory: str = "/shared_data/notebooks/output",
     parameters: Optional[Dict[str, Any]] = None,
     **context
 ) -> Dict[str, Any]:
     """
-    Execute a Jupyter notebook using papermill with configurable parameters.
+    Execute a Jupyter notebook using the PapermillOperator with configurable parameters.
     
     Args:
-        input_notebook_path: Path to input notebook file
+        input_notebook: Either path to notebook file or notebook content as dict
         output_directory: Directory to save executed notebook
         parameters: Dictionary of parameters to pass to notebook
         **context: Airflow context
@@ -25,62 +23,57 @@ def execute_notebook(
     Returns:
         Dict containing execution results and output file path
     """
-    try:
-        import papermill as pm
-        
-        execution_date = context['ds']
-        
-        # Create output directory if it doesn't exist
-        os.makedirs(output_directory, exist_ok=True)
-        
-        # Generate output notebook path
+    execution_date = context['ds']
+    
+    # Handle input notebook - either path or notebook content
+    if isinstance(input_notebook, str):
+        # It's a file path
+        input_notebook_path = input_notebook
         notebook_name = os.path.basename(input_notebook_path)
-        name_without_ext = os.path.splitext(notebook_name)[0]
-        output_notebook = os.path.join(output_directory, f"{name_without_ext}_{execution_date}.ipynb")
-        
-        logger.info(f"Executing notebook: {input_notebook_path}")
-        logger.info(f"Output will be saved to: {output_notebook}")
-        
-        # Default parameters if none provided
-        if parameters is None:
-            parameters = {}
-        
-        # Always include execution date in parameters
-        parameters['execution_date'] = execution_date
-        
-        logger.info(f"Parameters: {parameters}")
-        
-        # Execute notebook with papermill
-        pm.execute_notebook(
-            input_path=input_notebook_path,
-            output_path=output_notebook,
-            parameters=parameters
-        )
-        
-        logger.info(f"Successfully executed notebook: {input_notebook_path}")
-        logger.info(f"Output saved to: {output_notebook}")
-        
-        # Check if output file exists and get metadata
-        if os.path.exists(output_notebook):
-            file_size = os.path.getsize(output_notebook)
-            logger.info(f"Output notebook size: {file_size} bytes")
-            
-            return {
-                "status": "success",
-                "input_notebook": input_notebook_path,
-                "output_notebook": output_notebook,
-                "file_size_bytes": file_size,
-                "execution_date": execution_date,
-                "parameters_used": parameters
-            }
-        else:
-            raise FileNotFoundError(f"Expected output notebook not found: {output_notebook}")
-        
-    except ImportError:
-        error_msg = "Papermill is not installed. Please install with: pip install papermill"
-        logger.error(error_msg)
-        raise ImportError(error_msg)
-    except Exception as e:
-        error_msg = f"Error executing notebook: {str(e)}"
-        logger.error(error_msg)
-        raise Exception(error_msg)
+    else:
+        # It's notebook content as dict, create temporary file
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.ipynb', delete=False) as temp_file:
+            json.dump(input_notebook, temp_file)
+            input_notebook_path = temp_file.name
+            notebook_name = f"temp_notebook_{execution_date}.ipynb"
+    
+    # Try to create output directory, fallback to /tmp if permission denied
+    try:
+        os.makedirs(output_directory, mode=0o777, exist_ok=True)
+    except PermissionError:
+        output_directory = "/tmp/notebooks/output"
+        os.makedirs(output_directory, mode=0o777, exist_ok=True)
+    
+    # Generate output notebook path
+    name_without_ext = os.path.splitext(notebook_name)[0]
+    output_notebook = os.path.join(output_directory, f"{name_without_ext}_{execution_date}.ipynb")
+    
+    # Default parameters if none provided
+    if parameters is None:
+        parameters = {}
+    
+    # Add execution date to parameters
+    parameters['execution_date'] = execution_date
+    
+    # Use papermill directly instead of operator since we're in a task
+    import papermill as pm
+    
+    pm.execute_notebook(
+        input_path=input_notebook_path,
+        output_path=output_notebook,
+        parameters=parameters,
+        kernel_name="python3"
+    )
+    
+    # Clean up temporary file if it was created
+    if not isinstance(input_notebook, str) and os.path.exists(input_notebook_path):
+        os.unlink(input_notebook_path)
+    
+    # Return execution results
+    return {
+        "status": "success",
+        "input_notebook": str(input_notebook_path) if isinstance(input_notebook, str) else "notebook_content",
+        "output_notebook": output_notebook,
+        "execution_date": execution_date,
+        "parameters_used": parameters
+    }

@@ -179,7 +179,7 @@ def get_user_workflows(current_user: dict):
     for workflow in owned_workflows:
         permissions = get_workflow_permissions(workflow, current_user)
         workflow["permissions"] = permissions.model_dump()
-        workflow["role"] = "owner"
+        workflow["role"] = permissions.role
         
         # Add owner information
         owner_info = owner_details.get(workflow["user_id"], {})
@@ -198,7 +198,7 @@ def get_user_workflows(current_user: dict):
     for workflow in collaborated_workflows:
         permissions = get_workflow_permissions(workflow, current_user)
         workflow["permissions"] = permissions.model_dump()
-        workflow["role"] = "collaborator"
+        workflow["role"] = permissions.role
         
         # Add owner information
         owner_info = owner_details.get(workflow["user_id"], {})
@@ -324,11 +324,11 @@ def get_organization_workflows(organization_id: str, current_user: dict):
         
         # Determine user's relationship to this workflow
         if workflow["user_id"] == current_user["id"]:
-            workflow["role"] = "owner"
+            workflow["role"] = permissions.role
         elif current_user["email"] in (workflow.get("collaborators", []) or []):
-            workflow["role"] = "collaborator"
+            workflow["role"] = permissions.role
         else:
-            workflow["role"] = "organization_member"
+            workflow["role"] = WorkflowRole.VIEWER
         
         workflows_with_permissions.append(workflow)
     

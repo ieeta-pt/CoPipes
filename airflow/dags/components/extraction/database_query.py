@@ -2,8 +2,6 @@ import json
 import pandas as pd
 from typing import Dict, Optional, Any
 from airflow.decorators import task
-import psycopg2
-import sqlite3
 from sqlalchemy import create_engine
 
 @task
