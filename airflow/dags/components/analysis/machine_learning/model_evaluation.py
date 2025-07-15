@@ -4,8 +4,15 @@ import joblib
 import logging
 import os
 import json
+import sys
 from typing import Dict, Any
 from airflow.decorators import task
+
+# Add utils to path for imports
+if '/opt/airflow/dags' not in sys.path:
+    sys.path.insert(0, '/opt/airflow/dags')
+
+from components.utils.supabase_storage import storage
 from sklearn.metrics import (
     accuracy_score, precision_score, recall_score, f1_score, roc_auc_score,
     confusion_matrix, classification_report, mean_squared_error, 
@@ -18,10 +25,9 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 @task
-def evaluate_model(
-    model_path: str,
+def model_evaluation(
+    model_training_result: Dict[str, Any],
     test_data: Dict[str, Any],
-    output_directory: str = "/shared_data/model_evaluation",
     generate_plots: bool = True,
     save_predictions: bool = True,
     **context
@@ -30,9 +36,8 @@ def evaluate_model(
     Evaluate a trained machine learning model with comprehensive metrics.
     
     Args:
-        model_path: Path to the saved model file
+        model_training_result: Result dictionary from model training task
         test_data: Test data dictionary with 'data' key containing records
-        output_directory: Directory to save evaluation results
         generate_plots: Whether to generate evaluation plots
         save_predictions: Whether to save predictions to file
         **context: Airflow context
@@ -44,12 +49,18 @@ def evaluate_model(
         logger.error("No valid test data received for model evaluation.")
         raise ValueError("No valid test data received for model evaluation.")
 
-    # Load model and preprocessing objects
-    if not os.path.exists(model_path):
-        raise FileNotFoundError(f"Model file not found: {model_path}")
-    
-    logger.info(f"Loading model from: {model_path}")
-    model_objects = joblib.load(model_path)
+    # Extract model path from training result
+    if isinstance(model_training_result, dict) and 'model_path' in model_training_result:
+        model_path = model_training_result['model_path']
+    else:
+        raise ValueError(f"Invalid model training result format: {model_training_result}")
+
+    # Load model and preprocessing objects from Supabase Storage
+    logger.info(f"Loading model from Supabase Storage: {model_path}")
+    try:
+        model_objects = storage.load_joblib(model_path)
+    except Exception as e:
+        raise FileNotFoundError(f"Model file not found in Supabase Storage: {model_path}. Error: {e}")
     
     model = model_objects['model']
     scaler = model_objects.get('scaler')
@@ -122,17 +133,20 @@ def evaluate_model(
     else:
         evaluation_results = _calculate_regression_metrics(y_test_encoded, y_pred)
 
-    # Create output directory
-    os.makedirs(output_directory, exist_ok=True)
+    # Save evaluation results to Supabase Storage
     execution_date = context.get('ds', 'unknown')
     
     # Save evaluation report
-    report_path = os.path.join(output_directory, f"evaluation_report_{execution_date}.json")
-    with open(report_path, 'w') as f:
-        json.dump(evaluation_results, f, indent=2, default=str)
-    logger.info(f"Evaluation report saved to: {report_path}")
+    report_storage_path = f"evaluations/evaluation_report_{execution_date}.json"
+    try:
+        report_path = storage.save_json(evaluation_results, report_storage_path)
+        logger.info(f"Evaluation report saved to Supabase Storage: {report_path}")
+    except Exception as e:
+        logger.warning(f"Failed to save evaluation report: {e}")
+        report_path = None
 
     # Save predictions
+    predictions_path = None
     if save_predictions:
         predictions_df = df_test.copy()
         predictions_df['predictions'] = y_pred
@@ -143,17 +157,40 @@ def evaluate_model(
             for i, cls in enumerate(classes):
                 predictions_df[f'prob_class_{cls}'] = y_pred_proba[:, i]
         
-        predictions_path = os.path.join(output_directory, f"predictions_{execution_date}.csv")
-        predictions_df.to_csv(predictions_path, index=False)
-        logger.info(f"Predictions saved to: {predictions_path}")
+        # Convert DataFrame to JSON for storage
+        predictions_data = predictions_df.to_dict(orient='records')
+        predictions_storage_path = f"predictions/predictions_{execution_date}.json"
+        try:
+            predictions_path = storage.save_json({"predictions": predictions_data}, predictions_storage_path)
+            logger.info(f"Predictions saved to Supabase Storage: {predictions_path}")
+        except Exception as e:
+            logger.warning(f"Failed to save predictions: {e}")
+            predictions_path = None
 
-    # Generate plots
+    # Generate plots (skip for now due to complexity of storing images in Supabase)
     plot_paths = []
     if generate_plots:
-        plot_paths = _generate_evaluation_plots(
-            y_test_encoded, y_pred, y_pred_proba, task_type, 
-            output_directory, execution_date, target_encoder
-        )
+        logger.info("Plot generation temporarily disabled for Supabase Storage integration")
+        # plot_paths = _generate_evaluation_plots(
+        #     y_test_encoded, y_pred, y_pred_proba, task_type, 
+        #     execution_date, target_encoder
+        # )
+
+    # Prepare prediction data for visualization
+    prediction_data = []
+    if save_predictions:
+        predictions_df = df_test.copy()
+        predictions_df['predictions'] = y_pred
+        predictions_df['actual_demand'] = y_test_encoded
+        predictions_df['predicted_demand'] = y_pred
+        
+        # Add probability columns for classification if available
+        if y_pred_proba is not None:
+            classes = model.classes_ if hasattr(model, 'classes_') else range(y_pred_proba.shape[1])
+            for i, cls in enumerate(classes):
+                predictions_df[f'prob_class_{cls}'] = y_pred_proba[:, i]
+        
+        prediction_data = predictions_df.to_dict(orient='records')
 
     return {
         "status": "success",
@@ -165,7 +202,8 @@ def evaluate_model(
         "report_path": report_path,
         "predictions_path": predictions_path if save_predictions else None,
         "plot_paths": plot_paths,
-        "execution_date": execution_date
+        "execution_date": execution_date,
+        "data": prediction_data  # Add prediction data for visualization
     }
 
 

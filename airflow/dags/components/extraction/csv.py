@@ -5,7 +5,7 @@ import unicodedata
 from typing import Dict
 from airflow.decorators import task
 
-UPLOAD_DIR = "/shared_data/"
+UPLOAD_DIR = "/opt/airflow/data/"
 
 @task
 def csv(filename: str, file_separation: str = ',') -> Dict[dict, str]:

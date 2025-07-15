@@ -3,8 +3,15 @@ import numpy as np
 import joblib
 import logging
 import os
+import sys
 from typing import Dict, List, Any, Optional
 from airflow.decorators import task
+
+# Add utils to path for imports
+if '/opt/airflow/dags' not in sys.path:
+    sys.path.insert(0, '/opt/airflow/dags')
+
+from components.utils.supabase_storage import storage
 from sklearn.model_selection import train_test_split, GridSearchCV, cross_val_score
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.linear_model import LogisticRegression, LinearRegression
@@ -17,18 +24,17 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 @task
-def train_model(
+def model_training(
     data: Dict[str, Any],
     target_column: str,
     feature_columns: Optional[List[str]] = None,
     model_type: str = "random_forest",
     task_type: str = "classification",
-    test_size: float = 0.2,
-    random_state: int = 42,
+    test_size: float | str = 0.2,
+    random_state: int | str = 42,
     hyperparameter_tuning: bool = False,
     cross_validation: bool = True,
-    cv_folds: int = 5,
-    output_directory: str = "/shared_data/models",
+    cv_folds: int | str = 5,
     model_name: Optional[str] = None,
     **context
 ) -> Dict[str, Any]:
@@ -73,6 +79,13 @@ def train_model(
     missing_features = [col for col in feature_columns if col not in df.columns]
     if missing_features:
         raise ValueError(f"Feature columns not found in data: {missing_features}")
+    
+    if isinstance(test_size, str):
+        test_size = float(test_size)
+    if isinstance(random_state, str):
+        random_state = int(random_state)
+    if isinstance(cv_folds, str):
+        cv_folds = int(cv_folds)
 
     # Prepare features and target
     X = df[feature_columns].copy()
@@ -173,12 +186,10 @@ def train_model(
     
     logger.info(f"Test {metric_name}: {test_score:.4f}")
 
-    # Save model and preprocessing objects
-    os.makedirs(output_directory, exist_ok=True)
-    
+    # Save model and preprocessing objects to Supabase Storage
     execution_date = context.get('ds', 'unknown')
     model_filename = model_name or f"{model_type}_{task_type}_{execution_date}.joblib"
-    model_path = os.path.join(output_directory, model_filename)
+    storage_path = f"models/{model_filename}"
     
     # Save all necessary objects
     model_objects = {
@@ -192,8 +203,12 @@ def train_model(
         'task_type': task_type
     }
     
-    joblib.dump(model_objects, model_path)
-    logger.info(f"Model saved to: {model_path}")
+    try:
+        model_path = storage.save_joblib(model_objects, storage_path)
+        logger.info(f"Model saved to Supabase Storage: {model_path}")
+    except Exception as e:
+        logger.error(f"Failed to save model to Supabase Storage: {e}")
+        raise
 
     return {
         "status": "success",

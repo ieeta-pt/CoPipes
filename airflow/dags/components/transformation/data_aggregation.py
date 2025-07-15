@@ -46,7 +46,7 @@ def data_aggregation(data: Dict[str, Any], group_by_columns: str, aggregation_fu
             raise ValueError(f"Group by columns not found: {missing_columns}")
         
         # Parse aggregation functions
-        agg_dict = _parse_aggregation_functions(aggregation_functions, df.columns)
+        agg_dict = _parse_aggregation_functions(aggregation_functions, df.columns.tolist())
         
         print(f"Grouping by: {group_columns}")
         print(f"Aggregations: {agg_dict}")
@@ -61,6 +61,37 @@ def data_aggregation(data: Dict[str, Any], group_by_columns: str, aggregation_fu
         
         # Reset index to make group columns regular columns
         aggregated = aggregated.reset_index()
+        
+        # Apply aliases from the original aggregation functions
+        column_aliases = _extract_aliases_from_functions(aggregation_functions)
+        if column_aliases:
+            # Rename columns according to aliases
+            rename_mapping = {}
+            for old_name, new_name in column_aliases.items():
+                # Find the actual column name that was created
+                # Check for exact matches first, then partial matches
+                found = False
+                for col in aggregated.columns:
+                    if col == old_name:
+                        # Exact match (unlikely after aggregation)
+                        rename_mapping[col] = new_name
+                        found = True
+                        break
+                    elif old_name in col and '_' in col:
+                        # Partial match like 'Quantity_sum' contains 'Quantity'
+                        rename_mapping[col] = new_name
+                        found = True
+                        break
+                
+                if not found:
+                    print(f"Warning: Could not find column for alias '{old_name}' -> '{new_name}'")
+            
+            if rename_mapping:
+                aggregated = aggregated.rename(columns=rename_mapping)
+                print(f"Applied column aliases: {rename_mapping}")
+            else:
+                print(f"No column aliases applied. Available columns: {list(aggregated.columns)}")
+                print(f"Expected aliases: {column_aliases}")
         
         # Apply having conditions if provided
         if having_conditions and having_conditions.strip():
@@ -101,6 +132,22 @@ def data_aggregation(data: Dict[str, Any], group_by_columns: str, aggregation_fu
     except Exception as e:
         raise ValueError(f"Data aggregation failed: {e}")
 
+def _extract_aliases_from_functions(agg_string: str) -> dict:
+    """Extract aliases from aggregation functions string"""
+    aliases = {}
+    functions = [func.strip() for func in agg_string.split(',')]
+    
+    for func in functions:
+        func = func.strip()
+        # Match pattern: function(column) as alias
+        match = re.match(r'(\w+)\(([^)]+)\)(?:\s+as\s+(\w+))', func, re.IGNORECASE)
+        if match:
+            column = match.group(2).strip()
+            alias = match.group(3).strip()
+            aliases[column] = alias
+    
+    return aliases
+
 def _parse_aggregation_functions(agg_string: str, available_columns: list) -> dict:
     """Parse aggregation functions string into pandas agg dictionary"""
     agg_dict = {}
@@ -122,7 +169,7 @@ def _parse_aggregation_functions(agg_string: str, available_columns: list) -> di
             # Handle special cases
             if column == '*' and agg_func == 'count':
                 # count(*) - count non-null values in first available column
-                column = available_columns[0] if available_columns else 'index'
+                column = available_columns[0] if len(available_columns) > 0 else 'index'
                 alias = 'count'
             
             # Validate column exists
@@ -159,10 +206,7 @@ def _parse_aggregation_functions(agg_string: str, available_columns: list) -> di
     
     if not agg_dict:
         # Default aggregation if nothing parsed successfully
-        numeric_columns = pd.DataFrame(data).select_dtypes(include=[np.number]).columns
-        if len(numeric_columns) > 0:
-            agg_dict[numeric_columns[0]] = 'count'
-        else:
+        if len(available_columns) > 0:
             agg_dict[available_columns[0]] = 'count'
     
     return agg_dict

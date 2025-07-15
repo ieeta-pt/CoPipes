@@ -16,9 +16,9 @@ export const Registry: TaskRegistry = {
       },
       { 
         name: "file separation", 
-        value: "Comma", 
+        value: ",", 
         type: "select",
-        options: ["Comma", "Semicolon", "Tab"],
+        options: [",", ";", "\t"],
         placeholder: "Select file separator",
         required: false
       }
@@ -516,6 +516,34 @@ export const Registry: TaskRegistry = {
         placeholder: "List of measurement columns (separated by commas)",
         required: false
       },
+      { 
+        name: "headers file", 
+        value: "", 
+        type: "string", 
+        placeholder: "File containing headers mapping",
+        required: false
+      },
+      { 
+        name: "measures file", 
+        value: "", 
+        type: "string", 
+        placeholder: "File containing measures mapping",
+        required: false
+      },
+      { 
+        name: "variable column name", 
+        value: "Variable", 
+        type: "string", 
+        placeholder: "Name for the variable column",
+        required: false
+      },
+      { 
+        name: "measure column name", 
+        value: "Measure", 
+        type: "string", 
+        placeholder: "Name for the measure column",
+        required: false
+      }
     ],
     component: BaseTask,
   },
@@ -546,6 +574,27 @@ export const Registry: TaskRegistry = {
         placeholder: "Enable ad-hoc harmonization rules",
         required: false
       },
+      { 
+        name: "source column", 
+        value: "Variable", 
+        type: "string", 
+        placeholder: "Name of the source variable column",
+        required: false
+      },
+      { 
+        name: "measure column", 
+        value: "Measure", 
+        type: "string", 
+        placeholder: "Name of the measure column",
+        required: false
+      },
+      { 
+        name: "identifier columns", 
+        value: "", 
+        type: "string", 
+        placeholder: "List of identifier columns (separated by commas)",
+        required: false
+      }
     ],
     component: BaseTask,
   },
@@ -596,6 +645,13 @@ export const Registry: TaskRegistry = {
         value: "my_postgres", 
         type: "string",
         placeholder: "Connection identifier",
+        required: false
+      },
+      { 
+        name: "conn type", 
+        value: "postgres", 
+        type: "string",
+        placeholder: "Connection type",
         required: false
       },
       { 
@@ -657,6 +713,13 @@ export const Registry: TaskRegistry = {
         required: true,
         validation: { message: "Table name is required" }
       },
+      { 
+        name: "conn id", 
+        value: "my_postgres", 
+        type: "string",
+        placeholder: "Connection identifier",
+        required: false
+      }
     ],
     component: BaseTask,
   },
@@ -859,62 +922,17 @@ export const Registry: TaskRegistry = {
         required: false
       },
       { 
-        name: "handle missing", 
+        name: "preprocessing config", 
+        value: "", 
+        type: "string",
+        placeholder: "Preprocessing configuration (JSON format)",
+        required: false
+      },
+      { 
+        name: "save preprocessors", 
         value: "True", 
         type: "boolean",
-        placeholder: "Handle missing values",
-        required: false
-      },
-      { 
-        name: "missing strategy", 
-        value: "auto", 
-        type: "select",
-        options: ["auto", "mean", "median", "mode", "knn"],
-        placeholder: "Strategy for handling missing values",
-        required: false
-      },
-      { 
-        name: "scale features", 
-        value: "True", 
-        type: "boolean",
-        placeholder: "Apply feature scaling",
-        required: false
-      },
-      { 
-        name: "scaling method", 
-        value: "standard", 
-        type: "select",
-        options: ["standard", "minmax", "robust"],
-        placeholder: "Feature scaling method",
-        required: false
-      },
-      { 
-        name: "encode categorical", 
-        value: "True", 
-        type: "boolean",
-        placeholder: "Encode categorical variables",
-        required: false
-      },
-      { 
-        name: "categorical encoding", 
-        value: "auto", 
-        type: "select",
-        options: ["auto", "onehot", "label", "ordinal"],
-        placeholder: "Categorical encoding method",
-        required: false
-      },
-      { 
-        name: "feature selection", 
-        value: "False", 
-        type: "boolean",
-        placeholder: "Perform feature selection",
-        required: false
-      },
-      { 
-        name: "remove outliers", 
-        value: "False", 
-        type: "boolean",
-        placeholder: "Remove outliers from data",
+        placeholder: "Save preprocessing transformers for later use",
         required: false
       }
     ],
@@ -992,6 +1010,21 @@ export const Registry: TaskRegistry = {
         type: "boolean",
         placeholder: "Perform cross-validation",
         required: false
+      },
+      { 
+        name: "cv folds", 
+        value: "5", 
+        type: "string",
+        placeholder: "Number of cross-validation folds",
+        required: false,
+        validation: { pattern: "^[0-9]+$", message: "Must be a positive integer" }
+      },
+      { 
+        name: "model name", 
+        value: "", 
+        type: "string",
+        placeholder: "Name for the trained model",
+        required: false
       }
     ],
     component: BaseTask,
@@ -1001,12 +1034,12 @@ export const Registry: TaskRegistry = {
     subtype: "Machine Learning",
     defaultConfig: [
       { 
-        name: "model path", 
+        name: "model training result", 
         value: "", 
-        type: "string",
-        placeholder: "Path to the saved model file",
+        type: "task_reference",
+        placeholder: "Model training results",
         required: true,
-        validation: { message: "Model path is required" }
+        validation: { message: "Model training result is required" }
       },
       { 
         name: "test data", 
@@ -1038,12 +1071,12 @@ export const Registry: TaskRegistry = {
     subtype: "Machine Learning",
     defaultConfig: [
       { 
-        name: "model path", 
+        name: "model training result", 
         value: "", 
-        type: "string",
-        placeholder: "Path to the trained model file",
+        type: "task_reference",
+        placeholder: "Model training results",
         required: true,
-        validation: { message: "Model path is required" }
+        validation: { message: "Model training result is required" }
       },
       { 
         name: "evaluation results", 
@@ -1143,9 +1176,24 @@ export const Registry: TaskRegistry = {
       { 
         name: "parameters", 
         value: "", 
-        type: "task_reference",
-        placeholder: "Parameters from another task (extraction or transformation result)",
+        type: "string",
+        placeholder: "Parameters to pass to notebook (JSON format)",
         required: false
+      },
+      { 
+        name: "kernel name", 
+        value: "python3", 
+        type: "string",
+        placeholder: "Name of the kernel to use for execution",
+        required: false
+      },
+      { 
+        name: "execution timeout", 
+        value: "3600", 
+        type: "string",
+        placeholder: "Maximum execution time in seconds",
+        required: false,
+        validation: { pattern: "^[0-9]+$", message: "Must be a positive integer" }
       }
     ],
     component: BaseTask,
@@ -1252,7 +1300,7 @@ export const Registry: TaskRegistry = {
         name: "chart type", 
         value: "scatter", 
         type: "select",
-        options: ["scatter", "line", "bar", "histogram", "box", "heatmap", "pie"],
+        options: ["scatter", "line", "bar", "histogram", "box", "heatmap", "pie", "category_demand", "monthly_heatmap", "demand_ranking", "trend_analysis"],
         placeholder: "Type of visualization",
         required: true,
         validation: { message: "Chart type is required" }
@@ -1351,41 +1399,40 @@ export const Registry: TaskRegistry = {
     type: "Utils",
     defaultConfig: [
       { 
-        name: "recipient", 
-        value: "", 
-        type: "string",
-        placeholder: "Email address or notification target",
-        required: true,
-        validation: { message: "Recipient is required" }
-      },
-      { 
-        name: "subject", 
-        value: "Workflow Notification", 
-        type: "string",
-        placeholder: "Notification subject",
-        required: false
-      },
-      { 
         name: "message", 
         value: "", 
         type: "string",
-        placeholder: "Notification message content",
-        required: true,
-        validation: { message: "Message content is required" }
-      },
-      { 
-        name: "notification type", 
-        value: "email", 
-        type: "select",
-        options: ["email", "slack", "webhook", "sms"],
-        placeholder: "Type of notification to send",
+        placeholder: "Custom notification message",
         required: false
       },
       { 
-        name: "attach results", 
-        value: "False", 
-        type: "boolean",
-        placeholder: "Include workflow results in notification",
+        name: "status", 
+        value: "SUCCESS", 
+        type: "select",
+        options: ["SUCCESS", "FAILED", "WARNING"],
+        placeholder: "Pipeline status",
+        required: false
+      },
+      { 
+        name: "pipeline name", 
+        value: "", 
+        type: "string",
+        placeholder: "Name of the pipeline for context",
+        required: false
+      },
+      { 
+        name: "additional info", 
+        value: "", 
+        type: "string",
+        placeholder: "Additional information to include (JSON format)",
+        required: false
+      },
+      { 
+        name: "notification type", 
+        value: "log", 
+        type: "select",
+        options: ["log", "email", "slack"],
+        placeholder: "Type of notification to send",
         required: false
       }
     ],

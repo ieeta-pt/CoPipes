@@ -3,18 +3,24 @@ import json
 import os
 import shutil
 import logging
+import sys
 from typing import Dict, Any, Optional
 from datetime import datetime
 from airflow.decorators import task
+
+# Add utils to path for imports
+if '/opt/airflow/dags' not in sys.path:
+    sys.path.insert(0, '/opt/airflow/dags')
+
+from components.utils.supabase_storage import storage
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 @task
 def deploy_model(
-    model_path: str,
+    model_training_result: Dict[str, Any],
     evaluation_results: Dict[str, Any],
-    deployment_directory: str = "/shared_data/production_models",
     model_name: Optional[str] = None,
     performance_threshold: Optional[float] = None,
     metric_name: str = "accuracy",
@@ -25,9 +31,8 @@ def deploy_model(
     Deploy a trained model to production environment with validation checks.
     
     Args:
-        model_path: Path to the trained model file
+        model_training_result: Result dictionary from model training task
         evaluation_results: Results from model evaluation
-        deployment_directory: Directory for production models
         model_name: Name for the deployed model (auto-generated if None)
         performance_threshold: Minimum performance threshold for deployment
         metric_name: Name of the metric to check against threshold
@@ -37,13 +42,19 @@ def deploy_model(
     Returns:
         Dict containing deployment results and metadata
     """
-    if not os.path.exists(model_path):
-        raise FileNotFoundError(f"Model file not found: {model_path}")
+    # Extract model path from training result
+    if isinstance(model_training_result, dict) and 'model_path' in model_training_result:
+        model_path = model_training_result['model_path']
+    else:
+        raise ValueError(f"Invalid model training result format: {model_training_result}")
     
-    logger.info(f"Deploying model from: {model_path}")
+    logger.info(f"Deploying model from Supabase Storage: {model_path}")
     
-    # Load model metadata
-    model_objects = joblib.load(model_path)
+    # Load model metadata from Supabase Storage
+    try:
+        model_objects = storage.load_joblib(model_path)
+    except Exception as e:
+        raise FileNotFoundError(f"Model file not found in Supabase Storage: {model_path}. Error: {e}")
     model_type = model_objects.get('model_type', 'unknown')
     task_type = model_objects.get('task_type', 'unknown')
     
@@ -62,27 +73,35 @@ def deploy_model(
         
         logger.info(f"Model performance check passed: {metric_name} = {model_performance:.4f}")
     
-    # Create deployment directory
-    os.makedirs(deployment_directory, exist_ok=True)
-    
     # Generate deployment name
     execution_date = context.get('ds', datetime.now().strftime('%Y-%m-%d'))
     if model_name is None:
         model_name = f"{model_type}_{task_type}_production"
     
-    deployed_model_path = os.path.join(deployment_directory, f"{model_name}.joblib")
+    deployed_storage_path = f"production_models/{model_name}.joblib"
     
     # Backup existing model if it exists
     backup_path = None
-    if backup_existing and os.path.exists(deployed_model_path):
+    if backup_existing and storage.file_exists(deployed_storage_path):
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        backup_path = os.path.join(deployment_directory, f"{model_name}_backup_{timestamp}.joblib")
-        shutil.copy2(deployed_model_path, backup_path)
-        logger.info(f"Existing model backed up to: {backup_path}")
+        backup_storage_path = f"production_models/backups/{model_name}_backup_{timestamp}.joblib"
+        
+        # Load existing model and save as backup
+        try:
+            existing_model = storage.load_joblib(deployed_storage_path)
+            backup_path = storage.save_joblib(existing_model, backup_storage_path)
+            logger.info(f"Existing model backed up to Supabase Storage: {backup_path}")
+        except Exception as e:
+            logger.warning(f"Failed to backup existing model: {e}")
     
-    # Copy model to production location
-    shutil.copy2(model_path, deployed_model_path)
-    logger.info(f"Model deployed to: {deployed_model_path}")
+    # Copy model to production location in Supabase Storage
+    try:
+        # Load the model and save it to production location
+        deployed_model_path = storage.save_joblib(model_objects, deployed_storage_path)
+        logger.info(f"Model deployed to Supabase Storage: {deployed_model_path}")
+    except Exception as e:
+        logger.error(f"Failed to deploy model to Supabase Storage: {e}")
+        raise
     
     # Create deployment metadata
     deployment_metadata = {
@@ -100,12 +119,14 @@ def deploy_model(
         "deployment_status": "success"
     }
     
-    # Save deployment metadata
-    metadata_path = os.path.join(deployment_directory, f"{model_name}_metadata.json")
-    with open(metadata_path, 'w') as f:
-        json.dump(deployment_metadata, f, indent=2, default=str)
-    
-    logger.info(f"Deployment metadata saved to: {metadata_path}")
+    # Save deployment metadata to Supabase Storage
+    metadata_storage_path = f"production_models/metadata/{model_name}_metadata.json"
+    try:
+        metadata_path = storage.save_json(deployment_metadata, metadata_storage_path)
+        logger.info(f"Deployment metadata saved to Supabase Storage: {metadata_path}")
+    except Exception as e:
+        logger.warning(f"Failed to save deployment metadata: {e}")
+        metadata_path = None
     
     # Create model info file for easy access
     model_info = {
@@ -119,11 +140,13 @@ def deploy_model(
         "last_updated": datetime.now().isoformat()
     }
     
-    info_path = os.path.join(deployment_directory, f"{model_name}_info.json")
-    with open(info_path, 'w') as f:
-        json.dump(model_info, f, indent=2)
-    
-    logger.info(f"Model info saved to: {info_path}")
+    info_storage_path = f"production_models/info/{model_name}_info.json"
+    try:
+        info_path = storage.save_json(model_info, info_storage_path)
+        logger.info(f"Model info saved to Supabase Storage: {info_path}")
+    except Exception as e:
+        logger.warning(f"Failed to save model info: {e}")
+        info_path = None
     
     return {
         "status": "success",

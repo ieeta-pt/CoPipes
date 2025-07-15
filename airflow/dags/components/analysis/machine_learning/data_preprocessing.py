@@ -1,3 +1,4 @@
+import json
 import pandas as pd
 import numpy as np
 import logging
@@ -14,17 +15,23 @@ from sklearn.feature_selection import (
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 import joblib
 import os
+import sys
+
+# Add utils to path for imports
+if '/opt/airflow/dags' not in sys.path:
+    sys.path.insert(0, '/opt/airflow/dags')
+
+from components.utils.supabase_storage import storage
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 @task
-def preprocess_data(
+def data_preprocessing(
     data: Dict[str, Any],
     target_column: Optional[str] = None,
     feature_columns: Optional[List[str]] = None,
-    preprocessing_config: Optional[Dict[str, Any]] = None,
-    output_directory: str = "/shared_data/preprocessors",
+    preprocessing_config: Optional[Dict[str, Any]] | str= None,
     save_preprocessors: bool = True,
     **context
 ) -> Dict[str, Any]:
@@ -51,6 +58,13 @@ def preprocess_data(
     logger.info(f"Preprocessing {len(df)} samples with {len(df.columns)} features")
 
     # Default preprocessing configuration
+    if isinstance(preprocessing_config, str):
+        try:
+            preprocessing_config = json.loads(preprocessing_config)
+        except json.JSONDecodeError:
+            logger.error("Invalid JSON string for preprocessing configuration.")
+            raise ValueError("Invalid JSON string for preprocessing configuration.")
+        
     if preprocessing_config is None:
         preprocessing_config = {
             "handle_missing": True,
@@ -123,20 +137,20 @@ def preprocess_data(
     
     # 6. Remove Outliers
     if preprocessing_config.get("remove_outliers", False):
-        X, outlier_indices = _remove_outliers(X, preprocessing_config)
+        X, clean_indices = _remove_outliers(X, preprocessing_config)
         if y is not None:
-            y = y.iloc[outlier_indices]
-        logger.info(f"Outlier removal: {len(outlier_indices)} samples remaining")
+            y = y[clean_indices]
+        logger.info(f"Outlier removal: {len(X)} samples remaining")
     
     # 7. Feature Engineering
     if preprocessing_config.get("create_features", False):
         X = _create_features(X, preprocessing_config)
     
-    # Save preprocessors
+    # Save preprocessors to Supabase Storage
+    preprocessor_path = None
     if save_preprocessors:
-        os.makedirs(output_directory, exist_ok=True)
         execution_date = context.get('ds', 'unknown')
-        preprocessor_path = os.path.join(output_directory, f"preprocessors_{execution_date}.joblib")
+        storage_path = f"preprocessors/preprocessors_{execution_date}.joblib"
         
         preprocessor_metadata = {
             'preprocessors': preprocessors,
@@ -149,8 +163,12 @@ def preprocess_data(
             'preprocessing_config': preprocessing_config
         }
         
-        joblib.dump(preprocessor_metadata, preprocessor_path)
-        logger.info(f"Preprocessors saved to: {preprocessor_path}")
+        try:
+            preprocessor_path = storage.save_joblib(preprocessor_metadata, storage_path)
+            logger.info(f"Preprocessors saved to Supabase Storage: {preprocessor_path}")
+        except Exception as e:
+            logger.warning(f"Failed to save preprocessors to Supabase Storage: {e}")
+            preprocessor_path = None
     
     # Prepare output
     result_data = X.copy()

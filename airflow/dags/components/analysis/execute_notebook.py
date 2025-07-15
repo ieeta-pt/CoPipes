@@ -3,21 +3,27 @@ import tempfile
 import json
 from typing import Dict, Any, Optional, Union
 from airflow.decorators import task
+import papermill as pm
+from jupyter_client.kernelspec import find_kernel_specs
 
 @task
 def execute_notebook(
     input_notebook: Union[str, Dict[str, Any]],
     output_directory: str = "/shared_data/notebooks/output",
     parameters: Optional[Dict[str, Any]] = None,
+    kernel_name: str = "python3",
+    execution_timeout: int = 3600,
     **context
 ) -> Dict[str, Any]:
     """
-    Execute a Jupyter notebook using the PapermillOperator with configurable parameters.
+    Execute a Jupyter notebook using papermill with configurable parameters.
     
     Args:
         input_notebook: Either path to notebook file or notebook content as dict
         output_directory: Directory to save executed notebook
         parameters: Dictionary of parameters to pass to notebook
+        kernel_name: Name of the kernel to use for execution
+        execution_timeout: Maximum execution time in seconds
         **context: Airflow context
     
     Returns:
@@ -55,25 +61,56 @@ def execute_notebook(
     # Add execution date to parameters
     parameters['execution_date'] = execution_date
     
-    # Use papermill directly instead of operator since we're in a task
-    import papermill as pm
+    # Validate kernel availability
+    available_kernels = find_kernel_specs()
+    if kernel_name not in available_kernels:
+        return {
+            "status": "failed",
+            "error": f"Kernel '{kernel_name}' not found. Available kernels: {list(available_kernels.keys())}",
+            "input_notebook": str(input_notebook_path) if isinstance(input_notebook, str) else "notebook_content",
+            "output_notebook": output_notebook,
+            "execution_date": execution_date,
+            "parameters_used": parameters
+        }
     
-    pm.execute_notebook(
-        input_path=input_notebook_path,
-        output_path=output_notebook,
-        parameters=parameters,
-        kernel_name="python3"
-    )
+    # Execute notebook with comprehensive error handling
+    try:
+        pm.execute_notebook(
+            input_path=input_notebook_path,
+            output_path=output_notebook,
+            parameters=parameters,
+            kernel_name=kernel_name,
+            execution_timeout=execution_timeout
+        )
+        execution_status = "success"
+        error_message = None
+    except pm.PapermillExecutionError as e:
+        execution_status = "failed"
+        error_message = f"Notebook execution failed: {str(e)}"
+    except FileNotFoundError as e:
+        execution_status = "failed"
+        error_message = f"Input notebook not found: {str(e)}"
+    except PermissionError as e:
+        execution_status = "failed"
+        error_message = f"Permission denied: {str(e)}"
+    except Exception as e:
+        execution_status = "failed"
+        error_message = f"Unexpected error during notebook execution: {str(e)}"
     
     # Clean up temporary file if it was created
     if not isinstance(input_notebook, str) and os.path.exists(input_notebook_path):
         os.unlink(input_notebook_path)
     
     # Return execution results
-    return {
-        "status": "success",
+    result = {
+        "status": execution_status,
         "input_notebook": str(input_notebook_path) if isinstance(input_notebook, str) else "notebook_content",
         "output_notebook": output_notebook,
         "execution_date": execution_date,
         "parameters_used": parameters
     }
+    
+    if error_message:
+        result["error"] = error_message
+    
+    return result

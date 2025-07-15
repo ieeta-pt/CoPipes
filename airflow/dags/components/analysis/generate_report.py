@@ -1,13 +1,19 @@
 import os
 import pandas as pd
 import json
+import tempfile
+import sys
 from typing import Dict, Any, Optional
 from airflow.decorators import task
 from datetime import datetime
 import matplotlib.pyplot as plt
 from jinja2 import Template
 
-UPLOAD_DIR = "/shared_data/"
+# Add utils to path for imports
+if '/opt/airflow/dags' not in sys.path:
+    sys.path.insert(0, '/opt/airflow/dags')
+
+from components.utils.supabase_storage import storage
 
 @task
 def generate_report(data_sources: str, report_type: str = "summary", template: str = "default",
@@ -37,45 +43,81 @@ def generate_report(data_sources: str, report_type: str = "summary", template: s
         # For this implementation, we'll create a sample report structure
         report_data = _create_sample_report_data(source_list, report_type)
         
-        # Create reports directory
-        reports_dir = os.path.join(UPLOAD_DIR, "reports")
-        os.makedirs(reports_dir, exist_ok=True)
+        # Generate report based on format using temporary directory
+        with tempfile.TemporaryDirectory() as temp_dir:
+            report_file = _generate_report_file(report_data, report_type, template, include_charts,
+                                              output_format, temp_dir)
+            
+            # Upload report to Supabase Storage
+            report_filename = os.path.basename(report_file)
+            storage_path = f"reports/{report_filename}"
+            
+            with open(report_file, 'rb') as f:
+                report_content = f.read()
+            
+            # Determine content type based on file extension
+            if report_file.endswith('.html'):
+                content_type = 'text/html'
+            elif report_file.endswith('.txt'):
+                content_type = 'text/plain'
+            elif report_file.endswith('.xlsx'):
+                content_type = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            else:
+                content_type = 'application/octet-stream'
+            
+            # Upload to Supabase Storage
+            try:
+                if storage.file_exists(storage_path):
+                    storage.client.storage.from_(storage.bucket_name).update(
+                        path=storage_path,
+                        file=report_content,
+                        file_options={"content-type": content_type}
+                    )
+                else:
+                    storage.client.storage.from_(storage.bucket_name).upload(
+                        path=storage_path,
+                        file=report_content,
+                        file_options={"content-type": content_type}
+                    )
+                print(f"Report uploaded to Supabase Storage: {storage_path}")
+                uploaded_report_path = storage_path
+            except Exception as e:
+                print(f"Failed to upload report to Supabase Storage: {e}")
+                uploaded_report_path = report_filename
         
-        # Generate report based on format
-        report_file = _generate_report_file(report_data, report_type, template, include_charts,
-                                          output_format, reports_dir)
+            # Generate metadata
+            report_metadata = {
+                'report_type': report_type,
+                'template': template,
+                'output_format': output_format,
+                'data_sources': source_list,
+                'include_charts': include_charts,
+                'generation_time': datetime.now().isoformat(),
+                'file_size': len(report_content),
+                'schedule': schedule,
+                'storage_path': uploaded_report_path
+            }
         
-        # Generate metadata
-        report_metadata = {
-            'report_type': report_type,
-            'template': template,
-            'output_format': output_format,
-            'data_sources': source_list,
-            'include_charts': include_charts,
-            'generation_time': datetime.now().isoformat(),
-            'file_size': os.path.getsize(report_file),
-            'schedule': schedule
-        }
-        
-        # Prepare results data
-        results_data = [{
-            'report_type': report_type,
-            'output_format': output_format,
-            'report_file': os.path.basename(report_file),
-            'data_sources_count': len(source_list),
-            'generation_time': report_metadata['generation_time'],
-            'file_size': report_metadata['file_size']
-        }]
-        
-        print(f"Report generation completed. Generated: {os.path.basename(report_file)}")
-        
-        return {
-            "data": results_data,
-            "filename": f"report_generation_{report_type}.csv",
-            "report_file": report_file,
-            "report_metadata": report_metadata,
-            "data_sources_processed": len(source_list)
-        }
+            # Prepare results data
+            results_data = [{
+                'report_type': report_type,
+                'output_format': output_format,
+                'report_file': report_filename,
+                'storage_path': uploaded_report_path,
+                'data_sources_count': len(source_list),
+                'generation_time': report_metadata['generation_time'],
+                'file_size': report_metadata['file_size']
+            }]
+            
+            print(f"Report generation completed. Generated: {report_filename}")
+            
+            return {
+                "data": results_data,
+                "filename": f"report_generation_{report_type}.csv",
+                "report_file": uploaded_report_path,
+                "report_metadata": report_metadata,
+                "data_sources_processed": len(source_list)
+            }
         
     except Exception as e:
         raise ValueError(f"Report generation failed: {e}")

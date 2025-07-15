@@ -88,6 +88,8 @@ def generate_dag(config, user_id: str = None):
         for param in params:
             name = param["name"].replace(" ", "_").lower()
             value = param["value"]
+            if value == '': 
+                value = None
             
             # Handle task references
             if isinstance(value, str) and value.startswith("$ref:"):
