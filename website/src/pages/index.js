@@ -1,43 +1,64 @@
-import clsx from 'clsx';
-import Link from '@docusaurus/Link';
-import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
+import React from 'react';
 import Layout from '@theme/Layout';
-import HomepageFeatures from '@site/src/components/HomepageFeatures';
-
-import Heading from '@theme/Heading';
+import Link from '@docusaurus/Link';
 import styles from './index.module.css';
 
-function HomepageHeader() {
-  const {siteConfig} = useDocusaurusContext();
-  return (
-    <header className={clsx('hero hero--primary', styles.heroBanner)}>
-      <div className="container">
-        <Heading as="h1" className="hero__title">
-          {siteConfig.title}
-        </Heading>
-        <p className="hero__subtitle">{siteConfig.tagline}</p>
-        {/* <div className={styles.buttons}>
-          <Link
-            className="button button--secondary button--lg"
-            to="/docs/intro">
-            Docusaurus Tutorial - 5min ⏱️
-          </Link>
-        </div> */}
-      </div>
-    </header>
-  );
-}
-
 export default function Home() {
-  const {siteConfig} = useDocusaurusContext();
   return (
-    <Layout
-      title={`Hello from ${siteConfig.title}`}
-      description="Description will go into a meta tag in <head />">
-      <HomepageHeader />
+    <Layout title="CoPipes" description="Collaborative ETL and data analysis platform">
+      <header className={styles.heroBanner}>
+        <div className="container">
+          <h1 className={styles.title}>CoPipes</h1>
+          <p className={styles.subtitle}>Build, Share, and Automate Your Data Workflows Collaboratively</p>
+          {/* <Link className="button button--primary button--lg" to="/docs/intro">
+            Get Started
+          </Link> */}
+        </div>
+      </header>
+
       <main>
-        <HomepageFeatures />
+        <section className={styles.features}>
+          <div className="container">
+            <div className="row">
+              {features.map(({ title, description }, idx) => (
+                <div key={idx} className="col col--4 margin-bottom--lg">
+                  <div className={styles.featureCard}>
+                    <h3>{title}</h3>
+                    <p>{description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
       </main>
     </Layout>
   );
 }
+
+const features = [
+  {
+    title: 'Collaborative workflow builder',
+    description: 'Design ETL pipelines visually with team support using linear or graph views.',
+  },
+  {
+    title: 'Plug-and-play tasks',
+    description: 'Choose from a library of pre-built tasks or build your own reusable components.',
+  },
+  {
+    title: 'Apache Airflow powered',
+    description: 'Orchestrate and monitor workflows with scalable Airflow integration.',
+  },
+  {
+    title: 'FastAPI backend',
+    description: 'Use a clean, modern API to extend workflows, users, and datasets.',
+  },
+  {
+    title: 'Post-ETL analysis',
+    description: 'Run AI/ML models on cleaned data directly in the platform.',
+  },
+  {
+    title: 'Customizable & open source',
+    description: 'Easily extend and contribute to the system. Made for research and collaboration.',
+  },
+];
