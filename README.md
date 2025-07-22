@@ -1,22 +1,11 @@
-# thesis-dev
+# CoPipes
 
-## TODO
+A collaborative platform for ETL processes and data analysis. [Work in progress.]
 
-max
-Dependencies between components,
-MLOps component,
-Autentication/authorization,
-Execution page,
-Login/sign up page,
-Plugin addition guidelines,
-Deployment,
-Use case tested,
+To try it, start by creating a local .env file with all the variables described in the `.env.example` file.
 
-mid
-Collaboration,
-Organisations,
+After that, you need to build the docker-compose envoironment with the following command.
 
-min
-OMOP CDM to TransSMART (?),
-Responsive,
-Usability tests (?)
+```bash
+docker compose up --build
+```
