@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkwebsite=self.webpackChunkwebsite||[]).push([[1903],{1912:e=>{e.exports=JSON.parse('{"blogBasePath":"/CoPipes/website/blog","blogTitle":"Blog","authorsListPath":"/CoPipes/website/blog/authors"}')}}]);
