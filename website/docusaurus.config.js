@@ -20,15 +20,15 @@ const config = {
   },
 
   // Set the production url of your site here
-  url: 'https://joaorafaelalmeida.github.io',
+  url: 'https://ieeta-pt.github.io',
   // Set the /<baseUrl>/ pathname under which your site is served
   // For GitHub pages deployment, it is often '/<projectName>/'
-  baseUrl: '/thesis-dev/website/',
+  baseUrl: '/CoPipes/website/',
 
   // GitHub pages deployment config.
   // If you aren't using GitHub pages, you don't need these.
-  organizationName: 'joaorafaelalmeida', // Usually your GitHub org/user name.
-  projectName: 'thesis-dev', // Usually your repo name.
+  organizationName: 'ieeta-pt', // Usually your GitHub org/user name.
+  projectName: 'CoPipes', // Usually your repo name.
 
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
