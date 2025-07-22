@@ -28,7 +28,7 @@ const config = {
   // GitHub pages deployment config.
   // If you aren't using GitHub pages, you don't need these.
   organizationName: 'ieeta-pt', // Usually your GitHub org/user name.
-  projectName: 'CoPipes', // Usually your repo name.
+  projectName: 'CoPipes/website', // Usually your repo name.
 
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
