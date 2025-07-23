@@ -1,6 +1,6 @@
 # CoPipes
 
-CoPipes is a collaborative platform for ETL (Extract, Transform, Load) processes and data analysis. It enables teams to design, execute, and monitor data workflows with ease. **[Work in progress]**
+CoPipes is a collaborative platform for ETL (Extract, Transform, Load) processes and data analysis. It enables teams to design, execute, and monitor data workflows with ease.
 
 ## Features
 - Visual workflow editor for ETL pipelines
