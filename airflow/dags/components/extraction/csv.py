@@ -4,18 +4,16 @@ import chardet
 import unicodedata
 from typing import Dict
 from airflow.decorators import task
-
-UPLOAD_DIR = "/opt/airflow/data/"
+from components.utils.resolve_file import resolve_input_file
 
 @task
-def csv(filename: str, file_separation: str = ',') -> Dict[dict, str]:
+def csv(filename: str, file_separation: str = ',', user_id: str = None) -> Dict[dict, str]:
     """
     Load a CSV file into a DataFrame with robust handling of character encodings.
     Specifically handles special characters like umlauts (ä, ö, ü).
     """
 
-    os.makedirs(UPLOAD_DIR, exist_ok=True)
-    file = os.path.join(UPLOAD_DIR, filename)
+    file = resolve_input_file(filename, user_id)
     # First try to detect the encoding
     with open(file, 'rb') as f:
         raw_data = f.read()

@@ -175,8 +175,11 @@ cython_debug/
 
 airflow/logs
 airflow/data
+airflow/dags/users
 
 notes.MD
 CLAUDE.md
 fix_permissions.sh
 docs/
+
+supabase/volumes/storage/stub/stub/user-uploads

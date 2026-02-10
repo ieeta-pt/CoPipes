@@ -17,7 +17,7 @@ class SupabaseStorage:
     
     def __init__(self):
         # Get Supabase credentials from environment variables
-        self.supabase_url = os.getenv('SUPABASE_URL')
+        self.supabase_url = os.getenv('SUPABASE_PUBLIC_URL')
         self.supabase_key = os.getenv('SUPABASE_SERVICE_ROLE_KEY')  # Use service role for admin access
         
         if not self.supabase_url or not self.supabase_key:
@@ -323,10 +323,20 @@ class SupabaseStorage:
                 expires_in=expires_in
             )
             return response['signedURL']
-            
+
         except Exception as e:
             logger.error(f"Failed to create signed URL: {e}")
             return None
+
+    def download_from_bucket(self, path: str, bucket_name: str) -> bytes:
+        """Download raw file bytes from a specified Supabase Storage bucket."""
+        try:
+            response = self.client.storage.from_(bucket_name).download(path)
+            logger.info(f"Downloaded file from bucket '{bucket_name}': {path}")
+            return response
+        except Exception as e:
+            logger.error(f"Failed to download from bucket '{bucket_name}', path '{path}': {e}")
+            raise
 
 # Global instance
 storage = SupabaseStorage()

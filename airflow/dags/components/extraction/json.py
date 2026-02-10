@@ -5,11 +5,12 @@ import pandas as pd
 from typing import Dict, Optional
 from airflow.decorators import task
 import jsonpath_ng
+from components.utils.resolve_file import resolve_input_file
 
 UPLOAD_DIR = "/shared_data/"
 
 @task
-def json_extract(source: str, json_path: Optional[str] = None, flatten_nested: bool = True) -> Dict[str, str]:
+def json_extract(source: str, json_path: Optional[str] = None, flatten_nested: bool = True, user_id: str = None) -> Dict[str, str]:
     """
     Extract data from JSON file or API endpoint.
     
@@ -32,7 +33,10 @@ def json_extract(source: str, json_path: Optional[str] = None, flatten_nested: b
             source_name = source.split("/")[-1] or "api_response"
         else:
             # Read from file
-            file_path = os.path.join(UPLOAD_DIR, source) if not source.startswith('/') else source
+            if source.startswith('/'):
+                file_path = source
+            else:
+                file_path = resolve_input_file(source, user_id)
             with open(file_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
             source_type = "file"

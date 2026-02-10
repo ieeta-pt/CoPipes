@@ -14,6 +14,9 @@ import os
 if '/opt/airflow/dags' not in sys.path:
     sys.path.insert(0, '/opt/airflow/dags')
 
+# User ID for Supabase Storage file resolution
+USER_ID = "{user_id}"
+
 {dynamic_imports}
 
 with DAG (
@@ -88,15 +91,20 @@ def generate_dag(config, user_id: str = None):
         for param in params:
             name = param["name"].replace(" ", "_").lower()
             value = param["value"]
-            if value == '': 
+            if value == '':
                 value = None
-            
+
             # Handle task references
             if isinstance(value, str) and value.startswith("$ref:"):
                 referenced_task = value.split(":")[1].lower().replace(" ", "_")
                 resolved_params.append(f"{name}={referenced_task}")
             else:
                 resolved_params.append(f"{name}={repr(value)}")
+
+        # Auto-inject user_id for extraction functions that need file resolution
+        extraction_functions_needing_user_id = {"csv", "json_extract", "xml_extract"}
+        if function_name in extraction_functions_needing_user_id and user_id:
+            resolved_params.append("user_id=USER_ID")
 
         params_str = ", ".join(resolved_params)
 
@@ -119,6 +127,7 @@ def generate_dag(config, user_id: str = None):
         dag_id=dag_id,
         schedule=schedule,
         start_date=start_date,
+        user_id=user_id or "",
         dynamic_imports="\n".join(dynamic_imports),
         tasks_definitions="\n".join(tasks_definitions),
         dependencies="\n".join(dependencies) if dependencies else "",

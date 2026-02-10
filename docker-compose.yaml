@@ -1,17 +1,6 @@
 services:
-  postgres:
-    image: postgres:15
-    restart: on-failure
-    env_file: .env
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
-
   airflow-init:
     image: apache/airflow:2.10.4
-    depends_on:
-      - postgres
     env_file: .env
     environment:
       AIRFLOW_HOME: /opt/airflow
@@ -24,12 +13,13 @@ services:
       - ./airflow/airflow.cfg:/opt/airflow/airflow.cfg
       - shared-data:/shared_data
       - ./airflow/init.sh:/opt/airflow/init.sh
+    networks:
+      - supabase_default
 
   airflow-webserver:
     build: ./airflow
     restart: on-failure
     depends_on:
-      - postgres
       - airflow-init
     ports:
       - "8080:8080"
@@ -45,6 +35,8 @@ services:
       - ./airflow/data:/opt/airflow/data
       - ./airflow/airflow.cfg:/opt/airflow/airflow.cfg
       - shared-data:/shared_data
+    networks:
+      - supabase_default
 
   airflow-scheduler:
     build: ./airflow
@@ -56,16 +48,17 @@ services:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__CORE__IS_PAUSED_UPON_CREATION: False
       AIRFLOW__CORE__DAG_DIR_LIST_INTERVAL: 10
-
     command: ["scheduler"]
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./airflow/data:/opt/airflow/data
       - ./airflow/airflow.cfg:/opt/airflow/airflow.cfg
       - shared-data:/shared_data
-    
+    networks:
+      - supabase_default
+
   fastapi:
-    build: 
+    build:
       context: ./backend/api
       dockerfile: Dockerfile
     ports:
@@ -76,11 +69,11 @@ services:
       - ./airflow/dags:/opt/airflow/dags
       - ./airflow/data:/opt/airflow/data
       - shared-data:/shared_data
-    depends_on:
-      - postgres
+    networks:
+      - supabase_default
 
   frontend:
-    build: 
+    build:
       context: ./frontend
       dockerfile: Dockerfile
     ports:
@@ -92,7 +85,12 @@ services:
     env_file: .env
     depends_on:
       - fastapi
+    networks:
+      - supabase_default
 
 volumes:
-  postgres_data:
   shared-data:
+
+networks:
+  supabase_default:
+    external: true

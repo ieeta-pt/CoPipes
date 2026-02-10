@@ -5,7 +5,7 @@ import os
 
 # Supabase Configuration
 # You can set these as environment variables or directly here
-SUPABASE_URL = os.getenv('SUPABASE_URL', 'your-supabase-url-here')
+SUPABASE_PUBLIC_URL = os.getenv('SUPABASE_PUBLIC_URL', 'your-supabase-url-here')
 SUPABASE_SERVICE_ROLE_KEY = os.getenv('SUPABASE_SERVICE_ROLE_KEY', 'your-service-role-key-here')
 
 # Storage Configuration

@@ -2,7 +2,7 @@
 set -e
 
 echo "🔁 Waiting for Postgres to be available..."
-while ! pg_isready -h postgres -p 5432 > /dev/null 2>&1; do
+while ! pg_isready -h supabase-db -p 5432 > /dev/null 2>&1; do
   sleep 1
 done
 echo "✅ Postgres is ready."

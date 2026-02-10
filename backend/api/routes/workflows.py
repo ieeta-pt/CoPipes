@@ -1,4 +1,3 @@
-import os
 from fastapi import APIRouter, HTTPException, BackgroundTasks, UploadFile, File, Depends
 from datetime import datetime
 import traceback
@@ -14,8 +13,7 @@ from schemas.workflow import (
     WorkflowAirflow, WorkflowDB,
     AddCollaboratorRequest, UpdateCollaboratorRequest
 )
-
-UPLOAD_DIR = "/shared_data/"
+from services.supabase_storage import storage_service
 
 router = APIRouter(
     prefix="/api/workflows",
@@ -234,16 +232,24 @@ async def upload_workflow(file: UploadFile = File(...), current_user: dict = Dep
     
 @router.post("/file_input")
 async def file_input(file: UploadFile = File(...), current_user: dict = Depends(get_current_user)):
-    """Upload a file to the server."""
-    """This endpoint is for uploading files that can be used as inputs to workflows."""
-    os.makedirs(UPLOAD_DIR, exist_ok=True)
-    file_location = os.path.join(UPLOAD_DIR, file.filename)
+    """Upload a file to Supabase Storage for use in workflows."""
+    content = await file.read()
 
-    with open(file_location, "wb") as f:
-        content = await file.read()
-        f.write(content)
+    # Organize uploads by user ID
+    storage_path = f"uploads/{current_user['id']}/{file.filename}"
 
-    return {"status": "saved", "filename": file.filename}
+    # Upload to Supabase Storage
+    storage_service.upload_file(
+        content=content,
+        path=storage_path,
+        content_type=file.content_type or "application/octet-stream"
+    )
+
+    return {
+        "status": "saved",
+        "filename": file.filename,
+        "storage_path": storage_path
+    }
 
 @router.get("/{workflow_name}/runs")
 async def get_workflow_runs(workflow_name: str, current_user: dict = Depends(get_current_user)):

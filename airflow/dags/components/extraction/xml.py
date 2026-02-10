@@ -6,11 +6,12 @@ from typing import Dict, Optional
 from airflow.decorators import task
 import xml.etree.ElementTree as ET
 from lxml import etree, html
+from components.utils.resolve_file import resolve_input_file
 
 UPLOAD_DIR = "/shared_data/"
 
 @task
-def xml_extract(source: str, xpath: Optional[str] = None, namespaces: Optional[str] = None) -> Dict[str, str]:
+def xml_extract(source: str, xpath: Optional[str] = None, namespaces: Optional[str] = None, user_id: str = None) -> Dict[str, str]:
     """
     Extract data from XML file or URL.
     
@@ -41,7 +42,10 @@ def xml_extract(source: str, xpath: Optional[str] = None, namespaces: Optional[s
             source_name = source.split("/")[-1] or "xml_response"
         else:
             # Read from file
-            file_path = os.path.join(UPLOAD_DIR, source) if not source.startswith('/') else source
+            if source.startswith('/'):
+                file_path = source
+            else:
+                file_path = resolve_input_file(source, user_id)
             with open(file_path, 'rb') as f:
                 xml_content = f.read()
             source_type = "file"
