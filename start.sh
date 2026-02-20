@@ -113,13 +113,13 @@ stop_all() {
 
 # Show service URLs
 show_urls() {
-    echo -e "${GREEN}Service URLs:${NC}"
-    echo "  FastAPI (App API):  http://localhost:8000"
-    echo "  Frontend:           http://localhost:3000"
-    echo "  Airflow:            http://localhost:8080"
-    echo "  Supabase API:       http://localhost:8001"
-    echo "  Supabase Studio:    http://localhost:8001"
-    echo "  Postgres:           localhost:5432"
+    echo -e "${GREEN}Service URL:${NC}"
+    #echo "  FastAPI (App API):  http://localhost:8000"
+    echo "  CoPipes:           http://localhost:3000"
+    #echo "  Airflow:            http://localhost:8080"
+    #echo "  Supabase API:       http://localhost:8001"
+    #echo "  Supabase Studio:    http://localhost:8001"
+    #echo "  Postgres:           localhost:5432"
 }
 
 # Show container status

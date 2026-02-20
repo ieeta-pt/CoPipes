@@ -5,14 +5,14 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="96279f8d-e850-4b42-b2a7-f18b942d5472" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/frontend/src/components/airflow-tasks/RegistryCohortsTest.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/api/config.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/api/config.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/api/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/api/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/api/utils/airflow_api.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/api/utils/airflow_api.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/api/utils/auth.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/api/utils/auth.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/docker-compose.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/docker-compose.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/app/layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/app/layout.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/app/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/app/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/components/organization/OrganizationList.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/organization/OrganizationList.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/components/workflow/TaskMenu.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/workflow/TaskMenu.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/supabase/docker-compose.yml" beforeDir="false" afterPath="$PROJECT_DIR$/supabase/docker-compose.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/start.sh" beforeDir="false" afterPath="$PROJECT_DIR$/start.sh" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -106,7 +106,7 @@
       <workItem from="1770572358441" duration="1175000" />
       <workItem from="1770629289132" duration="13484000" />
       <workItem from="1770715265942" duration="12654000" />
-      <workItem from="1771426869650" duration="15842000" />
+      <workItem from="1771426869650" duration="26968000" />
     </task>
     <servers />
   </component>
