@@ -42,7 +42,7 @@ ensure_databases_initialized() {
 
     print_status "Ensuring Airflow metadata role and database exist..."
 
-    docker exec supabase-db psql -U postgres -d postgres -v ON_ERROR_STOP=1 -c "DO \\$\\$ BEGIN IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'airflow') THEN CREATE ROLE airflow WITH LOGIN PASSWORD 'airflow'; ELSE ALTER ROLE airflow WITH LOGIN PASSWORD 'airflow'; END IF; END \\$\\$;"
+    docker exec supabase-db psql -U postgres -d postgres -v ON_ERROR_STOP=1 -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'airflow') THEN CREATE ROLE airflow WITH LOGIN PASSWORD 'airflow'; ELSE ALTER ROLE airflow WITH LOGIN PASSWORD 'airflow'; END IF; END \$\$;"
 
     if ! docker exec supabase-db psql -U postgres -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname='airflow'" | grep -q 1; then
         docker exec supabase-db psql -U postgres -d postgres -v ON_ERROR_STOP=1 -c "CREATE DATABASE airflow OWNER airflow;"
