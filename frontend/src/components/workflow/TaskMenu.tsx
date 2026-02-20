@@ -1,4 +1,4 @@
-import { Registry } from "@/components/airflow-tasks/Registry";
+import { Registry } from "@/components/airflow-tasks/RegistryCohortsTest";
 
 const groupTasksByType = () => {
   const grouped = Object.values(Registry).reduce((acc, task) => {

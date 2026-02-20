@@ -1,7 +1,6 @@
 services:
   airflow-init:
     image: apache/airflow:2.10.4
-    env_file: .env
     environment:
       AIRFLOW_HOME: /opt/airflow
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
@@ -23,7 +22,6 @@ services:
       - airflow-init
     ports:
       - "8080:8080"
-    env_file: .env
     environment:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__WEBSERVER__RBAC: "True"
@@ -43,7 +41,6 @@ services:
     restart: on-failure
     depends_on:
       - airflow-webserver
-    env_file: .env
     environment:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__CORE__IS_PAUSED_UPON_CREATION: False
@@ -63,7 +60,6 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
-    env_file: .env
     volumes:
       - ./backend/api:/app
       - ./airflow/dags:/opt/airflow/dags
@@ -82,7 +78,6 @@ services:
       - ./frontend:/app
       - /app/node_modules
       - shared-data:/shared_data
-    env_file: .env
     depends_on:
       - fastapi
     networks:

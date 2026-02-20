@@ -5,35 +5,14 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="96279f8d-e850-4b42-b2a7-f18b942d5472" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.env.example" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/airflow/airflow.cfg" beforeDir="false" afterPath="$PROJECT_DIR$/airflow/airflow.cfg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/airflow/dags/components/extraction/csv.py" beforeDir="false" afterPath="$PROJECT_DIR$/airflow/dags/components/extraction/csv.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/airflow/dags/components/extraction/json.py" beforeDir="false" afterPath="$PROJECT_DIR$/airflow/dags/components/extraction/json.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/airflow/dags/components/extraction/xml.py" beforeDir="false" afterPath="$PROJECT_DIR$/airflow/dags/components/extraction/xml.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/airflow/dags/components/utils/config_example.py" beforeDir="false" afterPath="$PROJECT_DIR$/airflow/dags/components/utils/config_example.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/airflow/dags/components/utils/supabase_storage.py" beforeDir="false" afterPath="$PROJECT_DIR$/airflow/dags/components/utils/supabase_storage.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/airflow/dags/users/user_01f2083c_0ca6_4cd9_9502_64ba46bdfa85/user_01f2083c_0ca6_4cd9_9502_64ba46bdfa85_csv_data_extraction_and_harmonisation.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/airflow/dags/users/user_5648be61_30d1_4714_83dd_331414eb4b36/user_5648be61_30d1_4714_83dd_331414eb4b36_test.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/airflow/dags/users/user_628366f6_8dab_484f_9dea_1110f3616e93/user_628366f6_8dab_484f_9dea_1110f3616e93_test.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/airflow/dags/users/user_85ea4ed5_adae_4c93_8335_63a55e75bf0d/user_85ea4ed5_adae_4c93_8335_63a55e75bf0d_csv_extractor.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/airflow/dags/users/user_8a7f57f9_99e4_4171_b992_ab6f2bd1328a/user_8a7f57f9_99e4_4171_b992_ab6f2bd1328a_cohort_data_harmonisation_.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/airflow/dags/users/user_8a7f57f9_99e4_4171_b992_ab6f2bd1328a/user_8a7f57f9_99e4_4171_b992_ab6f2bd1328a_customer_survey_monthly_analysis.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/airflow/dags/users/user_8a7f57f9_99e4_4171_b992_ab6f2bd1328a/user_8a7f57f9_99e4_4171_b992_ab6f2bd1328a_ecommerce_analysis.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/airflow/dags/users/user_8a7f57f9_99e4_4171_b992_ab6f2bd1328a/user_8a7f57f9_99e4_4171_b992_ab6f2bd1328a_my_finances.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/airflow/dags/users/user_8a7f57f9_99e4_4171_b992_ab6f2bd1328a/user_8a7f57f9_99e4_4171_b992_ab6f2bd1328a_product_demand_prediction.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/airflow/dags/users/user_cb3518f9_a698_43a7_91cf_8479de0a346d/user_cb3518f9_a698_43a7_91cf_8479de0a346d_test.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/airflow/dags/users/user_cbd6da17_3e9d_4d32_8127_f3ef4d000bed/user_cbd6da17_3e9d_4d32_8127_f3ef4d000bed_1.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/airflow/dags/users/user_f06a4d64_e412_4c58_b184_6f65e8cd625b/user_f06a4d64_e412_4c58_b184_6f65e8cd625b_cohort_data_harmonisation_.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/airflow/dags/users/user_f06a4d64_e412_4c58_b184_6f65e8cd625b/user_f06a4d64_e412_4c58_b184_6f65e8cd625b_macrodata_refinement.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/airflow/init.sh" beforeDir="false" afterPath="$PROJECT_DIR$/airflow/init.sh" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/api/config.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/api/config.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/api/migrations/db_schema.sql" beforeDir="false" afterPath="$PROJECT_DIR$/backend/api/migrations/db_schema.sql" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/api/routes/workflows.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/api/routes/workflows.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/api/services/supabase_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/api/services/supabase_client.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/api/utils/dag_factory.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/api/utils/dag_factory.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/components/airflow-tasks/RegistryCohortsTest.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/docker-compose.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/docker-compose.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/app/layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/app/layout.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/app/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/app/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/organization/OrganizationList.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/organization/OrganizationList.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/workflow/TaskMenu.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/workflow/TaskMenu.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/supabase/docker-compose.yml" beforeDir="false" afterPath="$PROJECT_DIR$/supabase/docker-compose.yml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -51,32 +30,34 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;Docker.supabase.supavisor: Compose Deployment.executor&quot;: &quot;Run&quot;,
-    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
-    &quot;SHELLCHECK.PATH&quot;: &quot;I do mind&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
-    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/home/raquelparadinha/Desktop/PhD/copipes-test/CoPipes&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;project.structure.last.edited&quot;: &quot;Project&quot;,
-    &quot;project.structure.proportion&quot;: &quot;0.0&quot;,
-    &quot;project.structure.side.proportion&quot;: &quot;0.0&quot;,
-    &quot;ts.external.directory.path&quot;: &quot;/snap/intellij-idea-ultimate/714/plugins/javascript-plugin/jsLanguageServicesImpl/external&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Docker.supabase.supavisor: Compose Deployment.executor": "Run",
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "SHELLCHECK.PATH": "I do mind",
+    "git-widget-placeholder": "main",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "/home/raquelparadinha/Desktop/PhD/copipes-test/CoPipes/frontend/src/components/airflow-tasks",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "project.structure.last.edited": "Project",
+    "project.structure.proportion": "0.0",
+    "project.structure.side.proportion": "0.0",
+    "settings.editor.selected.configurable": "reference.settingsdialog.project.grazie",
+    "ts.external.directory.path": "/snap/intellij-idea-ultimate/714/plugins/javascript-plugin/jsLanguageServicesImpl/external",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/frontend/src/components/airflow-tasks" />
       <recent name="$PROJECT_DIR$" />
     </key>
   </component>
@@ -124,7 +105,8 @@
       <workItem from="1770288692322" duration="3076000" />
       <workItem from="1770572358441" duration="1175000" />
       <workItem from="1770629289132" duration="13484000" />
-      <workItem from="1770715265942" duration="9287000" />
+      <workItem from="1770715265942" duration="12654000" />
+      <workItem from="1771426869650" duration="15842000" />
     </task>
     <servers />
   </component>

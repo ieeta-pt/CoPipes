@@ -55,12 +55,14 @@ function OrganizationList({ onOrganizationCreate }: OrganizationListProps) {
     <>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Organizations</h1>
-        <button 
-          className="btn btn-primary"
-          onClick={() => setShowCreateForm(true)}
-        >
-          Create Organization
-        </button>
+        {organizations.length ==! 0 && (
+          <button
+            className="btn btn-primary"
+            onClick={() => setShowCreateForm(true)}
+          >
+            Create Organization
+          </button>
+        )}
       </div>
 
       {error && (
@@ -90,7 +92,7 @@ function OrganizationList({ onOrganizationCreate }: OrganizationListProps) {
 
       {organizations.length === 0 && (
         <div className="text-center py-12">
-          <h2 className="text-xl font-semibold mb-2">No Organizations Yet</h2>
+          <h2 className="text-xl font-semibold mb-2">No organizations yet</h2>
           <p className="text-base-content/70 mb-4">
             Create your first organization to start collaborating with your team.
           </p>
