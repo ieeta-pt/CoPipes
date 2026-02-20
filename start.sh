@@ -7,6 +7,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SUPABASE_DIR="$SCRIPT_DIR/supabase"
+APP_SCHEMA_FILE="$SCRIPT_DIR/backend/api/migrations/bootstrap_schema.sql"
 
 # Colors for output
 RED='\033[0;31m'
@@ -29,6 +30,35 @@ print_warning() {
 
 print_error() {
     echo -e "${RED}[-]${NC} $1"
+}
+
+ensure_databases_initialized() {
+    local app_db="${POSTGRES_DB:-postgres}"
+
+    if ! docker ps --format '{{.Names}}' | grep -qx "supabase-db"; then
+        print_error "supabase-db container is not running; cannot initialize databases"
+        return 1
+    fi
+
+    print_status "Ensuring Airflow metadata role and database exist..."
+
+    docker exec supabase-db psql -U postgres -d postgres -v ON_ERROR_STOP=1 -c "DO \\$\\$ BEGIN IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'airflow') THEN CREATE ROLE airflow WITH LOGIN PASSWORD 'airflow'; ELSE ALTER ROLE airflow WITH LOGIN PASSWORD 'airflow'; END IF; END \\$\\$;"
+
+    if ! docker exec supabase-db psql -U postgres -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname='airflow'" | grep -q 1; then
+        docker exec supabase-db psql -U postgres -d postgres -v ON_ERROR_STOP=1 -c "CREATE DATABASE airflow OWNER airflow;"
+    fi
+
+    docker exec supabase-db psql -U postgres -d postgres -v ON_ERROR_STOP=1 -c "GRANT ALL PRIVILEGES ON DATABASE airflow TO airflow;"
+
+    if [ ! -f "$APP_SCHEMA_FILE" ]; then
+        print_error "Application schema file not found at $APP_SCHEMA_FILE"
+        return 1
+    fi
+
+    print_status "Applying application schema to database '$app_db'..."
+    docker exec -i supabase-db psql -U postgres -d "$app_db" -v ON_ERROR_STOP=1 < "$APP_SCHEMA_FILE"
+
+    print_success "Database initialization completed"
 }
 
 # Wait for a container to be healthy
@@ -59,6 +89,8 @@ start_supabase() {
     # Wait for database to be healthy before proceeding
     wait_for_healthy "supabase-db" 120
 
+    ensure_databases_initialized
+
     print_success "Supabase services started"
     cd "$SCRIPT_DIR"
 }
@@ -78,6 +110,8 @@ start_app() {
         print_error "Supabase database is not running. Please start Supabase first with: ./start.sh supabase"
         exit 1
     fi
+
+    ensure_databases_initialized
 
     docker compose up -d
     print_success "CoPipes application services started"

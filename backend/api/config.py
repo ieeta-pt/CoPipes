@@ -1,5 +1,15 @@
 import os
 
+from dotenv import load_dotenv
+
+
+IS_CODESPACES = os.getenv("CODESPACES", "false").lower() == "true"
+
+# In Codespaces, use environment variables (e.g., GitHub Codespaces secrets).
+# Locally, allow values from .env as a fallback without overriding existing env vars.
+if not IS_CODESPACES:
+	load_dotenv(override=False)
+
 # Supabase Configuration
 SUPABASE_PUBLIC_URL = os.getenv("SUPABASE_PUBLIC_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
