@@ -39,7 +39,7 @@
     "RunOnceActivity.git.unshallow": "true",
     "RunOnceActivity.typescript.service.memoryLimit.init": "true",
     "SHELLCHECK.PATH": "I do mind",
-    "git-widget-placeholder": "main",
+    "git-widget-placeholder": "Merging main",
     "kotlin-language-version-configured": "true",
     "last_opened_file_path": "/home/raquelparadinha/Desktop/PhD/copipes-test/CoPipes/frontend/src/components/airflow-tasks",
     "node.js.detected.package.eslint": "true",
@@ -106,7 +106,7 @@
       <workItem from="1770572358441" duration="1175000" />
       <workItem from="1770629289132" duration="13484000" />
       <workItem from="1770715265942" duration="12654000" />
-      <workItem from="1771426869650" duration="26968000" />
+      <workItem from="1771426869650" duration="27610000" />
     </task>
     <servers />
   </component>
