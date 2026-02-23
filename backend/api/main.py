@@ -22,13 +22,14 @@ supabase = SupabaseClient()
 
 
 
-origins = FRONTEND_URL
+origins = [FRONTEND_URL] if FRONTEND_URL else ["*"]
+print(f"Allowed CORS origins: {origins}")
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=["*"],
 )
