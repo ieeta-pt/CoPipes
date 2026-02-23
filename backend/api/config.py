@@ -21,7 +21,7 @@ JWT_ALGORITHM = "HS256"
 JWT_ACCESS_TOKEN_EXPIRE_HOURS = 24
 
 # Frontend URL for redirects
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
+FRONTEND_URL = os.getenv("FRONTEND_URL")
 
 # Airflow Configuration
 AIRFLOW_API_URL = os.getenv("AIRFLOW_API_URL")

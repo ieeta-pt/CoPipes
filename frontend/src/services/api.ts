@@ -6,7 +6,8 @@ class ApiClient {
   private readonly CACHE_DURATION = 30000; // 30 seconds
 
   constructor() {
-    this.baseURL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+    this.baseURL = process.env.NEXT_PUBLIC_API_URL || "";
+    console.log(`API Client initialized with base URL: ${this.baseURL}`);
   }
 
   setAuth(token: string | null, onAuthError?: () => void) {

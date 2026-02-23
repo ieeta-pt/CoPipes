@@ -20,6 +20,7 @@ services:
       - supabase_default
 
   airflow-webserver:
+    container_name: airflow-webserver
     build: ./airflow
     restart: on-failure
     depends_on:
@@ -65,6 +66,7 @@ services:
       - supabase_default
 
   fastapi:
+    container_name: copipes-api
     build:
       context: ./backend/api
       dockerfile: Dockerfile
@@ -88,6 +90,7 @@ services:
       - supabase_default
 
   frontend:
+    container_name: copipes-web
     build:
       context: ./frontend
       dockerfile: Dockerfile

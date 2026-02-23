@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: 'http://fastapi:8000/api/:path*',
+        destination: 'http://copipes-api:8000/api/:path*',
       },
     ];
   },
