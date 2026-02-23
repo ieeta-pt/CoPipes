@@ -75,7 +75,7 @@ cat > "$ROOT_DIR/.env" <<EOF
 
 # Airflow database
 AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@supabase-db:5432/airflow
-AIRFLOW__WEBSERVER__SECRET_KEY=${AIRFLOW_WEBSERVER_SECRET_KEY}
+AIRFLOW__WEBSERVER__SECRET_KEY=${AIRFLOW__WEBSERVER__SECRET_KEY}
 AIRFLOW__API__AUTH_BACKENDS=airflow.api.auth.backend.basic_auth
 AIRFLOW_API_URL=http://airflow-webserver:8080/api/v1
 
