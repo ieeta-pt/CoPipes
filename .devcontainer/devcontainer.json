@@ -36,7 +36,7 @@
     }
   },
 
-  "postCreateCommand": "bash .devcontainer/setup.sh",
+  "postCreateCommand": "chmod +x start.sh .devcontainer/setup.sh",
 
   "customizations": {
     "vscode": {

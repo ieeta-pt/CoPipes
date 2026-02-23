@@ -42,15 +42,6 @@ if [ -n "$CODESPACE_NAME" ]; then
     echo ""
 fi
 
-# ── Start all services ──────────────────────────────────────────────────────
-echo "[*] Starting CoPipes services (first run pulls Docker images – may take a few minutes)..."
-if ! "$ROOT_DIR/start.sh" up; then
-    echo ""
-    echo "[!] Startup encountered an error. Once the Codespace is ready, run:"
-    echo "    ./start.sh up"
-    echo ""
-    exit 0
-fi
-
+echo "[+] Setup complete. Starting services..."
 echo ""
-echo "[+] CoPipes is up! The frontend will open automatically once port 3000 is ready."
+"$ROOT_DIR/start.sh" up
