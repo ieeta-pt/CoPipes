@@ -6,6 +6,7 @@ from routes import workflows, auth, organizations
 
 from database import SupabaseClient
 from fastapi.middleware.cors import CORSMiddleware
+from config import FRONTEND_URL
 
 app = FastAPI()
 app.include_router(workflows.router)
