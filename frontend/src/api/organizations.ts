@@ -10,12 +10,12 @@ import { apiClient } from '@/services/api';
 export const organizationApi = {
   // Create a new organization
   async createOrganization(data: OrganizationCreateRequest): Promise<Organization> {
-    return apiClient.post('/api/organizations/', data);
+    return apiClient.post('/api/organizations', data);
   },
 
   // Get user's organizations
   async getUserOrganizations(): Promise<Organization[]> {
-    return apiClient.get('/api/organizations/', true);
+    return apiClient.get('/api/organizations', true);
   },
 
   // Get organization members (admin only)

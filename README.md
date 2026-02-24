@@ -7,17 +7,7 @@ This is a test version. To try it you can create a GitHub codespace.
 3. This will open a VS Code page in your browser. In this page, open a terminal and run:
 
 ```bash
-./start.sh up
+bash .devcontainer/setup.sh
 ```
 
 4. This will create the infrastructure of the tools. When it is ready it shows the link to access the application. Just ctrl + click the displayed link for **CoPipes** and it will open a new browser page where you can test the system.
-
-If you get any error when running the command above, try restarting the system with
-
-```bash
-./start.sh down
-```
-and then rerun 
-```bash
-./start.sh up
-```

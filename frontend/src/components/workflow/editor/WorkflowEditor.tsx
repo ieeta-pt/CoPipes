@@ -64,7 +64,9 @@ export default function WorkflowEditor({
         try {
           setOrgLoading(true);
           const userOrgs = await organizationApi.getUserOrganizations();
-          setOrganizations(userOrgs);
+          if (userOrgs.length > 0) {
+            setOrganizations(userOrgs);
+          } 
           
           // Pre-select organization from URL params
           const orgFromUrl = searchParams?.get('org');
@@ -82,27 +84,27 @@ export default function WorkflowEditor({
     loadOrganizations();
   }, [isEditing, isAuthenticated, authLoading, searchParams]);
 
-  // Track mouse movement for real-time cursors
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      // Always track cursor position so other users can see it
-      if (updateCursor) {
-        console.log('Mouse move detected, updating cursor:', e.clientX, e.clientY);
-        updateCursor(e.clientX, e.clientY);
-      } else {
-        console.log('updateCursor not available');
-      }
-    };
+  // // Track mouse movement for real-time cursors
+  // useEffect(() => {
+  //   const handleMouseMove = (e: MouseEvent) => {
+  //     // Always track cursor position so other users can see it
+  //     if (updateCursor) {
+  //       console.log('Mouse move detected, updating cursor:', e.clientX, e.clientY);
+  //       updateCursor(e.clientX, e.clientY);
+  //     } else {
+  //       console.log('updateCursor not available');
+  //     }
+  //   };
 
-    // Only add listener if we have a workflowId
-    if (workflowId) {
-      window.addEventListener("mousemove", handleMouseMove);
-    }
+  //   // Only add listener if we have a workflowId
+  //   if (workflowId) {
+  //     window.addEventListener("mousemove", handleMouseMove);
+  //   }
 
-    return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-    };
-  }, [updateCursor, workflowId]);
+  //   return () => {
+  //     window.removeEventListener("mousemove", handleMouseMove);
+  //   };
+  // }, [updateCursor, workflowId]);
 
   useEffect(() => {
     async function fetchWorkflow() {
@@ -372,7 +374,7 @@ export default function WorkflowEditor({
                 Collaborators ({collaborators.length})
               </button>
 
-              {workflowId && (
+              {/* {workflowId && (
                 <button
                   className="btn btn-soft btn-accent"
                   onClick={() => setShowActivity(!showActivity)}
@@ -380,7 +382,7 @@ export default function WorkflowEditor({
                 >
                   <Activity className="h-4 w-4" />
                 </button>
-              )}
+              )} */}
             </div>
           </div>
 
