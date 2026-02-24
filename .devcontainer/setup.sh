@@ -86,6 +86,7 @@ AIRFLOW_ADMIN_EMAIL=admin@example.com
 
 # Service URLs
 NEXT_PUBLIC_API_URL=${API_URL}
+NEXT_PUBLIC_FRONTEND_URL=${FRONTEND_URL}
 FRONTEND_URL=${FRONTEND_URL}
 
 # Supabase — internal Docker URL (used by FastAPI)

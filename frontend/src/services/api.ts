@@ -10,6 +10,18 @@ class ApiClient {
     console.log(`API Client initialized with base URL: ${this.baseURL}`);
   }
 
+  private buildUrl(endpoint: string): string {
+    if (/^https?:\/\//i.test(endpoint)) {
+      return endpoint;
+    }
+
+    if (endpoint.startsWith("/api/")) {
+      return endpoint;
+    }
+
+    return `${this.baseURL}${endpoint}`;
+  }
+
   setAuth(token: string | null, onAuthError?: () => void) {
     this.token = token;
     this.onAuthError = onAuthError;
@@ -30,11 +42,13 @@ class ApiClient {
         }
         throw new Error("Authentication failed");
       }
-      
-      const errorData = await response.json().catch(() => ({ detail: "Unknown error" }));
+
+      const errorData = await response
+        .json()
+        .catch(() => ({ detail: "Unknown error" }));
       throw new Error(errorData.detail || `HTTP ${response.status}`);
     }
-    
+
     return response.json();
   }
 
@@ -61,14 +75,14 @@ class ApiClient {
 
   async get(endpoint: string, useCache: boolean = false) {
     // Check cache for GET requests to organizations endpoints
-    if (useCache && endpoint.includes('/api/organizations')) {
+    if (useCache && endpoint.includes("/api/organizations")) {
       const cached = this.getCachedData(endpoint);
       if (cached) {
         return cached;
       }
     }
 
-    const response = await fetch(`${this.baseURL}${endpoint}`, {
+    const response = await fetch(this.buildUrl(endpoint), {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -77,9 +91,9 @@ class ApiClient {
     });
 
     const data = await this.handleResponse(response);
-    
+
     // Cache GET responses for organizations endpoints
-    if (useCache && endpoint.includes('/api/organizations')) {
+    if (useCache && endpoint.includes("/api/organizations")) {
       this.setCachedData(endpoint, data);
     }
 
@@ -88,16 +102,20 @@ class ApiClient {
 
   private clearRelatedCache(endpoint: string) {
     // Clear cache for related organization endpoints when mutations occur
-    if (endpoint.includes('/api/organizations')) {
+    if (endpoint.includes("/api/organizations")) {
       for (const key of this.cache.keys()) {
-        if (key.includes('/api/organizations')) {
+        if (key.includes("/api/organizations")) {
           this.cache.delete(key);
         }
       }
     }
   }
 
-  async post(endpoint: string, data?: any, options?: { headers?: Record<string, string> }) {
+  async post(
+    endpoint: string,
+    data?: any,
+    options?: { headers?: Record<string, string> },
+  ) {
     const isFormData = data instanceof FormData;
     const headers = {
       ...(isFormData ? {} : { "Content-Type": "application/json" }),
@@ -105,22 +123,29 @@ class ApiClient {
       ...options?.headers,
     };
 
-    const response = await fetch(`${this.baseURL}${endpoint}`, {
+    console.log(
+      `POST request to ${endpoint} with data:`,
+      data,
+      `and headers:`,
+      headers,
+    );
+
+    const response = await fetch(this.buildUrl(endpoint), {
       method: "POST",
       headers,
-      body: isFormData ? data : (data ? JSON.stringify(data) : undefined),
+      body: isFormData ? data : data ? JSON.stringify(data) : undefined,
     });
 
     const result = await this.handleResponse(response);
-    
+
     // Clear related cache after mutations
     this.clearRelatedCache(endpoint);
-    
+
     return result;
   }
 
   async put(endpoint: string, data?: any) {
-    const response = await fetch(`${this.baseURL}${endpoint}`, {
+    const response = await fetch(this.buildUrl(endpoint), {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -130,15 +155,15 @@ class ApiClient {
     });
 
     const result = await this.handleResponse(response);
-    
+
     // Clear related cache after mutations
     this.clearRelatedCache(endpoint);
-    
+
     return result;
   }
 
   async delete(endpoint: string) {
-    const response = await fetch(`${this.baseURL}${endpoint}`, {
+    const response = await fetch(this.buildUrl(endpoint), {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
@@ -147,10 +172,10 @@ class ApiClient {
     });
 
     const result = await this.handleResponse(response);
-    
+
     // Clear related cache after mutations
     this.clearRelatedCache(endpoint);
-    
+
     return result;
   }
 
@@ -158,7 +183,7 @@ class ApiClient {
     const formData = new FormData();
     formData.append("file", file);
 
-    const response = await fetch(`${this.baseURL}${endpoint}`, {
+    const response = await fetch(this.buildUrl(endpoint), {
       method: "POST",
       headers: {
         ...this.getAuthHeader(),

@@ -1,14 +1,43 @@
 import os
+import re
 
 from fastapi import FastAPI, UploadFile, File
-
-from routes import workflows, auth, organizations
 
 from database import SupabaseClient
 from fastapi.middleware.cors import CORSMiddleware
 from config import FRONTEND_URL
 
 app = FastAPI()
+
+# Add CORS middleware FIRST before including routers
+# Build allowed origins - filter out None values
+allowed_origins = []
+if FRONTEND_URL:
+    allowed_origins.append(FRONTEND_URL)
+allowed_origins.extend([
+    "http://localhost:3000",
+    "http://localhost:5173",
+])
+
+# Allow GitHub Codespaces URLs with regex pattern
+allow_origin_regex = r"https://.*\.app\.github\.dev"
+
+print(f"Allowed CORS origins: {allowed_origins}")
+print(f"Allowed CORS origin regex: {allow_origin_regex}")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_origin_regex=allow_origin_regex,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["*"],
+)
+
+# Include routers AFTER middleware setup
+from routes import workflows, auth, organizations
+
 app.include_router(workflows.router)
 app.include_router(auth.router)
 app.include_router(organizations.router)
@@ -19,23 +48,6 @@ supabase = SupabaseClient()
 #AIRFLOW_ADMIN_PASSWORD = os.getenv("AIRFLOW_ADMIN_PASSWORD")
 #
 #API_AUTH = auth = (AIRFLOW_ADMIN_USERNAME, AIRFLOW_ADMIN_PASSWORD)
-
-
-
-origins = [FRONTEND_URL] if FRONTEND_URL else ["*"]
-print(f"Allowed CORS origins: {origins}")
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-    expose_headers=["*"],
-)
-
-
-
 
 
         
