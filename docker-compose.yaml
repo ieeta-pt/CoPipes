@@ -65,8 +65,7 @@ services:
     networks:
       - supabase_default
 
-  fastapi:
-    container_name: copipes-api
+  copipes-api:
     build:
       context: ./backend/api
       dockerfile: Dockerfile
@@ -89,8 +88,7 @@ services:
     networks:
       - supabase_default
 
-  frontend:
-    container_name: copipes-web
+  copipes-web:
     build:
       context: ./frontend
       dockerfile: Dockerfile
@@ -106,7 +104,7 @@ services:
       - /app/node_modules
       - shared-data:/shared_data
     depends_on:
-      - fastapi
+      - copipes-api
     networks:
       - supabase_default
 

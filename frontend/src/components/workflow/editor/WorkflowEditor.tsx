@@ -6,11 +6,11 @@ import { Registry } from "@/components/airflow-tasks/Registry";
 import { Sidebar } from "@/components/workflow/Sidebar";
 import { WorkflowCanvas } from "@/components/workflow/WorkflowCanvas";
 import CollaboratorManager from "@/components/workflow/CollaboratorManager";
-import PresenceIndicator, {
-  ActivityFeed,
-} from "@/components/workflow/PresenceIndicator";
-import { useRealtimeCollaboration } from "@/hooks/useRealtimeCollaboration";
-import { CursorOverlay } from "@/components/workflow/RealtimeCursor";
+// import PresenceIndicator, {
+//   ActivityFeed,
+// } from "@/components/workflow/PresenceIndicator";
+// import { useRealtimeCollaboration } from "@/hooks/useRealtimeCollaboration";
+// import { CursorOverlay } from "@/components/workflow/RealtimeCursor";
 import {
   submitWorkflow,
   getWorkflow,
@@ -55,7 +55,7 @@ export default function WorkflowEditor({
 
   // Realtime collaboration - temporarily using debug version
 
-  const { otherUsers, updateCursor } = useRealtimeCollaboration(workflowId);
+  // const { otherUsers, updateCursor } = useRealtimeCollaboration(workflowId);
 
   // Load user's organizations for new workflows
   useEffect(() => {
@@ -360,9 +360,9 @@ export default function WorkflowEditor({
                 <Settings className="h-4 w-4 mr-2" /> Compile
               </button>
               {/* Realtime presence indicator */}
-              {workflowId && (
+              {/* {workflowId && (
                 <PresenceIndicator workflowId={workflowId} className="mr-2" />
-              )}
+              )} */}
 
               <button
                 className="btn btn-secondary"
@@ -394,11 +394,11 @@ export default function WorkflowEditor({
         </div>
 
         {/* Activity feed sidebar */}
-        {showActivity && workflowId && (
+        {/* {showActivity && workflowId && (
           <div className="w-80 p-4">
             <ActivityFeed workflowId={workflowId} />
           </div>
-        )}
+        )} */}
       </div>
 
       {/* Collaborator Management Modal */}
@@ -429,7 +429,7 @@ export default function WorkflowEditor({
       )}
 
       {/* Realtime cursors - Debug version - placed at root level for proper positioning */}
-      {workflowId && <CursorOverlay otherUsers={otherUsers} />}
+      {/* {workflowId && <CursorOverlay otherUsers={otherUsers} />} */}
     </div>
   );
 }

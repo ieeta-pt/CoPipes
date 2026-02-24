@@ -16,14 +16,13 @@ if FRONTEND_URL:
     allowed_origins.append(FRONTEND_URL)
 allowed_origins.extend([
     "http://localhost:3000",
-    "http://localhost:5173",
 ])
 
 # Allow GitHub Codespaces URLs with regex pattern
 allow_origin_regex = r"https://.*\.app\.github\.dev"
 
 print(f"Allowed CORS origins: {allowed_origins}")
-print(f"Allowed CORS origin regex: {allow_origin_regex}")
+# print(f"Allowed CORS origin regex: {allow_origin_regex}")
 
 app.add_middleware(
     CORSMiddleware,

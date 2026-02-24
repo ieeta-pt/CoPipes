@@ -19,6 +19,9 @@ async def signup(user_data: UserRegister):
         response = supabase.auth.sign_up({
             "email": user_data.email,
             "password": user_data.password,
+            "raw_user_meta_data": {
+                "email_verified": True  # Mark email as verified to skip confirmation step
+            },
             "options": {
                 "data": {
                     "full_name": user_data.full_name

@@ -116,19 +116,15 @@ class ApiClient {
     data?: any,
     options?: { headers?: Record<string, string> },
   ) {
+    // Skip auth header for public auth endpoints
+    const isPublicAuthEndpoint = endpoint.includes("/auth/signup") || endpoint.includes("/auth/signin");
+    
     const isFormData = data instanceof FormData;
     const headers = {
       ...(isFormData ? {} : { "Content-Type": "application/json" }),
-      ...this.getAuthHeader(),
+      ...(isPublicAuthEndpoint ? {} : this.getAuthHeader()),
       ...options?.headers,
     };
-
-    console.log(
-      `POST request to ${endpoint} with data:`,
-      data,
-      `and headers:`,
-      headers,
-    );
 
     const response = await fetch(this.buildUrl(endpoint), {
       method: "POST",
