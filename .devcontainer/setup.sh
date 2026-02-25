@@ -60,14 +60,6 @@ fi
 # ── Compute public Codespace URLs ─────────────────────────────────────────
 DOMAIN="${GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN:-app.github.dev}"
 SUPABASE_URL="https://${CODESPACE_NAME}-8001.${DOMAIN}"
-API_URL="https://${CODESPACE_NAME}-8000.${DOMAIN}"
-FRONTEND_URL="https://${CODESPACE_NAME}-3000.${DOMAIN}"
-
-echo "[*] Service URLs:"
-echo "    Frontend:  $FRONTEND_URL"
-echo "    FastAPI:   $API_URL"
-echo "    Supabase:  $SUPABASE_URL"
-echo ""
 
 # ── Generate root .env ────────────────────────────────────────────────────
 cat > "$ROOT_DIR/.env" <<EOF
@@ -85,12 +77,12 @@ AIRFLOW_ADMIN_PASSWORD=${AIRFLOW_ADMIN_PASSWORD}
 AIRFLOW_ADMIN_EMAIL=admin@example.com
 
 # Service URLs
-NEXT_PUBLIC_API_URL=${API_URL}
-NEXT_PUBLIC_FRONTEND_URL=${FRONTEND_URL}
-FRONTEND_URL=${FRONTEND_URL}
+NEXT_PUBLIC_API_URL=http://copipes-api:8000
+NEXT_PUBLIC_FRONTEND_URL=http://copipes-web:3000
+FRONTEND_URL=http://copipes-web:3000
 
 # Supabase — internal Docker URL (used by FastAPI)
-SUPABASE_PUBLIC_URL=${SUPABASE_URL}
+SUPABASE_PUBLIC_URL=http://kong:8001
 SUPABASE_KEY=${ANON_KEY}
 SUPABASE_SERVICE_ROLE_KEY=${SERVICE_ROLE_KEY}
 
@@ -136,11 +128,11 @@ KONG_HTTPS_PORT=8444
 PGRST_DB_SCHEMAS=public,storage,graphql_public
 
 # Auth
-SITE_URL=${FRONTEND_URL}
+SITE_URL=http://copipes-web:3000
 ADDITIONAL_REDIRECT_URLS=
 JWT_EXPIRY=3600
 DISABLE_SIGNUP=false
-API_EXTERNAL_URL=${SUPABASE_URL}
+API_EXTERNAL_URL=http://kong:8000
 MAILER_URLPATHS_CONFIRMATION="/auth/v1/verify"
 MAILER_URLPATHS_INVITE="/auth/v1/verify"
 MAILER_URLPATHS_RECOVERY="/auth/v1/verify"
@@ -160,7 +152,7 @@ ENABLE_PHONE_AUTOCONFIRM=true
 # Studio
 STUDIO_DEFAULT_ORGANIZATION=Default Organization
 STUDIO_DEFAULT_PROJECT=Default Project
-SUPABASE_PUBLIC_URL=${SUPABASE_URL}
+SUPABASE_PUBLIC_URL=http://kong:8001
 IMGPROXY_ENABLE_WEBP_DETECTION=true
 OPENAI_API_KEY=
 
