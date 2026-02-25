@@ -123,10 +123,10 @@ export default function WorkflowEditor({
         try {
           setIsLoading(true);
           setError(null);
-          console.log("Fetching workflow:", workflowId);
+          // console.log("Fetching workflow:", workflowId);
           const workflow = await getWorkflow(workflowId);
           setWorkflowName(workflow.dag_id.replace(/_/g, " "));
-          console.log("Fetched workflow:", workflow.dag_id);
+          // console.log("Fetched workflow:", workflow.dag_id);
           setWorkflowItems(
             workflow.tasks.map((task: any) => ({
               ...task,
@@ -188,7 +188,7 @@ export default function WorkflowEditor({
       return;
     }
 
-    console.log("Compiling workflow with items:", workflowItems);
+    // console.log("Compiling workflow with items:", workflowItems);
 
     const validatedItems = workflowItems.map((item) => ({
       id: item.id,

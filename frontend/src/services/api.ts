@@ -7,7 +7,6 @@ class ApiClient {
 
   constructor() {
     this.baseURL = process.env.NEXT_PUBLIC_API_URL || "";
-    console.log(`API Client initialized with base URL: ${this.baseURL}`);
   }
 
   private buildUrl(endpoint: string): string {

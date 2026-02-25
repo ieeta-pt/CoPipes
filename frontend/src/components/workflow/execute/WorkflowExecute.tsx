@@ -71,7 +71,7 @@ export default function WorkflowExecute({
 
           const workflow = await getWorkflow(workflowId);
           setWorkflowName(workflow.dag_id.replace(/_/g, " "));
-          console.log("Fetched workflow:", workflow.dag_id);
+          // console.log("Fetched workflow:", workflow.dag_id);
           setWorkflow(
             workflow.tasks.map((task: any) => {
               // Get original config from Registry to restore field types
@@ -119,7 +119,7 @@ export default function WorkflowExecute({
     if (!configSidebar) return null;
 
     const type = configSidebar.getAttribute("data-schedule-type") || "now";
-    console.log("Schedule type from sidebar:", type);
+    // console.log("Schedule type from sidebar:", type);
 
     let schedule_text = "";
     let payload: any = {};
@@ -158,7 +158,7 @@ export default function WorkflowExecute({
           }
         }
 
-        console.log("Extracted cron expression:", cronExpression);
+        // console.log("Extracted cron expression:", cronExpression);
         schedule_text = `Execute: ${cronExpression}`;
         payload = {
           schedule: cronExpression,
@@ -247,7 +247,7 @@ export default function WorkflowExecute({
 
       showToast("Starting workflow execution...", "info");
 
-      console.log("SCHEDULE PAYLOAD: ", schedulePayload);
+      // console.log("SCHEDULE PAYLOAD: ", schedulePayload);
       const payload = {
         dag_id: workflowId.replace(/ /g, "_"),
         tasks: workflow.map((task) => ({
@@ -274,7 +274,7 @@ export default function WorkflowExecute({
         ...schedulePayload,
       };
 
-      console.log("Executing workflow with payload:", payload);
+      // console.log("Executing workflow with payload:", payload);
       const result = await executeWorkflow(payload);
 
       setExecutionResult(result);

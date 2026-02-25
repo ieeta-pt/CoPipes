@@ -134,7 +134,7 @@ export const columns: ColumnDef<Workflow>[] = [
       const ownerEmail = workflow.owner_email;
       const ownerName = workflow.owner_name;
       const isCurrentUserOwner = workflow.role === "owner";
-      console.log("Workflow role:", workflow.role);
+      // console.log("Workflow role:", workflow.role);
 
       
       // Display owner information

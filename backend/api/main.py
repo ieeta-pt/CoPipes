@@ -21,9 +21,6 @@ allowed_origins.extend([
 # Allow GitHub Codespaces URLs with regex pattern
 allow_origin_regex = r"https://.*\.app\.github\.dev"
 
-print(f"Allowed CORS origins: {allowed_origins}")
-# print(f"Allowed CORS origin regex: {allow_origin_regex}")
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,

@@ -15,7 +15,7 @@ router = APIRouter(
 
 organization_service = OrganizationService()
 
-@router.post("/", response_model=OrganizationResponse)
+@router.post("", response_model=OrganizationResponse)
 async def create_organization(
     org_data: OrganizationCreate,
     current_user: dict = Depends(get_current_user)
@@ -29,7 +29,7 @@ async def create_organization(
             detail=str(e)
         )
 
-@router.get("/", response_model=List[OrganizationResponse])
+@router.get("", response_model=List[OrganizationResponse])
 async def get_user_organizations(current_user: dict = Depends(get_current_user)):
     """Get all organizations the current user belongs to."""
     try:
